@@ -1,0 +1,121 @@
+{
+    "input_path": "D:\\Code\\Android\\AI\\paddle\\anh-mo-ta.jpg",
+    "page_index": null,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_textline_orientation": false
+    },
+    "dt_polys": [
+        [
+            [
+                138,
+                161
+            ],
+            [
+                455,
+                175
+            ],
+            [
+                451,
+                287
+            ],
+            [
+                134,
+                273
+            ]
+        ],
+        [
+            [
+                457,
+                422
+            ],
+            [
+                590,
+                422
+            ],
+            [
+                590,
+                449
+            ],
+            [
+                457,
+                449
+            ]
+        ]
+    ],
+    "text_det_params": {
+        "limit_side_len": 64,
+        "limit_type": "min",
+        "thresh": 0.3,
+        "max_side_limit": 4000,
+        "box_thresh": 0.6,
+        "unclip_ratio": 1.5
+    },
+    "text_type": "general",
+    "textline_orientation_angles": [
+        -1,
+        -1
+    ],
+    "text_rec_score_thresh": 0.0,
+    "return_word_box": false,
+    "rec_texts": [
+        "Buòn :))",
+        "#MeiiSwag2811"
+    ],
+    "rec_scores": [
+        0.9551161527633667,
+        0.9817413687705994
+    ],
+    "rec_polys": [
+        [
+            [
+                138,
+                161
+            ],
+            [
+                455,
+                175
+            ],
+            [
+                451,
+                287
+            ],
+            [
+                134,
+                273
+            ]
+        ],
+        [
+            [
+                457,
+                422
+            ],
+            [
+                590,
+                422
+            ],
+            [
+                590,
+                449
+            ],
+            [
+                457,
+                449
+            ]
+        ]
+    ],
+    "rec_boxes": [
+        [
+            134,
+            161,
+            455,
+            287
+        ],
+        [
+            457,
+            422,
+            590,
+            449
+        ]
+    ]
+}

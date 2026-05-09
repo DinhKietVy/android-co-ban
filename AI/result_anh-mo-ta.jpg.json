@@ -1,0 +1,121 @@
+{
+    "input_path": "temp_anh-mo-ta.jpg",
+    "page_index": null,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_textline_orientation": false
+    },
+    "dt_polys": [
+        [
+            [
+                128,
+                150
+            ],
+            [
+                466,
+                165
+            ],
+            [
+                460,
+                298
+            ],
+            [
+                123,
+                283
+            ]
+        ],
+        [
+            [
+                455,
+                420
+            ],
+            [
+                592,
+                420
+            ],
+            [
+                592,
+                451
+            ],
+            [
+                455,
+                451
+            ]
+        ]
+    ],
+    "text_det_params": {
+        "limit_side_len": 1536,
+        "limit_type": "max",
+        "thresh": 0.2,
+        "max_side_limit": 4000,
+        "box_thresh": 0.45,
+        "unclip_ratio": 2.0
+    },
+    "text_type": "general",
+    "textline_orientation_angles": [
+        -1,
+        -1
+    ],
+    "text_rec_score_thresh": 0.0,
+    "return_word_box": false,
+    "rec_texts": [
+        "Buồn :))",
+        "4MeiiSwag2811"
+    ],
+    "rec_scores": [
+        0.9906189441680908,
+        0.9388481974601746
+    ],
+    "rec_polys": [
+        [
+            [
+                128,
+                150
+            ],
+            [
+                466,
+                165
+            ],
+            [
+                460,
+                298
+            ],
+            [
+                123,
+                283
+            ]
+        ],
+        [
+            [
+                455,
+                420
+            ],
+            [
+                592,
+                420
+            ],
+            [
+                592,
+                451
+            ],
+            [
+                455,
+                451
+            ]
+        ]
+    ],
+    "rec_boxes": [
+        [
+            123,
+            150,
+            466,
+            298
+        ],
+        [
+            455,
+            420,
+            592,
+            451
+        ]
+    ]
+}
