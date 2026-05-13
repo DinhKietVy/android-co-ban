@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadData, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory } from '../controllers/data.controller';
+import { uploadData, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile } from '../controllers/data.controller';
 
 const router = Router();
 
@@ -396,5 +396,85 @@ router.delete('/folder', deleteFolder);
  *         description: Lỗi hệ thống server
  */
 router.post('/list', listDirectory);
+
+/**
+ * @swagger
+ * /api/data/download:
+ *   get:
+ *     summary: Tải file về máy
+ *     description: Tải một file từ server về máy người dùng. Hỗ trợ truyền tham số qua query.
+ *     tags: [Data]
+ *     parameters:
+ *       - in: query
+ *         name: username
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Tên đăng nhập của người dùng
+ *         example: admin123
+ *       - in: query
+ *         name: filePath
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Đường dẫn của file cần tải (tính từ thư mục gốc của user)
+ *         example: hinhanh/2026/avatar.png
+ *     responses:
+ *       200:
+ *         description: Trả về file để tải xuống
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Đường dẫn trỏ tới thư mục thay vì file, hoặc thiếu dữ liệu
+ *       403:
+ *         description: Đường dẫn không hợp lệ (bị lỗi Path Traversal)
+ *       404:
+ *         description: File không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ *   post:
+ *     summary: Tải file về máy
+ *     description: Tải một file từ server về máy người dùng. Hỗ trợ truyền tham số qua body.
+ *     tags: [Data]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - filePath
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Tên đăng nhập của người dùng
+ *                 example: admin123
+ *               filePath:
+ *                 type: string
+ *                 description: Đường dẫn của file cần tải (tính từ thư mục gốc của user)
+ *                 example: hinhanh/2026/avatar.png
+ *     responses:
+ *       200:
+ *         description: Trả về file để tải xuống
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Đường dẫn trỏ tới thư mục thay vì file, hoặc thiếu dữ liệu
+ *       403:
+ *         description: Đường dẫn không hợp lệ (bị lỗi Path Traversal)
+ *       404:
+ *         description: File không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.get('/download', downloadFile);
+router.post('/download', downloadFile);
 
 export default router;

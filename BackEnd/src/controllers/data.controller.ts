@@ -425,3 +425,50 @@ export const listDirectory = (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
   }
 };
+
+// API tải file
+export const downloadFile = (req: Request, res: Response) => {
+  try {
+    // Lấy dữ liệu từ query (nếu là GET request) hoặc body (nếu là POST request)
+    const username = req.query.username || req.body.username;
+    const filePath = req.query.filePath || req.body.filePath;
+
+    if (!username || filePath === undefined) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath)' });
+    }
+
+    const userRootPath = path.resolve(__dirname, '../../data', username as string);
+    
+    // Kiểm tra đường dẫn file
+    const absoluteFilePath = path.resolve(userRootPath, filePath as string);
+
+    // Chống Path Traversal
+    if (!absoluteFilePath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn file không hợp lệ' });
+    }
+
+    if (!fs.existsSync(absoluteFilePath)) {
+      return res.status(404).json({ error: 'File không tồn tại' });
+    }
+
+    // Đảm bảo đây là file, không phải thư mục
+    if (!fs.statSync(absoluteFilePath).isFile()) {
+      return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một file' });
+    }
+
+    // Tải file về máy người dùng
+    return res.download(absoluteFilePath, path.basename(absoluteFilePath), (err) => {
+      if (err) {
+        console.error('Lỗi khi tải file:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Lỗi trong quá trình truyền file' });
+        }
+      }
+    });
+
+  } catch (error: any) {
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+    }
+  }
+};
