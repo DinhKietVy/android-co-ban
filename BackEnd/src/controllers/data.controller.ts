@@ -291,8 +291,16 @@ export const deleteFile = (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một file' });
     }
 
-    // Xoá file
-    fs.unlinkSync(absoluteFilePath);
+    // Đưa file vào thư mục bin/username thay vì xoá vĩnh viễn
+    const binUserPath = path.resolve(__dirname, '../../bin', username);
+    if (!fs.existsSync(binUserPath)) {
+      fs.mkdirSync(binUserPath, { recursive: true });
+    }
+
+    const fileName = path.basename(absoluteFilePath);
+    const newFilePath = path.join(binUserPath, `${Date.now()}-${fileName}`);
+
+    fs.renameSync(absoluteFilePath, newFilePath);
 
     return res.status(200).json({
       message: 'Xoá file thành công',
@@ -340,11 +348,34 @@ export const deleteFolder = (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một thư mục' });
     }
 
-    // Xoá thư mục cùng toàn bộ file/folder con bên trong
+    // Đưa toàn bộ file trong thư mục (và các thư mục con) vào thùng rác
+    const binUserPath = path.resolve(__dirname, '../../bin', username);
+    if (!fs.existsSync(binUserPath)) {
+      fs.mkdirSync(binUserPath, { recursive: true });
+    }
+
+    // Hàm đệ quy duyệt qua các file và di chuyển
+    const moveFilesToBin = (dirPath: string) => {
+      const items = fs.readdirSync(dirPath, { withFileTypes: true });
+      for (const item of items) {
+        const itemPath = path.join(dirPath, item.name);
+        if (item.isDirectory()) {
+          moveFilesToBin(itemPath); // Đệ quy vào thư mục con
+        } else if (item.isFile()) {
+          const newFilePath = path.join(binUserPath, `${Date.now()}-${item.name}`);
+          fs.renameSync(itemPath, newFilePath);
+        }
+      }
+    };
+
+    // Thực hiện di chuyển tất cả file
+    moveFilesToBin(absoluteFolderPath);
+
+    // Xoá cấu trúc thư mục (bây giờ chỉ còn các thư mục con rỗng)
     fs.rmSync(absoluteFolderPath, { recursive: true, force: true });
 
     return res.status(200).json({
-      message: 'Xoá thư mục thành công',
+      message: 'Đưa toàn bộ file trong thư mục vào thùng rác và xoá thư mục thành công',
       data: {
         username,
         folderPath
@@ -471,4 +502,193 @@ export const downloadFile = (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
     }
   }
-};
+};
+
+// API đổi tên file
+export const renameFile = (req: Request, res: Response) => {
+  try {
+    const { username, filePath, newFileName } = req.body;
+
+    if (!username || !filePath || !newFileName) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath, newFileName)' });
+    }
+
+    const userRootPath = path.resolve(__dirname, '../../data', username);
+    
+    // Kiểm tra đường dẫn file
+    const absoluteFilePath = path.resolve(userRootPath, filePath);
+
+    // Chống Path Traversal
+    if (!absoluteFilePath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn file không hợp lệ' });
+    }
+
+    if (!fs.existsSync(absoluteFilePath)) {
+      return res.status(404).json({ error: 'File không tồn tại' });
+    }
+
+    // Đảm bảo đây là file
+    if (!fs.statSync(absoluteFilePath).isFile()) {
+      return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một file' });
+    }
+
+    // Lấy thư mục chứa file hiện tại và tạo đường dẫn mới
+    const directoryPath = path.dirname(absoluteFilePath);
+    const safeNewFileName = path.basename(newFileName); // Chỉ lấy phần tên, loại bỏ đường dẫn nếu có
+    
+    if (!safeNewFileName) {
+      return res.status(400).json({ error: 'Tên file mới không hợp lệ' });
+    }
+
+    const absoluteNewFilePath = path.resolve(directoryPath, safeNewFileName);
+
+    if (fs.existsSync(absoluteNewFilePath)) {
+      return res.status(400).json({ error: 'Tên file mới đã tồn tại' });
+    }
+
+    fs.renameSync(absoluteFilePath, absoluteNewFilePath);
+
+    return res.status(200).json({
+      message: 'Đổi tên file thành công',
+      data: {
+        username,
+        oldFilePath: filePath,
+        newFileName: safeNewFileName
+      }
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};
+
+// API đổi tên thư mục
+export const renameFolder = (req: Request, res: Response) => {
+  try {
+    const { username, folderPath, newFolderName } = req.body;
+
+    if (!username || !folderPath || !newFolderName) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, folderPath, newFolderName)' });
+    }
+
+    const userRootPath = path.resolve(__dirname, '../../data', username);
+    
+    // Kiểm tra đường dẫn thư mục
+    const absoluteFolderPath = path.resolve(userRootPath, folderPath);
+
+    // Chống Path Traversal
+    if (!absoluteFolderPath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn thư mục không hợp lệ' });
+    }
+
+    // Không cho phép đổi tên thư mục gốc của user
+    if (absoluteFolderPath === userRootPath) {
+      return res.status(400).json({ error: 'Không thể đổi tên thư mục gốc của người dùng' });
+    }
+
+    if (!fs.existsSync(absoluteFolderPath)) {
+      return res.status(404).json({ error: 'Thư mục không tồn tại' });
+    }
+
+    // Đảm bảo đây là thư mục
+    if (!fs.statSync(absoluteFolderPath).isDirectory()) {
+      return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một thư mục' });
+    }
+
+    // Lấy thư mục cha chứa thư mục hiện tại và tạo đường dẫn mới
+    const directoryPath = path.dirname(absoluteFolderPath);
+    const safeNewFolderName = path.basename(newFolderName); // Chỉ lấy phần tên, loại bỏ đường dẫn nếu có
+    
+    if (!safeNewFolderName) {
+      return res.status(400).json({ error: 'Tên thư mục mới không hợp lệ' });
+    }
+
+    const absoluteNewFolderPath = path.resolve(directoryPath, safeNewFolderName);
+
+    if (fs.existsSync(absoluteNewFolderPath)) {
+      return res.status(400).json({ error: 'Tên thư mục mới đã tồn tại' });
+    }
+
+    fs.renameSync(absoluteFolderPath, absoluteNewFolderPath);
+
+    return res.status(200).json({
+      message: 'Đổi tên thư mục thành công',
+      data: {
+        username,
+        oldFolderPath: folderPath,
+        newFolderName: safeNewFolderName
+      }
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};
+
+// API tìm kiếm file/thư mục theo tên
+export const searchFiles = (req: Request, res: Response) => {
+  try {
+    const { username, keyword } = req.body;
+
+    if (!username || !keyword) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, keyword)' });
+    }
+
+    const userRootPath = path.resolve(__dirname, '../../data', username);
+    
+    if (!fs.existsSync(userRootPath)) {
+      return res.status(404).json({ error: 'Thư mục người dùng không tồn tại' });
+    }
+
+    const results: any[] = [];
+    const searchKeyword = keyword.toLowerCase();
+
+    // Hàm đệ quy duyệt qua các file và thư mục để tìm kiếm
+    const searchInDirectory = (dirPath: string) => {
+      const items = fs.readdirSync(dirPath, { withFileTypes: true });
+      for (const item of items) {
+        const itemPath = path.join(dirPath, item.name);
+        
+        // Tạo đường dẫn tương đối so với thư mục gốc của user
+        // (Thay thế dấu backslash của Windows bằng xuyệt chuẩn '/' cho dễ dùng trên frontend)
+        const relativePath = path.relative(userRootPath, itemPath).replace(/\\/g, '/');
+
+        // Kiểm tra xem tên file hoặc thư mục có chứa từ khóa hay không
+        if (item.name.toLowerCase().includes(searchKeyword)) {
+          try {
+            const stats = fs.statSync(itemPath);
+            results.push({
+              name: item.name,
+              path: relativePath,
+              type: item.isDirectory() ? 'folder' : 'file',
+              size: item.isFile() ? stats.size : undefined, // Trả về undefined với thư mục
+              createdAt: stats.birthtime,
+              modifiedAt: stats.mtime
+            });
+          } catch (err) {
+            // Bỏ qua file lỗi, tiếp tục tìm kiếm
+          }
+        }
+
+        // Đệ quy nếu là thư mục (Dù thư mục đó có chứa từ khoá hay không, ta vẫn vào tìm tiếp)
+        if (item.isDirectory()) {
+          searchInDirectory(itemPath);
+        }
+      }
+    };
+
+    searchInDirectory(userRootPath);
+
+    return res.status(200).json({
+      message: 'Tìm kiếm thành công',
+      data: {
+        username,
+        keyword,
+        results
+      }
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};

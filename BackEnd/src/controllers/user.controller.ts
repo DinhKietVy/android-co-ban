@@ -9,7 +9,7 @@ const bcrypt = require('bcrypt')
 
 
 export const createUser = async (req: Request, res: Response) => {
-    try {
+  try {
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, password)' });
@@ -32,8 +32,13 @@ export const createUser = async (req: Request, res: Response) => {
       `);
 
     const userFolderPath = path.join(__dirname, '../../data', username);
+    const binUserFolderPath = path.join(__dirname, '../../bin', username);
     if (!fs.existsSync(userFolderPath)) {
       fs.mkdirSync(userFolderPath, { recursive: true });
+    }
+
+    if (!fs.existsSync(binUserFolderPath)) {
+      fs.mkdirSync(binUserFolderPath, { recursive: true });
     }
 
     res.status(201).json({ message: 'Tạo thành công', data: result.recordset[0] });
