@@ -2,15 +2,16 @@ from contextlib import asynccontextmanager
 from io import BytesIO
 import json
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
+import os
 from paddleocr import PaddleOCR
 from PIL import Image, ImageDraw, ImageFont
 import cv2
 import numpy as np
 import base64
-
-
+import uuid
+import tempfile
 
 from ultralytics import YOLO
 
@@ -51,7 +52,7 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/predict-image")
-async def predict_image(file: UploadFile = File(...)):
+async def predict_image(username: str = Form(...), file: UploadFile = File(...)):
     global ocr
 
     if ocr is None:
@@ -139,7 +140,13 @@ async def predict_image(file: UploadFile = File(...)):
     # ========================
     # Save + return
     # ========================
-    output_path = f"fixed_{file.filename}"
+    # Ensure user's AI directory exists in backend data using relative path
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    backend_data_dir = os.path.join(base_dir, "BackEnd", "data")
+    user_ai_dir = os.path.join(backend_data_dir, username, "AI")
+    os.makedirs(user_ai_dir, exist_ok=True)
+    
+    output_path = os.path.join(user_ai_dir, f"fixed_{file.filename}")
     cv2.imwrite(output_path, image)
 
     # Convert ảnh sang chuỗi base64 để đính kèm trong JSON
@@ -152,7 +159,7 @@ async def predict_image(file: UploadFile = File(...)):
     }
 
 @app.post("/predict-yolo")
-async def predict_yolo(file: UploadFile = File(...)):
+async def predict_yolo(username: str = Form(...), file: UploadFile = File(...)):
     global yolo_model
     if yolo_model is None:
         return {"error": "YOLO chưa khởi tạo"}
@@ -168,8 +175,73 @@ async def predict_yolo(file: UploadFile = File(...)):
     # Lấy ảnh kết quả đã được vẽ bounding box
     res_img = results[0].plot()
 
+    # Lưu ảnh vào thư mục AI của user bằng đường dẫn tương đối
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    backend_data_dir = os.path.join(base_dir, "BackEnd", "data")
+    user_ai_dir = os.path.join(backend_data_dir, username, "AI")
+    os.makedirs(user_ai_dir, exist_ok=True)
+    
+    output_path = os.path.join(user_ai_dir, f"yolo_{file.filename}")
+    cv2.imwrite(output_path, res_img)
+
     # Encode ảnh thành định dạng jpg
     _, buffer = cv2.imencode('.jpg', res_img)
     
     # Trả về dưới dạng file stream (hiển thị luôn thành ảnh)
     return StreamingResponse(BytesIO(buffer.tobytes()), media_type="image/jpeg")
+
+@app.post("/search-images-by-text")
+async def search_images_by_text(username: str = Form(...), search_string: str = Form(...)):
+    global ocr
+    if ocr is None:
+        return {"error": "OCR chưa khởi tạo"}
+
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    user_data_dir = os.path.join(base_dir, "BackEnd", "data", username)
+
+    if not os.path.exists(user_data_dir):
+        return {"error": "Thư mục user không tồn tại"}
+
+    matched_images = []
+
+    for root, dirs, files in os.walk(user_data_dir):
+        for file in files:
+            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+                img_path = os.path.join(root, file)
+                
+                try:
+                    results = ocr.predict(input=img_path)
+                    
+                    # Lưu tạm ra json để đọc rec_texts như cách làm hiện tại
+                    temp_json = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.json")
+                    for res in results:
+                        res.save_to_json(temp_json)
+                        
+                    if os.path.exists(temp_json):
+                        with open(temp_json, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                        os.remove(temp_json)
+                        
+                        rec_texts = data.get("rec_texts", [])
+                        
+                        # Kiểm tra xem có text nào chứa search_string không (không phân biệt hoa thường)
+                        if any(search_string.lower() in text.lower() for text in rec_texts):
+                            # Đọc ảnh và chuyển sang base64
+                            img = cv2.imread(img_path)
+                            if img is not None:
+                                _, buffer = cv2.imencode('.jpg', img)
+                                image_base64 = base64.b64encode(buffer).decode('utf-8')
+                                matched_images.append({
+                                    "filename": file,
+                                    "path": os.path.relpath(img_path, user_data_dir),
+                                    "image_base64": image_base64
+                                })
+                except Exception as e:
+                    print(f"Lỗi khi xử lý ảnh {img_path}: {e}")
+                    continue
+
+    return {
+        "search_string": search_string,
+        "total_matched": len(matched_images),
+        "matched_images": matched_images
+    }
