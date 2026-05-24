@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/recent_bg"
+    tools:context=".recent.RecentFragment">
+
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/recent_surface"
+        android:elevation="2dp"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <LinearLayout
+                android:id="@+id/tabSegment"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:background="@color/recent_chip_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="2dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/recentTabButton"
+                    style="@style/Widget.Material3.Button.UnelevatedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/recent_tab_recent"
+                    android:textAllCaps="false"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/favoritesTabButton"
+                    style="@style/Widget.Material3.Button.UnelevatedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/recent_tab_favorites"
+                    android:textAllCaps="false"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/searchButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/recent_search"
+                android:padding="8dp"
+                android:src="@drawable/search"
+                android:tint="@color/recent_text_secondary" />
+
+            <ImageButton
+                android:id="@+id/sortButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/recent_sort"
+                android:padding="8dp"
+                android:src="@drawable/arrow_up_down"
+                android:tint="@color/recent_text_secondary" />
+        </LinearLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/searchInputLayout"
+            style="@style/AuthTextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="0dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            app:startIconDrawable="@drawable/search"
+            app:startIconTint="@color/recent_text_secondary">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/searchEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/recent_search"
+                android:textColor="@color/recent_text_primary"
+                android:textColorHint="@color/recent_text_secondary" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:id="@+id/quickAccessContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/recent_bg"
+        android:fillViewport="true"
+        android:paddingTop="14dp"
+        android:paddingBottom="10dp"
+        android:scrollbars="none"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topBar">
+
+        <LinearLayout
+            android:id="@+id/quickAccessRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
+    </HorizontalScrollView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recentRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/quickAccessContainer"
+        tools:listitem="@layout/item_recent_entry" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

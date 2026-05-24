@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rowRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingStart="20dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="14dp">
+    <ImageView android:id="@+id/rowIcon" android:layout_width="20dp" android:layout_height="20dp"/>
+    <TextView android:id="@+id/rowLabel" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:textColor="@color/profile_text_primary" android:textSize="15sp"/>
+    <ImageView android:id="@+id/rowChevron" android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/chevron_right" android:tint="@color/profile_text_secondary"/>
+</LinearLayout>

@@ -5,15 +5,48 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:background="@color/main_surface"
+    tools:context=".main.MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/mainViewPager"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/bottomDivider"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:id="@+id/bottomDivider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/main_divider"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/main_surface"
+        android:minHeight="76dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="10dp"
+        app:itemActiveIndicatorStyle="@null"
+        app:itemIconSize="24dp"
+        app:itemIconTint="@color/main_bottom_nav_item_colors"
+        app:itemPaddingTop="6dp"
+        app:itemPaddingBottom="2dp"
+        app:itemRippleColor="@android:color/transparent"
+        app:itemTextAppearanceActive="@style/MainBottomNavTextAppearance"
+        app:itemTextAppearanceInactive="@style/MainBottomNavTextAppearance"
+        app:itemTextColor="@color/main_bottom_nav_item_colors"
+        app:labelVisibilityMode="labeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/main_bottom_navigation" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

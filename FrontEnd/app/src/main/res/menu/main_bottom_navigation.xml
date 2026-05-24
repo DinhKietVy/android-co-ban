@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigation_explorer"
+        android:icon="@drawable/folder"
+        android:title="@string/tab_explorer" />
+    <item
+        android:id="@+id/navigation_recent"
+        android:icon="@drawable/clock"
+        android:title="@string/tab_recent" />
+    <item
+        android:id="@+id/navigation_trash"
+        android:icon="@drawable/trash_2"
+        android:title="@string/tab_trash" />
+    <item
+        android:id="@+id/navigation_profile"
+        android:icon="@drawable/user"
+        android:title="@string/tab_profile" />
+</menu>

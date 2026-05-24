@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="12dp" />
+            <gradient
+                android:angle="315"
+                android:startColor="@color/auth_gradient_start_pressed"
+                android:endColor="@color/auth_gradient_end_pressed" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="12dp" />
+            <gradient
+                android:angle="315"
+                android:startColor="@color/auth_gradient_start"
+                android:endColor="@color/auth_gradient_end" />
+        </shape>
+    </item>
+</selector>

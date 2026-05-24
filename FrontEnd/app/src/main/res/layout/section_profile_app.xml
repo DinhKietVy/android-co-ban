@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="12dp" android:paddingStart="4dp" android:text="@string/profile_section_app" android:textColor="@color/profile_text_secondary" android:textSize="13sp" android:textStyle="bold"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/profile_card_background" android:orientation="vertical">
+        <include layout="@layout/row_profile_backend"/>
+        <include layout="@layout/row_profile_ai_server"/>
+        <include layout="@layout/row_profile_cache"/>
+        <include layout="@layout/row_profile_upload"/>
+        <include layout="@layout/row_profile_theme"/>
+        <include layout="@layout/row_profile_language"/>
+    </LinearLayout>
+</LinearLayout>
