@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadData, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile } from '../controllers/data.controller';
+import { uploadData, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles } from '../controllers/data.controller';
 
 const router = Router();
 
@@ -476,5 +476,187 @@ router.post('/list', listDirectory);
  */
 router.get('/download', downloadFile);
 router.post('/download', downloadFile);
+
+/**
+ * @swagger
+ * /api/data/rename-file:
+ *   post:
+ *     summary: Đổi tên file
+ *     description: Đổi tên một file hiện có trong khu vực dữ liệu của người dùng.
+ *     tags: [Data]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - filePath
+ *               - newFileName
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Tên đăng nhập của người dùng
+ *                 example: admin123
+ *               filePath:
+ *                 type: string
+ *                 description: Đường dẫn của file cần đổi tên (tính từ thư mục gốc của user)
+ *                 example: hinhanh/2026/avatar.png
+ *               newFileName:
+ *                 type: string
+ *                 description: Tên mới cho file (không bao gồm đường dẫn)
+ *                 example: avatar_new.png
+ *     responses:
+ *       200:
+ *         description: Đổi tên file thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Đổi tên file thành công
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Dữ liệu không hợp lệ, đường dẫn trỏ tới thư mục, hoặc tên mới đã tồn tại
+ *       403:
+ *         description: Đường dẫn không hợp lệ (bị lỗi Path Traversal)
+ *       404:
+ *         description: File không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.post('/rename-file', renameFile);
+
+/**
+ * @swagger
+ * /api/data/rename-folder:
+ *   post:
+ *     summary: Đổi tên thư mục
+ *     description: Đổi tên một thư mục hiện có trong khu vực dữ liệu của người dùng. Không được phép đổi tên thư mục gốc.
+ *     tags: [Data]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - folderPath
+ *               - newFolderName
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Tên đăng nhập của người dùng
+ *                 example: admin123
+ *               folderPath:
+ *                 type: string
+ *                 description: Đường dẫn của thư mục cần đổi tên (tính từ thư mục gốc của user)
+ *                 example: hinhanh/2026
+ *               newFolderName:
+ *                 type: string
+ *                 description: Tên mới cho thư mục (không bao gồm đường dẫn)
+ *                 example: 2026_moi
+ *     responses:
+ *       200:
+ *         description: Đổi tên thư mục thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Đổi tên thư mục thành công
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Dữ liệu không hợp lệ, đường dẫn trỏ tới file, cố tình đổi tên thư mục gốc, hoặc tên mới đã tồn tại
+ *       403:
+ *         description: Đường dẫn không hợp lệ (bị lỗi Path Traversal)
+ *       404:
+ *         description: Thư mục không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.post('/rename-folder', renameFolder);
+
+/**
+ * @swagger
+ * /api/data/search:
+ *   post:
+ *     summary: Tìm kiếm file và thư mục
+ *     description: Tìm kiếm file và thư mục theo tên (từ khoá) trong toàn bộ khu vực dữ liệu của người dùng. Trả về đường dẫn tương đối để dễ dàng truy cập.
+ *     tags: [Data]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - keyword
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Tên đăng nhập của người dùng
+ *                 example: admin123
+ *               keyword:
+ *                 type: string
+ *                 description: Từ khoá cần tìm kiếm trong tên file/thư mục (không phân biệt hoa thường)
+ *                 example: avatar
+ *     responses:
+ *       200:
+ *         description: Tìm kiếm thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Tìm kiếm thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *                     keyword:
+ *                       type: string
+ *                     results:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                           path:
+ *                             type: string
+ *                             description: Đường dẫn tương đối từ thư mục gốc của user (có thể dùng gọi API khác)
+ *                           type:
+ *                             type: string
+ *                             enum: [file, folder]
+ *                           size:
+ *                             type: integer
+ *                             description: Kích thước file (byte). Không có nếu là thư mục.
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           modifiedAt:
+ *                             type: string
+ *                             format: date-time
+ *       400:
+ *         description: Thiếu dữ liệu (username, keyword)
+ *       404:
+ *         description: Thư mục người dùng không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.post('/search', searchFiles);
 
 export default router;
