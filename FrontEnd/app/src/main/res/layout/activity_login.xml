@@ -12,28 +12,17 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:paddingStart="16dp"
         android:paddingTop="24dp"
         android:paddingEnd="16dp"
         android:paddingBottom="24dp">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/loginCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginVertical="16dp"
-            app:cardBackgroundColor="@color/white"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="2dp"
-            app:strokeColor="@android:color/transparent"
-            app:strokeWidth="0dp">
-
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
+                android:gravity="center_vertical"
                 android:paddingStart="24dp"
                 android:paddingTop="32dp"
                 android:paddingEnd="24dp"
@@ -200,7 +189,8 @@
                     android:textAllCaps="false"
                     android:textColor="@color/white"
                     android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    app:backgroundTint="@null" />
 
                 <FrameLayout
                     android:layout_width="match_parent"
@@ -217,7 +207,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
-                        android:background="@color/white"
+                        android:background="#FAFAFA"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
                         android:text="@string/login_or"
@@ -243,6 +233,7 @@
                     android:textColor="@color/auth_text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold"
+                    app:backgroundTint="@null"
                     app:icon="@drawable/google"
                     app:iconGravity="textStart"
                     app:iconPadding="12dp"
@@ -277,9 +268,6 @@
                         android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
     </FrameLayout>
 
 </androidx.core.widget.NestedScrollView>

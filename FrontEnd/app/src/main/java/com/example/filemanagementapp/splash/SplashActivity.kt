@@ -14,23 +14,21 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.filemanagementapp.main.MainActivity
 import com.example.filemanagementapp.R
+import androidx.lifecycle.lifecycleScope
+import com.example.filemanagementapp.login.LoginActivity
+import com.example.filemanagementapp.login.data.local.LoginPreferencesRepository
+import com.example.filemanagementapp.main.MainActivity
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class SplashActivity : AppCompatActivity() {
     private val runningAnimators = mutableListOf<Animator>()
     private lateinit var rootView: View
-    private val navigateToMainRunnable = Runnable {
-        if (!isFinishing && !isDestroyed) {
-            val options = ActivityOptions.makeCustomAnimation(
-                this,
-                android.R.anim.fade_in,
-                android.R.anim.fade_out
-            )
-            startActivity(Intent(this, MainActivity::class.java), options.toBundle())
-            finish()
-        }
-    }
+    private lateinit var loginPreferencesRepository: LoginPreferencesRepository
+    private var navigationJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,12 +41,13 @@ class SplashActivity : AppCompatActivity() {
             insets
         }
 
+        loginPreferencesRepository = LoginPreferencesRepository(applicationContext)
         startSplashAnimations()
-        scheduleNavigationToMain()
+        scheduleNavigation()
     }
 
     override fun onDestroy() {
-        rootView.removeCallbacks(navigateToMainRunnable)
+        navigationJob?.cancel()
         runningAnimators.forEach { it.cancel() }
         runningAnimators.clear()
         super.onDestroy()
@@ -200,8 +199,35 @@ class SplashActivity : AppCompatActivity() {
         animator.start()
     }
 
-    private fun scheduleNavigationToMain() {
-        rootView.postDelayed(navigateToMainRunnable, SPLASH_DURATION_MS)
+    private fun scheduleNavigation() {
+        navigationJob = lifecycleScope.launch {
+            delay(SPLASH_DURATION_MS)
+            val savedPreferences = loginPreferencesRepository.preferencesFlow.first()
+            val destinationIntent = if (
+                savedPreferences.isRememberMeChecked &&
+                savedPreferences.rememberedUsername.isNotBlank()
+            ) {
+                Intent(this@SplashActivity, MainActivity::class.java).apply {
+                    putExtra(LoginActivity.EXTRA_USERNAME, savedPreferences.rememberedUsername)
+                    putExtra(LoginActivity.EXTRA_PROVIDER, "PASSWORD")
+                }
+            } else {
+                Intent(this@SplashActivity, LoginActivity::class.java)
+            }
+
+            navigateTo(destinationIntent)
+        }
+    }
+
+    private fun navigateTo(intent: Intent) {
+        if (isFinishing || isDestroyed) return
+        val options = ActivityOptions.makeCustomAnimation(
+            this,
+            android.R.anim.fade_in,
+            android.R.anim.fade_out
+        )
+        startActivity(intent, options.toBundle())
+        finish()
     }
 
     private fun AnimatorSet.repeatInfinitely() {
