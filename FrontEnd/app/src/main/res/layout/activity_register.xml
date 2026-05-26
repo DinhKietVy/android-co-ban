@@ -256,7 +256,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginBottom="24dp"
-                    android:backgroundTint="@color/auth_input_focus"
+                    android:backgroundTint="@color/auth_create_account_background"
                     android:enabled="false"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
