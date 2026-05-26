@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="c799f538-d6f4-4cd4-b0fe-d1c238691f5b" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/.idea/appInsightsSettings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/.idea/appInsightsSettings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/login/LoginActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/login/LoginActivity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_forgot_password.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_forgot_password.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_login.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_login.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_register.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_register.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/values/strings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/gradle/libs.versions.toml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/gradle/libs.versions.toml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="CopilotChats">
+    <option name="panelChat">
+      <chat>
+        <option name="activeSessionId" value="afcc7f50-5994-43cc-a784-b393d7ebdfaf" />
+        <option name="sessions">
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="afcc7f50-5994-43cc-a784-b393d7ebdfaf" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gemini-3.1-pro-preview" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+        </option>
+        <option name="type" value="PANEL" />
+      </chat>
+    </option>
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_C:/Users/ADMIN/AndroidStudioProjects/android-co-ban" value="3Dv5v2i0CPYVoMrdz3lPO8osOQJ" />
+    </persistenceIdMap>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;huuxuan0711&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/DinhKietVy/android-co-ban&quot;,
+    &quot;accountId&quot;: &quot;6db6eb5a-75a0-4f79-9bf9-5630812f1b42&quot;
+  }
+}</component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6,
+  &quot;fromUser&quot;: false
+}</component>
+  <component name="ProjectId" id="3Dv5v2i0CPYVoMrdz3lPO8osOQJ" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "android",
+    "kotlin-language-version-configured": "true"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="c799f538-d6f4-4cd4-b0fe-d1c238691f5b" name="Changes" comment="" />
+      <created>1779149930450</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1779149930450</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>
