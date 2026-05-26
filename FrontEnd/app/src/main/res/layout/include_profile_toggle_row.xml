@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingStart="20dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="14dp">
+    <ImageView android:id="@+id/toggleIcon" android:layout_width="20dp" android:layout_height="20dp"/>
+    <TextView android:id="@+id/toggleLabel" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_weight="1" android:textColor="@color/profile_text_primary" android:textSize="15sp"/>
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/settingSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:thumbTint="@color/profile_surface"
+        app:trackTint="@color/recent_border" />
+</LinearLayout>
