@@ -4,6 +4,7 @@ import sql from 'mssql';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { sendResetPasswordEmail } from '../utils/mailer';
 
 const bcrypt = require('bcrypt');
 
@@ -176,6 +177,95 @@ export const googleAuth = async (req: Request, res: Response) => {
     if (error.number === 2627) {
       return res.status(400).json({ error: 'Tai khoan hoac email da ton tai' });
     }
+    return res.status(500).json({ error: 'Loi may chu', detail: error.message });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = normalizeIdentifier(email);
+
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: 'Vui long cung cap email' });
+    }
+
+    const pool = await connectDB();
+    const userResult = await pool.request()
+      .input('email', sql.VarChar(255), normalizedEmail)
+      .query(`SELECT id FROM users WHERE email = @email`);
+
+    if (userResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Email khong ton tai trong he thong' });
+    }
+
+    // Generate 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+
+    await pool.request()
+      .input('email', sql.VarChar(255), normalizedEmail)
+      .input('reset_code', sql.VarChar(10), resetCode)
+      .input('expires_at', sql.DateTime, expiresAt)
+      .query(`
+        UPDATE users 
+        SET reset_code = @reset_code, reset_code_expires_at = @expires_at
+        WHERE email = @email
+      `);
+
+    await sendResetPasswordEmail(normalizedEmail, resetCode);
+
+    return res.status(200).json({ message: 'Ma dat lai mat khau da duoc gui den email cua ban' });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Loi may chu', detail: error.message });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    const normalizedEmail = normalizeIdentifier(email);
+
+    if (!normalizedEmail || !code || !newPassword) {
+      return res.status(400).json({ error: 'Thieu thong tin bat buoc (email, code, newPassword)' });
+    }
+
+    const pool = await connectDB();
+    const userResult = await pool.request()
+      .input('email', sql.VarChar(255), normalizedEmail)
+      .query(`
+        SELECT id, reset_code, reset_code_expires_at 
+        FROM users 
+        WHERE email = @email
+      `);
+
+    const user = userResult.recordset[0];
+
+    if (!user) {
+      return res.status(404).json({ error: 'Email khong ton tai' });
+    }
+
+    if (!user.reset_code || user.reset_code !== code) {
+      return res.status(400).json({ error: 'Ma xac nhan khong hop le' });
+    }
+
+    if (new Date() > new Date(user.reset_code_expires_at)) {
+      return res.status(400).json({ error: 'Ma xac nhan da het han' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, getSaltRounds());
+
+    await pool.request()
+      .input('email', sql.VarChar(255), normalizedEmail)
+      .input('password', sql.VarChar(255), hashedPassword)
+      .query(`
+        UPDATE users 
+        SET password = @password, reset_code = NULL, reset_code_expires_at = NULL
+        WHERE email = @email
+      `);
+
+    return res.status(200).json({ message: 'Dat lai mat khau thanh cong' });
+  } catch (error: any) {
     return res.status(500).json({ error: 'Loi may chu', detail: error.message });
   }
 };

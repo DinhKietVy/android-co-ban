@@ -3,7 +3,11 @@ CREATE DATABASE ANDROID
 CREATE TABLE users (
     id INT IDENTITY(1,1) PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    full_name NVARCHAR(255) NOT NULL,
+    reset_code VARCHAR(10) NULL,
+    reset_code_expires_at DATETIME NULL
 );
 
 CREATE LOGIN myuser WITH PASSWORD = '123456';
