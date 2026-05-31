@@ -51,6 +51,8 @@
     <string name="forgot_email_placeholder">you@example.com</string>
     <string name="forgot_helper">Check your spam folder if you don\'t receive the email within a few minutes.</string>
     <string name="forgot_send">Send Reset Link</string>
+    <string name="forgot_send_loading">Sending...</string>
+    <string name="forgot_resend_loading">Resending...</string>
     <string name="forgot_back_to_login">Back to Login</string>
     <string name="forgot_check_inbox">Check your inbox</string>
     <string name="forgot_sent_prefix">We\'ve sent a password reset link to</string>
@@ -62,6 +64,7 @@
     <string name="forgot_otp_label">OTP Code</string>
     <string name="forgot_otp_placeholder">123456</string>
     <string name="forgot_verify_otp">Verify OTP</string>
+    <string name="forgot_verify_loading">Verifying...</string>
     <string name="forgot_new_password_title">New Password</string>
     <string name="forgot_new_password_subtitle">Create a new secure password for your account.</string>
     <string name="forgot_new_password_label">New Password</string>
@@ -69,6 +72,10 @@
     <string name="forgot_confirm_password_label">Confirm Password</string>
     <string name="forgot_confirm_password_placeholder">Confirm your password</string>
     <string name="forgot_reset_password_button">Reset Password</string>
+    <string name="forgot_reset_loading">Resetting...</string>
+    <string name="forgot_reset_success_title">Password updated</string>
+    <string name="forgot_reset_success_message">Your password has been reset successfully for</string>
+    <string name="forgot_reset_success_info">Return to login and sign in with your new password.</string>
     <string name="forgot_toggle_info">i</string>
     <string name="forgot_secure_illustration">Security illustration</string>
     <string name="explorer_title">Smart File Manager</string>

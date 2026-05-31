@@ -1,12 +1,16 @@
 package com.example.filemanagementapp.login.data.repository
 
+import com.example.filemanagementapp.login.data.model.ApiMessageResponse
 import com.example.filemanagementapp.login.data.model.AuthApiError
 import com.example.filemanagementapp.login.data.model.AuthProvider
+import com.example.filemanagementapp.login.data.model.ForgotPasswordRequest
 import com.example.filemanagementapp.login.data.model.GoogleAuthRequest
 import com.example.filemanagementapp.login.data.model.LoginRequest
 import com.example.filemanagementapp.login.data.model.LoginResponse
 import com.example.filemanagementapp.login.data.model.LoginUser
+import com.example.filemanagementapp.login.data.model.ResetPasswordRequest
 import com.example.filemanagementapp.login.data.model.RegisterRequest
+import com.example.filemanagementapp.login.data.model.VerifyResetCodeRequest
 import com.example.filemanagementapp.login.data.network.AuthApiService
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -91,6 +95,56 @@ class AuthRepository(
             }
         }
 
+    suspend fun forgotPassword(email: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                authApiService.forgotPassword(ForgotPasswordRequest(email = email))
+                    .toMessageResult(defaultErrorMessage = "Gui ma dat lai mat khau that bai")
+            } catch (ioException: IOException) {
+                Result.failure(
+                    Exception("Khong the ket noi toi server. Kiem tra backend local va mang cua may ao.")
+                )
+            } catch (exception: Exception) {
+                Result.failure(
+                    Exception(exception.message ?: "Gui ma dat lai mat khau that bai")
+                )
+            }
+        }
+
+    suspend fun verifyResetCode(email: String, code: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                authApiService.verifyResetCode(
+                    VerifyResetCodeRequest(email = email, code = code)
+                ).toMessageResult(defaultErrorMessage = "Xac thuc ma OTP that bai")
+            } catch (ioException: IOException) {
+                Result.failure(
+                    Exception("Khong the ket noi toi server. Kiem tra backend local va mang cua may ao.")
+                )
+            } catch (exception: Exception) {
+                Result.failure(Exception(exception.message ?: "Xac thuc ma OTP that bai"))
+            }
+        }
+
+    suspend fun resetPassword(email: String, code: String, newPassword: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                authApiService.resetPassword(
+                    ResetPasswordRequest(
+                        email = email,
+                        code = code,
+                        newPassword = newPassword
+                    )
+                ).toMessageResult(defaultErrorMessage = "Dat lai mat khau that bai")
+            } catch (ioException: IOException) {
+                Result.failure(
+                    Exception("Khong the ket noi toi server. Kiem tra backend local va mang cua may ao.")
+                )
+            } catch (exception: Exception) {
+                Result.failure(Exception(exception.message ?: "Dat lai mat khau that bai"))
+            }
+        }
+
     private fun Response<LoginResponse>.toAuthResult(defaultErrorMessage: String): Result<LoginUser> {
         if (isSuccessful) {
             val user = body()?.data
@@ -107,6 +161,22 @@ class AuthRepository(
                     provider = AuthProvider.PASSWORD
                 )
             )
+        }
+
+        val parsedError = errorBody()?.charStream()?.use { reader ->
+            runCatching { gson.fromJson(reader, AuthApiError::class.java) }.getOrNull()
+        }
+        val errorMessage = parsedError?.error
+            ?: parsedError?.detail
+            ?: message()
+            ?: defaultErrorMessage
+        return Result.failure(Exception(errorMessage))
+    }
+
+    private fun Response<ApiMessageResponse>.toMessageResult(defaultErrorMessage: String): Result<String> {
+        if (isSuccessful) {
+            val responseMessage = body()?.message
+            return Result.success(responseMessage ?: defaultErrorMessage)
         }
 
         val parsedError = errorBody()?.charStream()?.use { reader ->
