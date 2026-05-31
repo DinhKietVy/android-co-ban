@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, googleAuth, login, forgotPassword, resetPassword } from '../controllers/user.controller';
+import { createUser, googleAuth, login, forgotPassword, verifyResetCode, resetPassword } from '../controllers/user.controller';
 
 const router = Router();
 
@@ -187,6 +187,7 @@ router.post('/login', login);
  *         description: Lỗi máy chủ
  */
 router.post('/forgot-password', forgotPassword);
+router.post('/verify-reset-code', verifyResetCode);
 
 /**
  * @swagger

@@ -4,20 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c799f538-d6f4-4cd4-b0fe-d1c238691f5b" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/.idea/appInsightsSettings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/.idea/appInsightsSettings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/login/LoginActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/login/LoginActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_forgot_password.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_forgot_password.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_login.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_login.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_register.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_register.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/values/strings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/gradle/libs.versions.toml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/gradle/libs.versions.toml" afterDir="false" />
-    </list>
+    <list default="true" id="c799f538-d6f4-4cd4-b0fe-d1c238691f5b" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -88,7 +75,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "android",
+    "git-widget-placeholder": "master",
     "kotlin-language-version-configured": "true"
   }
 }]]></component>
