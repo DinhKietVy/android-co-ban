@@ -12,6 +12,7 @@ import com.example.filemanagementapp.data.auth.model.ResetPasswordRequest
 import com.example.filemanagementapp.data.auth.model.RegisterRequest
 import com.example.filemanagementapp.data.auth.model.VerifyResetCodeRequest
 import com.example.filemanagementapp.data.auth.network.AuthApiService
+import com.example.filemanagementapp.data.auth.network.SessionCookieJar
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -94,6 +95,24 @@ class AuthRepository(
                 Result.failure(Exception(exception.message ?: "Dang nhap that bai"))
             }
         }
+
+    suspend fun autoLogin(): Result<LoginUser> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = authApiService.autoLogin()
+                response.toAuthResult(defaultErrorMessage = "Phien dang nhap da het han")
+            } catch (ioException: IOException) {
+                Result.failure(
+                    Exception("Khong the ket noi toi server. Kiem tra backend local va mang cua may ao.")
+                )
+            } catch (exception: Exception) {
+                Result.failure(Exception(exception.message ?: "Khong the tu dong dang nhap"))
+            }
+        }
+
+    fun clearLocalSession() {
+        SessionCookieJar.clear()
+    }
 
     suspend fun forgotPassword(email: String): Result<String> =
         withContext(Dispatchers.IO) {

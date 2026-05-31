@@ -10,6 +10,7 @@ import com.example.filemanagementapp.data.auth.model.RegisterRequest
 import com.example.filemanagementapp.data.auth.model.VerifyResetCodeRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
 
 interface AuthApiService {
@@ -27,6 +28,9 @@ interface AuthApiService {
     suspend fun login(
         @Body request: LoginRequest
     ): Response<LoginResponse>
+
+    @GET("api/users/auto-login")
+    suspend fun autoLogin(): Response<LoginResponse>
 
     @POST("api/users/forgot-password")
     suspend fun forgotPassword(

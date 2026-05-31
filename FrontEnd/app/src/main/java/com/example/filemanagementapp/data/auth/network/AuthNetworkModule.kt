@@ -26,6 +26,7 @@ object AuthNetworkModule {
 
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .cookieJar(SessionCookieJar)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

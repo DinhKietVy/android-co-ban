@@ -8,7 +8,6 @@ import crypto from 'crypto';
 import { sendResetPasswordEmail } from '../utils/mailer';
 import { generateAccessToken, generateRefreshToken } from '../utils/token';
 
-
 const bcrypt = require('bcrypt');
 
 const ensureUserFolder = (username: string) => {
@@ -25,6 +24,28 @@ const getSaltRounds = () => {
 
 const normalizeIdentifier = (value: unknown) => {
   return String(value || '').trim().toLowerCase();
+};
+
+const issueAuthCookies = (
+  res: Response,
+  user: { id: number; username: string }
+) => {
+  const accessToken = generateAccessToken({ id: user.id, account: user.username });
+  const refreshToken = generateRefreshToken({ id: user.id });
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'development',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'development',
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000,
+  });
 };
 
 export const createUser = async (req: Request, res: Response) => {
@@ -97,21 +118,9 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Tai khoan hoac mat khau khong chinh xac' });
     }
 
-    const accessToken = generateAccessToken({ id: user.id, account: user.username });
-    const refreshToken = generateRefreshToken({ id: user.id });
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'development',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
-    });
-
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'development',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 phút
+    issueAuthCookies(res, {
+      id: user.id,
+      username: user.username,
     });
 
     return res.status(200).json({
@@ -152,6 +161,10 @@ export const googleAuth = async (req: Request, res: Response) => {
     const existingUser = existingUserResult.recordset[0];
     if (existingUser) {
       ensureUserFolder(existingUser.username);
+      issueAuthCookies(res, {
+        id: existingUser.id,
+        username: existingUser.username,
+      });
       return res.status(200).json({
         message: 'Dang nhap Google thanh cong',
         data: existingUser,
@@ -183,6 +196,10 @@ export const googleAuth = async (req: Request, res: Response) => {
 
     const insertedUser = insertedUserResult.recordset[0];
     ensureUserFolder(insertedUser.username);
+    issueAuthCookies(res, {
+      id: insertedUser.id,
+      username: insertedUser.username,
+    });
 
     return res.status(201).json({
       message: 'Tao tai khoan Google thanh cong',
@@ -219,16 +236,15 @@ export const forgotPassword = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Email khong ton tai trong he thong' });
     }
 
-    // Generate 6-digit code
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await pool.request()
       .input('email', sql.VarChar(255), normalizedEmail)
       .input('reset_code', sql.VarChar(10), resetCode)
       .input('expires_at', sql.DateTime, expiresAt)
       .query(`
-        UPDATE users 
+        UPDATE users
         SET reset_code = @reset_code, reset_code_expires_at = @expires_at
         WHERE email = @email
       `);
@@ -293,8 +309,8 @@ export const resetPassword = async (req: Request, res: Response) => {
     const userResult = await pool.request()
       .input('email', sql.VarChar(255), normalizedEmail)
       .query(`
-        SELECT id, reset_code, reset_code_expires_at 
-        FROM users 
+        SELECT id, reset_code, reset_code_expires_at
+        FROM users
         WHERE email = @email
       `);
 
@@ -318,7 +334,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       .input('email', sql.VarChar(255), normalizedEmail)
       .input('password', sql.VarChar(255), hashedPassword)
       .query(`
-        UPDATE users 
+        UPDATE users
         SET password = @password, reset_code = NULL, reset_code_expires_at = NULL
         WHERE email = @email
       `);
@@ -333,7 +349,7 @@ export const autoLogin = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ error: 'Không thể xác thực người dùng' });
+      return res.status(401).json({ error: 'Khong the xac thuc nguoi dung' });
     }
 
     const pool = await connectDB();
@@ -347,11 +363,11 @@ export const autoLogin = async (req: AuthRequest, res: Response) => {
 
     const user = result.recordset[0];
     if (!user) {
-      return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+      return res.status(404).json({ error: 'Khong tim thay nguoi dung' });
     }
 
     return res.status(200).json({
-      message: 'Tự động đăng nhập thành công',
+      message: 'Tu dong dang nhap thanh cong',
       data: {
         id: user.id,
         username: user.username,
@@ -360,6 +376,6 @@ export const autoLogin = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error: any) {
-    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+    return res.status(500).json({ error: 'Loi may chu', detail: error.message });
   }
 };
