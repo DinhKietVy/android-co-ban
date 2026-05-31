@@ -55,51 +55,16 @@
                     android:tint="@color/explorer_text_primary" />
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/breadcrumbRecyclerView"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:contentDescription="@string/explorer_home"
-                    android:src="@drawable/home"
-                    android:tint="@color/explorer_text_secondary" />
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:layout_marginStart="4dp"
-                    android:src="@drawable/chevron_right"
-                    android:tint="@color/explorer_text_secondary" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:text="@string/explorer_documents"
-                    android:textColor="@color/explorer_text_secondary"
-                    android:textSize="14sp" />
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:layout_marginStart="4dp"
-                    android:src="@drawable/chevron_right"
-                    android:tint="@color/explorer_text_secondary" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:text="@string/explorer_ai_notes"
-                    android:textColor="@color/explorer_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:overScrollMode="never"
+                tools:itemCount="3"
+                tools:listitem="@layout/item_explorer_breadcrumb" />
         </LinearLayout>
 
         <LinearLayout

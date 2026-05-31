@@ -22,7 +22,7 @@
             android:name=".preview.FilePreviewActivity"
             android:exported="false" />
         <activity
-            android:name=".forgot.ForgotPasswordActivity"
+            android:name=".password.ForgotPasswordActivity"
             android:exported="false" />
         <activity
             android:name=".register.RegisterActivity"

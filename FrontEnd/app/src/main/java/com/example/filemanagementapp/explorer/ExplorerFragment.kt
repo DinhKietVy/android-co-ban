@@ -19,9 +19,22 @@ class ExplorerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        val breadcrumbRecyclerView = view.findViewById<RecyclerView>(R.id.breadcrumbRecyclerView)
+        breadcrumbRecyclerView.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        breadcrumbRecyclerView.adapter = ExplorerBreadcrumbAdapter(sampleBreadcrumbs())
+
         val recyclerView = view.findViewById<RecyclerView>(R.id.explorerRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = ExplorerAdapter(sampleItems())
+    }
+
+    private fun sampleBreadcrumbs(): List<ExplorerBreadcrumbItem> {
+        return listOf(
+            ExplorerBreadcrumbItem(title = "", isHome = true),
+            ExplorerBreadcrumbItem(title = getString(R.string.explorer_documents)),
+            ExplorerBreadcrumbItem(title = getString(R.string.explorer_ai_notes))
+        )
     }
 
     private fun sampleItems(): List<ExplorerItem> {
