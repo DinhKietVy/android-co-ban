@@ -1,9 +1,11 @@
 import nodemailer from 'nodemailer';
 
+const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '465', 10),
-  secure: process.env.SMTP_PORT === '465' ? true : false,
+  port: smtpPort,
+  secure: smtpPort === 465,
   auth: {
     user: process.env.SMTP_USER || '', // Tên đăng nhập email của bạn
     pass: process.env.SMTP_PASS || '', // Mật khẩu ứng dụng (App Password)

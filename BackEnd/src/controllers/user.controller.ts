@@ -221,6 +221,45 @@ export const forgotPassword = async (req: Request, res: Response) => {
   }
 };
 
+export const verifyResetCode = async (req: Request, res: Response) => {
+  try {
+    const { email, code } = req.body;
+    const normalizedEmail = normalizeIdentifier(email);
+    const normalizedCode = String(code || '').trim();
+
+    if (!normalizedEmail || !normalizedCode) {
+      return res.status(400).json({ error: 'Thieu thong tin bat buoc (email, code)' });
+    }
+
+    const pool = await connectDB();
+    const userResult = await pool.request()
+      .input('email', sql.VarChar(255), normalizedEmail)
+      .query(`
+        SELECT id, reset_code, reset_code_expires_at
+        FROM users
+        WHERE email = @email
+      `);
+
+    const user = userResult.recordset[0];
+
+    if (!user) {
+      return res.status(404).json({ error: 'Email khong ton tai' });
+    }
+
+    if (!user.reset_code || user.reset_code !== normalizedCode) {
+      return res.status(400).json({ error: 'Ma xac nhan khong hop le' });
+    }
+
+    if (!user.reset_code_expires_at || new Date() > new Date(user.reset_code_expires_at)) {
+      return res.status(400).json({ error: 'Ma xac nhan da het han' });
+    }
+
+    return res.status(200).json({ message: 'Xac thuc ma OTP thanh cong' });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Loi may chu', detail: error.message });
+  }
+};
+
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { email, code, newPassword } = req.body;
