@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { uploadData, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles } from '../controllers/data.controller';
+import { authenticateToken } from '../middleware/auth';
+
 
 const router = Router();
 
@@ -50,7 +52,7 @@ const router = Router();
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/upload', uploadData);
+router.post('/upload', authenticateToken,  uploadData);
 
 /**
  * @swagger
@@ -104,7 +106,7 @@ router.post('/upload', uploadData);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/folder', createFolder);
+router.post('/folder',authenticateToken, createFolder);
 
 /**
  * @swagger
@@ -158,7 +160,7 @@ router.post('/folder', createFolder);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/move-file', moveFile);
+router.post('/move-file',authenticateToken, moveFile);
 
 /**
  * @swagger
@@ -212,7 +214,7 @@ router.post('/move-file', moveFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/move-folder', moveFolder);
+router.post('/move-folder',authenticateToken, moveFolder);
 
 /**
  * @swagger
@@ -261,7 +263,7 @@ router.post('/move-folder', moveFolder);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.delete('/file', deleteFile);
+router.delete('/file',authenticateToken, deleteFile);
 
 /**
  * @swagger
@@ -310,7 +312,7 @@ router.delete('/file', deleteFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.delete('/folder', deleteFolder);
+router.delete('/folder',authenticateToken, deleteFolder);
 
 /**
  * @swagger
@@ -395,7 +397,7 @@ router.delete('/folder', deleteFolder);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/list', listDirectory);
+router.post('/list',authenticateToken, listDirectory);
 
 /**
  * @swagger
@@ -474,8 +476,8 @@ router.post('/list', listDirectory);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.get('/download', downloadFile);
-router.post('/download', downloadFile);
+router.get('/download',authenticateToken, downloadFile);
+router.post('/download',authenticateToken, downloadFile);
 
 /**
  * @swagger
@@ -529,7 +531,7 @@ router.post('/download', downloadFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/rename-file', renameFile);
+router.post('/rename-file',authenticateToken, renameFile);
 
 /**
  * @swagger
@@ -583,7 +585,7 @@ router.post('/rename-file', renameFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/rename-folder', renameFolder);
+router.post('/rename-folder',authenticateToken, renameFolder);
 
 /**
  * @swagger
@@ -657,6 +659,6 @@ router.post('/rename-folder', renameFolder);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/search', searchFiles);
+router.post('/search',authenticateToken, searchFiles);
 
 export default router;

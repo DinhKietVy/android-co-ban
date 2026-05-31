@@ -2,9 +2,12 @@ import { Request, Response } from 'express';
 import { connectDB } from '../config/database';
 import sql from 'mssql';
 import fs from 'fs';
+import { AuthRequest } from '../types';
 import path from 'path';
 import crypto from 'crypto';
 import { sendResetPasswordEmail } from '../utils/mailer';
+import { generateAccessToken, generateRefreshToken } from '../utils/token';
+
 
 const bcrypt = require('bcrypt');
 
@@ -93,6 +96,23 @@ export const login = async (req: Request, res: Response) => {
     if (!isMatch) {
       return res.status(401).json({ error: 'Tai khoan hoac mat khau khong chinh xac' });
     }
+
+    const accessToken = generateAccessToken({ id: user.id, account: user.username });
+    const refreshToken = generateRefreshToken({ id: user.id });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'development',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+    });
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'development',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 phút
+    });
 
     return res.status(200).json({
       message: 'Dang nhap thanh cong',
@@ -267,5 +287,40 @@ export const resetPassword = async (req: Request, res: Response) => {
     return res.status(200).json({ message: 'Dat lai mat khau thanh cong' });
   } catch (error: any) {
     return res.status(500).json({ error: 'Loi may chu', detail: error.message });
+  }
+};
+
+export const autoLogin = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Không thể xác thực người dùng' });
+    }
+
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('id', sql.Int, userId)
+      .query(`
+        SELECT id, username, full_name AS fullName, email
+        FROM users
+        WHERE id = @id
+      `);
+
+    const user = result.recordset[0];
+    if (!user) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    }
+
+    return res.status(200).json({
+      message: 'Tự động đăng nhập thành công',
+      data: {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
   }
 };

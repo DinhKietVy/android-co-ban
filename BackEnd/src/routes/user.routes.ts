@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { createUser, googleAuth, login, forgotPassword, resetPassword } from '../controllers/user.controller';
+import { createUser, googleAuth, login, forgotPassword, resetPassword, autoLogin } from '../controllers/user.controller';
+import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
@@ -226,5 +227,24 @@ router.post('/forgot-password', forgotPassword);
  *         description: Lỗi máy chủ
  */
 router.post('/reset-password', resetPassword);
+
+/**
+ * @swagger
+ * /api/users/auto-login:
+ *   get:
+ *     summary: Tự động đăng nhập
+ *     description: Tự động đăng nhập người dùng dựa trên JWT (accessToken hoặc refreshToken trong cookies).
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Tự động đăng nhập thành công
+ *       401:
+ *         description: Không có token hoặc token không hợp lệ
+ *       404:
+ *         description: Không tìm thấy người dùng
+ *       500:
+ *         description: Lỗi máy chủ
+ */
+router.get('/auto-login', authenticateToken, autoLogin);
 
 export default router;
