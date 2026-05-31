@@ -1,4 +1,4 @@
-package com.example.filemanagementapp.forgot
+package com.example.filemanagementapp.password
 
 import android.os.Bundle
 import android.util.Patterns

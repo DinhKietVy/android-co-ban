@@ -9,7 +9,7 @@
     <string name="tab_profile">Profile</string>
     <string name="page_subtitle_format">%1$s page</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="login_email_label">Email or username</string>
+    <string name="login_email_label">Username</string>
     <string name="login_password_label">Password</string>
     <string name="login_remember_me">Remember me</string>
     <string name="login_forgot_password">Forgot password?</string>
@@ -57,6 +57,18 @@
     <string name="forgot_warning">Don\'t see it? Check your spam or junk folder. The link expires in 15 minutes.</string>
     <string name="forgot_resend">Resend link</string>
     <string name="forgot_ai_powered">AI-Powered</string>
+    <string name="forgot_otp_title">Enter OTP</string>
+    <string name="forgot_otp_subtitle">We\'ve sent a 6-digit code to your email.</string>
+    <string name="forgot_otp_label">OTP Code</string>
+    <string name="forgot_otp_placeholder">123456</string>
+    <string name="forgot_verify_otp">Verify OTP</string>
+    <string name="forgot_new_password_title">New Password</string>
+    <string name="forgot_new_password_subtitle">Create a new secure password for your account.</string>
+    <string name="forgot_new_password_label">New Password</string>
+    <string name="forgot_new_password_placeholder">Enter new password</string>
+    <string name="forgot_confirm_password_label">Confirm Password</string>
+    <string name="forgot_confirm_password_placeholder">Confirm your password</string>
+    <string name="forgot_reset_password_button">Reset Password</string>
     <string name="forgot_toggle_info">i</string>
     <string name="forgot_secure_illustration">Security illustration</string>
     <string name="explorer_title">Smart File Manager</string>
