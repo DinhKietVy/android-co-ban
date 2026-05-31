@@ -1,5 +1,6 @@
 package com.example.filemanagementapp.profile
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,7 +9,14 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.filemanagementapp.R
+import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
+import com.example.filemanagementapp.data.auth.network.AuthNetworkModule
+import com.example.filemanagementapp.data.auth.repository.AuthRepository
+import com.example.filemanagementapp.login.LoginActivity
+import kotlinx.coroutines.launch
+
 class ProfileFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -42,6 +50,7 @@ class ProfileFragment : Fragment() {
 
         bindRow(view, R.id.rowProfileLogout, R.drawable.log_out, R.string.profile_logout, iconColor = R.color.profile_warning, textColor = R.color.profile_warning)
         bindRow(view, R.id.rowProfileDelete, R.drawable.info, R.string.profile_delete_account, iconColor = R.color.profile_danger, textColor = R.color.profile_danger, noBorder = true)
+        setupLogout(view)
     }
 
     private fun bindRow(
@@ -84,6 +93,25 @@ class ProfileFragment : Fragment() {
         row.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.settingSwitch).isChecked = checked
         if (noBorder) {
             row.background = ContextCompat.getDrawable(requireContext(), android.R.color.transparent)
+        }
+    }
+
+    private fun setupLogout(root: View) {
+        root.findViewById<View>(R.id.rowProfileLogout).setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                LoginPreferencesRepository(requireContext().applicationContext).clearRememberedLogin()
+                AuthRepository(
+                    authApiService = AuthNetworkModule.authApiService,
+                    gson = AuthNetworkModule.gson
+                ).clearLocalSession()
+
+                startActivity(
+                    Intent(requireContext(), LoginActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                )
+                requireActivity().finish()
+            }
         }
     }
 }

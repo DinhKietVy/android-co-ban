@@ -26,6 +26,7 @@ object ExplorerNetworkModule {
 
     val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .cookieJar(com.example.filemanagementapp.data.auth.network.SessionCookieJar)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

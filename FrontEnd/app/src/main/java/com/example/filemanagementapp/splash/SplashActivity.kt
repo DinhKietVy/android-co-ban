@@ -18,6 +18,8 @@ import com.example.filemanagementapp.R
 import androidx.lifecycle.lifecycleScope
 import com.example.filemanagementapp.login.LoginActivity
 import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
+import com.example.filemanagementapp.data.auth.network.AuthNetworkModule
+import com.example.filemanagementapp.data.auth.repository.AuthRepository
 import com.example.filemanagementapp.main.MainActivity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -28,6 +30,7 @@ class SplashActivity : AppCompatActivity() {
     private val runningAnimators = mutableListOf<Animator>()
     private lateinit var rootView: View
     private lateinit var loginPreferencesRepository: LoginPreferencesRepository
+    private lateinit var authRepository: AuthRepository
     private var navigationJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +45,10 @@ class SplashActivity : AppCompatActivity() {
         }
 
         loginPreferencesRepository = LoginPreferencesRepository(applicationContext)
+        authRepository = AuthRepository(
+            authApiService = AuthNetworkModule.authApiService,
+            gson = AuthNetworkModule.gson
+        )
         startSplashAnimations()
         scheduleNavigation()
     }
@@ -203,17 +210,23 @@ class SplashActivity : AppCompatActivity() {
         navigationJob = lifecycleScope.launch {
             delay(SPLASH_DURATION_MS)
             val savedPreferences = loginPreferencesRepository.preferencesFlow.first()
-            val destinationIntent = if (
-                savedPreferences.isRememberMeChecked &&
-                savedPreferences.rememberedUsername.isNotBlank()
-            ) {
-                Intent(this@SplashActivity, MainActivity::class.java).apply {
-                    putExtra(LoginActivity.EXTRA_USERNAME, savedPreferences.rememberedUsername)
-                    putExtra(LoginActivity.EXTRA_PROVIDER, "PASSWORD")
+            val destinationIntent = authRepository.autoLogin()
+                .map { user ->
+                    Intent(this@SplashActivity, MainActivity::class.java).apply {
+                        putExtra(LoginActivity.EXTRA_USERNAME, user.username)
+                        putExtra(LoginActivity.EXTRA_PROVIDER, user.provider.name)
+                    }
                 }
-            } else {
-                Intent(this@SplashActivity, LoginActivity::class.java)
-            }
+                .getOrElse {
+                    Intent(this@SplashActivity, LoginActivity::class.java).apply {
+                        if (savedPreferences.rememberedUsername.isNotBlank()) {
+                            putExtra(
+                                LoginActivity.EXTRA_PREFILLED_USERNAME,
+                                savedPreferences.rememberedUsername
+                            )
+                        }
+                    }
+                }
 
             navigateTo(destinationIntent)
         }
