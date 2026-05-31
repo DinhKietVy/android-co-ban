@@ -11,8 +11,8 @@ import androidx.credentials.exceptions.GetCredentialInterruptedException
 import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
 import androidx.credentials.exceptions.NoCredentialException
 import com.example.filemanagementapp.R
-import com.example.filemanagementapp.login.data.model.AuthProvider
-import com.example.filemanagementapp.login.data.model.LoginUser
+import com.example.filemanagementapp.data.auth.model.AuthProvider
+import com.example.filemanagementapp.data.auth.model.LoginUser
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException

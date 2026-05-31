@@ -7,11 +7,13 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.example.filemanagementapp.R
+import com.example.filemanagementapp.login.LoginActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private lateinit var bottomNavigation: BottomNavigationView
+    private lateinit var username: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,6 +25,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        username = intent.getStringExtra(LoginActivity.EXTRA_USERNAME).orEmpty()
         setupPagerAndNavigation()
     }
 
@@ -37,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         viewPager = findViewById(R.id.mainViewPager)
         bottomNavigation = findViewById(R.id.bottomNavigation)
 
-        viewPager.adapter = MainPagerAdapter(this)
+        viewPager.adapter = MainPagerAdapter(this, username)
         viewPager.offscreenPageLimit = navItems.size
 
         bottomNavigation.setOnItemSelectedListener { item ->

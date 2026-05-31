@@ -18,8 +18,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.filemanagementapp.R
 import com.example.filemanagementapp.login.LoginActivity
-import com.example.filemanagementapp.login.data.network.AuthNetworkModule
-import com.example.filemanagementapp.login.data.repository.AuthRepository
+import com.example.filemanagementapp.data.auth.network.AuthNetworkModule
+import com.example.filemanagementapp.data.auth.repository.AuthRepository
 import com.example.filemanagementapp.login.google.GoogleAuthUiClient
 import com.example.filemanagementapp.main.MainActivity
 import com.example.filemanagementapp.register.ui.RegisterEvent

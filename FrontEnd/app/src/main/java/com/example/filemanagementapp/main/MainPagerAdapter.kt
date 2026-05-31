@@ -9,14 +9,15 @@ import com.example.filemanagementapp.recent.RecentFragment
 import com.example.filemanagementapp.trash.TrashFragment
 
 class MainPagerAdapter(
-    activity: AppCompatActivity
+    activity: AppCompatActivity,
+    private val username: String
 ) : FragmentStateAdapter(activity) {
 
     override fun getItemCount(): Int = PAGE_COUNT
 
     override fun createFragment(position: Int): Fragment {
         return when (position) {
-            0 -> ExplorerFragment()
+            0 -> ExplorerFragment.newInstance(username)
             1 -> RecentFragment()
             2 -> TrashFragment()
             3 -> ProfileFragment()

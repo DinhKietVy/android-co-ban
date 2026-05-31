@@ -1,5 +1,7 @@
 package com.example.filemanagementapp.search
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -332,6 +334,10 @@ class SearchActivity : AppCompatActivity() {
     }
 
     companion object {
+        fun newIntent(context: Context): Intent {
+            return Intent(context, SearchActivity::class.java)
+        }
+
         private const val CATEGORY_ALL = "all"
         private const val CATEGORY_IMAGES = "images"
         private const val CATEGORY_DOCUMENTS = "documents"

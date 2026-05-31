@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="220dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/popup_bg"
+    android:elevation="8dp"
+    android:orientation="vertical"
+    android:paddingVertical="8dp">
+
+    <!-- Select items -->
+    <LinearLayout
+        android:id="@+id/menuSelectMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/square_check"
+            android:tint="@color/explorer_text_secondary" />
+
+        <TextView
+            android:id="@+id/menuSelectModeText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/explorer_select_items"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginVertical="4dp"
+        android:background="@color/explorer_border" />
+
+    <!-- SORT BY Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
+        android:text="@string/explorer_sort_by_header"
+        android:textAllCaps="true"
+        android:textColor="@color/explorer_text_secondary"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1" />
+
+    <!-- Sort by Name -->
+    <LinearLayout
+        android:id="@+id/menuSortName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/arrow_down_a_z"
+            android:tint="@color/explorer_text_secondary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/search_sort_name"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/checkSortName"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/check"
+            android:tint="@color/explorer_text_primary"
+            android:visibility="visible" />
+    </LinearLayout>
+
+    <!-- Sort by Date -->
+    <LinearLayout
+        android:id="@+id/menuSortDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/clock_3"
+            android:tint="@color/explorer_text_secondary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/search_sort_date"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/checkSortDate"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/check"
+            android:tint="@color/explorer_text_primary"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Sort by Size -->
+    <LinearLayout
+        android:id="@+id/menuSortSize"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/weight"
+            android:tint="@color/explorer_text_secondary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/search_sort_size"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/checkSortSize"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/check"
+            android:tint="@color/explorer_text_primary"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginVertical="4dp"
+        android:background="@color/explorer_border" />
+
+    <!-- VIEW Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
+        android:text="@string/explorer_view_header"
+        android:textAllCaps="true"
+        android:textColor="@color/explorer_text_secondary"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1" />
+
+    <!-- View Mode (List/Grid) -->
+    <LinearLayout
+        android:id="@+id/menuViewMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:id="@+id/iconViewMode"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/layout_grid"
+            android:tint="@color/explorer_text_secondary" />
+
+        <TextView
+            android:id="@+id/textViewMode"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/explorer_switch_to_grid"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>
