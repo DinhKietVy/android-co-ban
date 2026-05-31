@@ -1,6 +1,6 @@
 package com.example.filemanagementapp.register.ui
 
-import com.example.filemanagementapp.login.data.model.LoginUser
+import com.example.filemanagementapp.data.auth.model.LoginUser
 
 sealed interface RegisterEvent {
     data class ShowMessage(val message: String) : RegisterEvent

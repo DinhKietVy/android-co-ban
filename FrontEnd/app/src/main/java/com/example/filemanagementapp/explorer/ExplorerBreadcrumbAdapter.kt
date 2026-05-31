@@ -11,8 +11,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.filemanagementapp.R
 
 class ExplorerBreadcrumbAdapter(
-    private val items: List<ExplorerBreadcrumbItem>
+    private val onItemClick: (ExplorerBreadcrumbItem) -> Unit
 ) : RecyclerView.Adapter<ExplorerBreadcrumbAdapter.BreadcrumbViewHolder>() {
+
+    private val items = mutableListOf<ExplorerBreadcrumbItem>()
 
     override fun getItemCount(): Int = items.size
 
@@ -23,20 +25,31 @@ class ExplorerBreadcrumbAdapter(
     }
 
     override fun onBindViewHolder(holder: BreadcrumbViewHolder, position: Int) {
-        holder.bind(items[position], position == 0, position == items.lastIndex)
+        holder.bind(
+            item = items[position],
+            isLast = position == items.lastIndex,
+            onItemClick = onItemClick
+        )
+    }
+
+    fun submitItems(newItems: List<ExplorerBreadcrumbItem>) {
+        items.clear()
+        items.addAll(newItems)
+        notifyDataSetChanged()
     }
 
     class BreadcrumbViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val separatorIcon: ImageView = itemView.findViewById(R.id.separatorIcon)
-        private val homeIcon: ImageView = itemView.findViewById(R.id.homeIcon)
         private val breadcrumbText: TextView = itemView.findViewById(R.id.breadcrumbText)
 
-        fun bind(item: ExplorerBreadcrumbItem, isFirst: Boolean, isLast: Boolean) {
+        fun bind(
+            item: ExplorerBreadcrumbItem,
+            isLast: Boolean,
+            onItemClick: (ExplorerBreadcrumbItem) -> Unit
+        ) {
             val context = itemView.context
-            separatorIcon.visibility = if (isFirst) View.GONE else View.VISIBLE
-            homeIcon.visibility = if (item.isHome) View.VISIBLE else View.GONE
+            separatorIcon.visibility = if (isLast) View.GONE else View.VISIBLE
             breadcrumbText.text = item.title
-            breadcrumbText.visibility = if (item.title.isBlank()) View.GONE else View.VISIBLE
             breadcrumbText.setTextColor(
                 ContextCompat.getColor(
                     context,
@@ -44,11 +57,12 @@ class ExplorerBreadcrumbAdapter(
                 )
             )
             breadcrumbText.setTypeface(null, if (isLast) Typeface.BOLD else Typeface.NORMAL)
+            itemView.setOnClickListener { onItemClick(item) }
         }
     }
 }
 
 data class ExplorerBreadcrumbItem(
     val title: String,
-    val isHome: Boolean = false
+    val path: String
 )

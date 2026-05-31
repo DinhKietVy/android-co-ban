@@ -7,6 +7,11 @@
 
     <style name="Theme.FileManagementApp" parent="Base.Theme.FileManagementApp" />
 
+    <style name="ShapeAppearance.Explorer.FilePreview" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">14dp</item>
+    </style>
+
     <style name="MainBottomNavTextAppearance" parent="@style/TextAppearance.Material3.LabelMedium">
         <item name="android:textSize">12sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>

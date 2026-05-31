@@ -17,7 +17,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.filemanagementapp.R
 import androidx.lifecycle.lifecycleScope
 import com.example.filemanagementapp.login.LoginActivity
-import com.example.filemanagementapp.login.data.local.LoginPreferencesRepository
+import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
 import com.example.filemanagementapp.main.MainActivity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

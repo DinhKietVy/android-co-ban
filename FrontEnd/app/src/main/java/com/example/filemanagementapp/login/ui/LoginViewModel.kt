@@ -3,9 +3,9 @@ package com.example.filemanagementapp.login.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.filemanagementapp.login.data.local.LoginPreferencesRepository
-import com.example.filemanagementapp.login.data.model.LoginUser
-import com.example.filemanagementapp.login.data.repository.AuthRepository
+import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
+import com.example.filemanagementapp.data.auth.model.LoginUser
+import com.example.filemanagementapp.data.auth.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow

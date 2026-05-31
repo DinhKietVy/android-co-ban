@@ -16,8 +16,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.filemanagementapp.R
-import com.example.filemanagementapp.login.data.network.AuthNetworkModule
-import com.example.filemanagementapp.login.data.repository.AuthRepository
+import com.example.filemanagementapp.data.auth.network.AuthNetworkModule
+import com.example.filemanagementapp.data.auth.repository.AuthRepository
 import com.example.filemanagementapp.password.ui.ForgotPasswordEvent
 import com.example.filemanagementapp.password.ui.ForgotPasswordStep
 import com.example.filemanagementapp.password.ui.ForgotPasswordUiState

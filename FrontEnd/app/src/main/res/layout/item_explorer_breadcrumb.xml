@@ -6,24 +6,6 @@
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
-    <ImageView
-        android:id="@+id/separatorIcon"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
-        android:layout_marginStart="4dp"
-        android:src="@drawable/chevron_right"
-        android:tint="@color/explorer_text_secondary"
-        tools:visibility="visible" />
-
-    <ImageView
-        android:id="@+id/homeIcon"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
-        android:contentDescription="@string/explorer_home"
-        android:src="@drawable/home"
-        android:tint="@color/explorer_text_secondary"
-        tools:visibility="gone" />
-
     <TextView
         android:id="@+id/breadcrumbText"
         android:layout_width="wrap_content"
@@ -32,4 +14,13 @@
         android:textColor="@color/explorer_text_secondary"
         android:textSize="14sp"
         tools:text="Documents" />
+
+    <ImageView
+        android:id="@+id/separatorIcon"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="4dp"
+        android:src="@drawable/chevron_right"
+        android:tint="@color/explorer_text_secondary"
+        tools:visibility="visible" />
 </LinearLayout>
