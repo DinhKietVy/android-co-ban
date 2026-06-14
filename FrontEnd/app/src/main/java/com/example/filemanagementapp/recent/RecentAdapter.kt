@@ -3,17 +3,20 @@ package com.example.filemanagementapp.recent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 import com.example.filemanagementapp.R
+import com.google.android.material.imageview.ShapeableImageView
 
 class RecentAdapter(
-    private var items: List<RecentListItem>
+    private var items: List<RecentListItem>,
+    private val onItemClick: (RecentItem) -> Unit,
+    private val onMoreClick: (RecentItem) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     fun submitItems(newItems: List<RecentListItem>) {
@@ -24,22 +27,34 @@ class RecentAdapter(
     override fun getItemCount(): Int = items.size
 
     override fun getItemViewType(position: Int): Int {
-        return if (items[position] is RecentListItem.Header) VIEW_TYPE_HEADER else VIEW_TYPE_ENTRY
+        return when (val item = items[position]) {
+            is RecentListItem.Header -> VIEW_TYPE_HEADER
+            is RecentListItem.Entry ->
+                if (item.item.kind == RecentItem.Kind.FOLDER) VIEW_TYPE_FOLDER else VIEW_TYPE_FILE
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return if (viewType == VIEW_TYPE_HEADER) {
-            HeaderViewHolder(inflater.inflate(R.layout.item_recent_section_header, parent, false))
-        } else {
-            EntryViewHolder(inflater.inflate(R.layout.item_recent_entry, parent, false))
+        return when (viewType) {
+            VIEW_TYPE_HEADER ->
+                HeaderViewHolder(inflater.inflate(R.layout.item_recent_section_header, parent, false))
+
+            VIEW_TYPE_FOLDER ->
+                FolderViewHolder(inflater.inflate(R.layout.item_explorer_folder_list, parent, false))
+
+            else ->
+                FileViewHolder(inflater.inflate(R.layout.item_explorer_file_list, parent, false))
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
             is RecentListItem.Header -> (holder as HeaderViewHolder).bind(item)
-            is RecentListItem.Entry -> (holder as EntryViewHolder).bind(item.item)
+            is RecentListItem.Entry -> when (holder) {
+                is FolderViewHolder -> holder.bind(item.item, onItemClick, onMoreClick)
+                is FileViewHolder -> holder.bind(item.item, onItemClick, onMoreClick)
+            }
         }
     }
 
@@ -49,88 +64,155 @@ class RecentAdapter(
         private val count: TextView = itemView.findViewById(R.id.sectionCount)
 
         fun bind(item: RecentListItem.Header) {
-            icon.setImageResource(item.iconRes)
-            title.text = item.title
+            val context = itemView.context
+            icon.setImageResource(iconFor(item.section))
+            title.text = context.getString(titleFor(item.section))
             count.text = item.count.toString()
         }
+
+        private fun titleFor(section: RecentItem.Section): Int {
+            return when (section) {
+                RecentItem.Section.TODAY -> R.string.recent_today
+                RecentItem.Section.YESTERDAY -> R.string.recent_yesterday
+                RecentItem.Section.WEEK -> R.string.recent_this_week
+                RecentItem.Section.EARLIER -> R.string.recent_earlier
+                RecentItem.Section.FAV_RECENT -> R.string.recent_favorites_section
+                RecentItem.Section.FAV_AI -> R.string.recent_ai_section
+                RecentItem.Section.FAV_FREQUENT -> R.string.recent_frequent_section
+            }
+        }
+
+        private fun iconFor(section: RecentItem.Section): Int {
+            return when (section) {
+                RecentItem.Section.FAV_RECENT -> R.drawable.star
+                RecentItem.Section.FAV_AI -> R.drawable.brain
+                RecentItem.Section.FAV_FREQUENT -> R.drawable.bookmark_check
+                else -> R.drawable.clock
+            }
+        }
     }
 
-    private class EntryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val thumbContainer: FrameLayout = itemView.findViewById(R.id.thumbContainer)
-        private val thumbIcon: ImageView = itemView.findViewById(R.id.thumbIcon)
-        private val thumbExt: TextView = itemView.findViewById(R.id.thumbExt)
-        private val itemName: TextView = itemView.findViewById(R.id.itemNameText)
-        private val favoriteStar: ImageView = itemView.findViewById(R.id.favoriteStarIcon)
-        private val itemMeta: TextView = itemView.findViewById(R.id.itemMetaText)
-        private val ocrSnippet: TextView = itemView.findViewById(R.id.ocrSnippetText)
-        private val aiChip: TextView = itemView.findViewById(R.id.aiChipText)
-        private val tagOne: TextView = itemView.findViewById(R.id.tagOneText)
-        private val tagTwo: TextView = itemView.findViewById(R.id.tagTwoText)
-        private val tagContainer: LinearLayout = itemView.findViewById(R.id.tagContainer)
+    private class FolderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val selectionCheckBox: View = itemView.findViewById(R.id.itemSelectionCheckBox)
+        private val nameText: TextView = itemView.findViewById(R.id.itemNameText)
+        private val favoriteBadge: ImageView = itemView.findViewById(R.id.favoriteBadgeIcon)
+        private val metaText: TextView = itemView.findViewById(R.id.itemMetaText)
         private val moreButton: ImageButton = itemView.findViewById(R.id.moreButton)
 
-        fun bind(item: RecentItem) {
+        fun bind(
+            item: RecentItem,
+            onItemClick: (RecentItem) -> Unit,
+            onMoreClick: (RecentItem) -> Unit
+        ) {
             val context = itemView.context
-            itemName.text = item.name
-            favoriteStar.visibility = if (item.isFavorite) View.VISIBLE else View.GONE
-            itemMeta.text = if (item.kind == RecentItem.Kind.FOLDER) {
-                context.getString(R.string.recent_file_meta,
-                    context.getString(R.string.recent_folder_item_count, item.itemCount ?: 0),
-                    item.lastModified)
-            } else {
-                context.getString(R.string.recent_file_meta, item.size.orEmpty(), item.lastModified)
-            }
-
-            ocrSnippet.text = item.ocrSnippet
-            ocrSnippet.visibility = if (item.ocrSnippet.isNullOrBlank()) View.GONE else View.VISIBLE
-            aiChip.visibility = if (item.aiAnalyzed) View.VISIBLE else View.GONE
-
-            val tags = item.aiTags.take(2)
-            tagOne.visibility = if (tags.isNotEmpty()) View.VISIBLE else View.GONE
-            tagTwo.visibility = if (tags.size > 1) View.VISIBLE else View.GONE
-            if (tags.isNotEmpty()) {
-                tagOne.text = tags[0]
-            }
-            if (tags.size > 1) {
-                tagTwo.text = tags[1]
-            }
-            tagContainer.visibility =
-                if (item.aiAnalyzed || tags.isNotEmpty()) View.VISIBLE else View.GONE
-
-            val style = styleFor(item)
-            thumbContainer.backgroundTintList = ContextCompat.getColorStateList(context, style.bgColor)
-            thumbIcon.setImageResource(style.iconRes)
-            thumbIcon.imageTintList = ContextCompat.getColorStateList(context, style.tintColor)
-            thumbExt.text = style.ext
-            thumbExt.setTextColor(ContextCompat.getColor(context, style.tintColor))
-            thumbExt.visibility = if (item.kind == RecentItem.Kind.FILE) View.VISIBLE else View.GONE
-
-            moreButton.setOnClickListener(null)
-        }
-
-        private fun styleFor(item: RecentItem): EntryStyle {
-            if (item.kind == RecentItem.Kind.FOLDER) {
-                return EntryStyle(R.drawable.folder, R.color.recent_folder_bg, R.color.recent_folder_tint, "")
-            }
-            return when (item.fileType) {
-                RecentItem.FileType.IMAGE -> EntryStyle(R.drawable.image_icon, R.color.recent_image_bg, R.color.recent_image, itemView.context.getString(R.string.recent_type_img))
-                RecentItem.FileType.VIDEO -> EntryStyle(R.drawable.film, R.color.recent_video_bg, R.color.recent_video, itemView.context.getString(R.string.recent_type_vid))
-                RecentItem.FileType.AUDIO -> EntryStyle(R.drawable.file_audio, R.color.recent_audio_bg, R.color.recent_audio, itemView.context.getString(R.string.recent_type_aud))
-                RecentItem.FileType.PDF -> EntryStyle(R.drawable.file_text, R.color.recent_pdf_bg, R.color.recent_pdf, itemView.context.getString(R.string.recent_type_pdf))
-                else -> EntryStyle(R.drawable.file_text, R.color.recent_doc_bg, R.color.recent_doc, itemView.context.getString(R.string.recent_type_doc))
-            }
+            selectionCheckBox.visibility = View.GONE
+            nameText.text = item.name
+            favoriteBadge.visibility = if (item.isFavorite) View.VISIBLE else View.GONE
+            val count = context.getString(R.string.recent_folder_item_count, item.itemCount ?: 0)
+            metaText.text = context.getString(R.string.recent_file_meta, count, item.lastModified)
+            itemView.setOnClickListener { onItemClick(item) }
+            moreButton.setOnClickListener { onMoreClick(item) }
         }
     }
 
-    private data class EntryStyle(
-        val iconRes: Int,
-        val bgColor: Int,
-        val tintColor: Int,
-        val ext: String
-    )
+    private class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val selectionCheckBox: View = itemView.findViewById(R.id.itemSelectionCheckBox)
+        private val previewImage: ShapeableImageView = itemView.findViewById(R.id.filePreviewImage)
+        private val fallbackIcon: ImageView = itemView.findViewById(R.id.fileFallbackIcon)
+        private val nameText: TextView = itemView.findViewById(R.id.itemNameText)
+        private val aiBadge: ImageView = itemView.findViewById(R.id.aiBadgeIcon)
+        private val favoriteBadge: ImageView = itemView.findViewById(R.id.favoriteBadgeIcon)
+        private val tagContainer: LinearLayout = itemView.findViewById(R.id.tagContainer)
+        private val metaText: TextView = itemView.findViewById(R.id.itemMetaText)
+        private val dateText: TextView = itemView.findViewById(R.id.itemDateText)
+        private val moreButton: ImageButton = itemView.findViewById(R.id.moreButton)
+
+        fun bind(
+            item: RecentItem,
+            onItemClick: (RecentItem) -> Unit,
+            onMoreClick: (RecentItem) -> Unit
+        ) {
+            selectionCheckBox.visibility = View.GONE
+
+            if (item.isImagePreviewable && !item.previewUrl.isNullOrBlank()) {
+                fallbackIcon.visibility = View.GONE
+                previewImage.load(item.previewUrl) {
+                    crossfade(true)
+                    placeholder(R.drawable.explorer_file_preview_placeholder)
+                    error(R.drawable.explorer_file_preview_placeholder)
+                }
+            } else {
+                previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
+                fallbackIcon.visibility = View.VISIBLE
+                fallbackIcon.setImageResource(fallbackIconFor(item))
+            }
+
+            nameText.text = item.name
+            aiBadge.visibility = if (item.aiAnalyzed) View.VISIBLE else View.GONE
+            favoriteBadge.visibility = if (item.isFavorite) View.VISIBLE else View.GONE
+
+            renderTags(item.aiTags.take(2))
+
+            metaText.text = item.size.orEmpty()
+            if (item.lastModified.isBlank()) {
+                dateText.visibility = View.GONE
+            } else {
+                dateText.visibility = View.VISIBLE
+                dateText.text = item.lastModified
+            }
+
+            itemView.setOnClickListener { onItemClick(item) }
+            moreButton.setOnClickListener { onMoreClick(item) }
+        }
+
+        private fun renderTags(tags: List<String>) {
+            val context = itemView.context
+            tagContainer.removeAllViews()
+            if (tags.isEmpty()) {
+                tagContainer.visibility = View.GONE
+                return
+            }
+            tagContainer.visibility = View.VISIBLE
+            tags.forEachIndexed { index, tag ->
+                val tagView = TextView(context).apply {
+                    text = tag
+                    textSize = 11f
+                    setTextColor(ContextCompat.getColor(context, R.color.explorer_tag_text))
+                    setBackgroundResource(R.drawable.explorer_tag_background)
+                    setPadding(8.dp(), 3.dp(), 8.dp(), 3.dp())
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        if (index > 0) {
+                            marginStart = 6.dp()
+                        }
+                    }
+                }
+                tagContainer.addView(tagView)
+            }
+        }
+
+        private fun fallbackIconFor(item: RecentItem): Int {
+            if (item.kind == RecentItem.Kind.FOLDER) {
+                return R.drawable.folder
+            }
+            return when (item.fileType) {
+                RecentItem.FileType.IMAGE -> R.drawable.image_icon
+                RecentItem.FileType.VIDEO -> R.drawable.film
+                RecentItem.FileType.AUDIO -> R.drawable.file_audio
+                else -> R.drawable.file_text
+            }
+        }
+
+        private fun Int.dp(): Int {
+            return (this * itemView.resources.displayMetrics.density).toInt()
+        }
+    }
 
     companion object {
         private const val VIEW_TYPE_HEADER = 0
-        private const val VIEW_TYPE_ENTRY = 1
+        private const val VIEW_TYPE_FILE = 1
+        private const val VIEW_TYPE_FOLDER = 2
     }
 }

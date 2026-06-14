@@ -551,6 +551,7 @@ class ExplorerViewModel(
                 item.copy(
                     aiAnalyzed = analysis.status == AiAnalysisStatus.COMPLETED,
                     tags = mergedTags,
+                    ocrSnippet = analysis.ocrText,
                     isFavorite = item.path in favoritePaths
                 )
             } else {

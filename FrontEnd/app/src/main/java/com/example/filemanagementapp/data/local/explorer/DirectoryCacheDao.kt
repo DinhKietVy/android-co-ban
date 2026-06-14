@@ -16,6 +16,14 @@ interface DirectoryCacheDao {
     )
     suspend fun getByFolder(username: String, folderPath: String): DirectoryCacheEntity?
 
+    @Query(
+        """
+        SELECT * FROM directory_cache
+        WHERE username = :username
+        """
+    )
+    suspend fun getAllForUser(username: String): List<DirectoryCacheEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: DirectoryCacheEntity)
 

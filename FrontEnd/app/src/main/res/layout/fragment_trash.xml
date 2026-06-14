@@ -7,18 +7,18 @@
     android:background="@color/trash_bg"
     tools:context=".trash.TrashFragment">
 
-    <LinearLayout
+    <FrameLayout
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/trash_surface"
         android:elevation="2dp"
-        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
+            android:id="@+id/defaultTopBar"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:gravity="center_vertical"
@@ -36,6 +36,7 @@
                 android:textStyle="bold" />
 
             <ImageButton
+                android:id="@+id/topSearchButton"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
@@ -45,6 +46,7 @@
                 android:tint="@color/trash_text_secondary" />
 
             <ImageButton
+                android:id="@+id/topSortButton"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
@@ -54,15 +56,60 @@
                 android:tint="@color/trash_text_secondary" />
 
             <ImageButton
+                android:id="@+id/topMoreButton"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/trash_more"
                 android:padding="8dp"
                 android:src="@drawable/more_vertical"
-                android:tint="@color/trash_text_secondary" />
+                app:tint="@color/trash_text_secondary" />
         </LinearLayout>
-    </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/searchTopBar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone">
+
+            <ImageButton
+                android:id="@+id/closeSearchButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/arrow_left"
+                app:tint="@color/trash_text_secondary" />
+
+            <EditText
+                android:id="@+id/searchInput"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@null"
+                android:hint="Tìm kiếm..."
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:textColor="@color/trash_text_primary"
+                android:textColorHint="@color/trash_text_secondary"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/clearSearchButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/x_close"
+                android:visibility="gone"
+                app:tint="@color/trash_text_secondary" />
+        </LinearLayout>
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/infoCard"
@@ -187,6 +234,15 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
+
+        <ImageButton
+            android:id="@+id/closeSelectionButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/x_close"
+            app:tint="@color/trash_text_secondary" />
 
         <TextView
             android:id="@+id/selectedCountText"

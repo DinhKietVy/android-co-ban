@@ -150,6 +150,7 @@ class ExplorerAdapter(
         private val aiBadge: ImageView = itemView.findViewById(R.id.aiBadgeIcon)
         private val favoriteBadge: ImageView = itemView.findViewById(R.id.favoriteBadgeIcon)
         private val tagContainer: LinearLayout = itemView.findViewById(R.id.tagContainer)
+        private val ocrPreviewText: TextView? = itemView.findViewById(R.id.ocrPreviewText)
         private val metaText: TextView = itemView.findViewById(R.id.itemMetaText)
         private val dateText: TextView = itemView.findViewById(R.id.itemDateText)
         private val moreButton: ImageButton = itemView.findViewById(R.id.moreButton)
@@ -187,6 +188,15 @@ class ExplorerAdapter(
             } else {
                 tagContainer.visibility = View.VISIBLE
                 renderTags(tags)
+            }
+            
+            if (ocrPreviewText != null) {
+                if (!item.ocrSnippet.isNullOrBlank()) {
+                    ocrPreviewText.visibility = View.VISIBLE
+                    ocrPreviewText.text = item.ocrSnippet
+                } else {
+                    ocrPreviewText.visibility = View.GONE
+                }
             }
 
             metaText.text = item.size.orEmpty()

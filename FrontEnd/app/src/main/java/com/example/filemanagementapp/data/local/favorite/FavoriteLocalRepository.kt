@@ -19,6 +19,18 @@ class FavoriteLocalRepository(
             .mapTo(linkedSetOf()) { it.itemPath }
     }
 
+    suspend fun getAllFavorites(
+        username: String
+    ): List<FavoriteEntry> = withContext(Dispatchers.IO) {
+        favoriteItemDao.getAllForUser(username).map { entity ->
+            FavoriteEntry(
+                path = entity.itemPath,
+                type = entity.itemType,
+                createdAt = entity.createdAt
+            )
+        }
+    }
+
     suspend fun toggleFavorite(
         username: String,
         item: ExplorerItem
@@ -78,3 +90,9 @@ class FavoriteLocalRepository(
         }
     }
 }
+
+data class FavoriteEntry(
+    val path: String,
+    val type: String,
+    val createdAt: Long
+)

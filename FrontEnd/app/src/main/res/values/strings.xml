@@ -112,12 +112,13 @@
     <string name="recent_type_aud">AUD</string>
     <string name="recent_folder_item_count">%1$d items</string>
     <string name="recent_file_meta">%1$s · %2$s</string>
+    <string name="recent_open_folder_unsupported">Mở thư mục từ đây chưa được hỗ trợ</string>
     <string name="trash_title">Trash</string>
     <string name="trash_info">Items in Trash are automatically deleted after 30 days.</string>
     <string name="trash_deleted">Deleted %1$s</string>
     <string name="trash_remove_in">Will be removed in %1$d days</string>
     <string name="trash_restore">Restore</string>
-    <string name="trash_delete_permanently">Delete permanently</string>
+    <string name="trash_delete_permanently">Delete</string>
     <string name="trash_selected_count">%1$d selected</string>
     <string name="trash_empty_title">Trash is empty</string>
     <string name="trash_empty_subtitle">Deleted files will appear here before permanent removal</string>

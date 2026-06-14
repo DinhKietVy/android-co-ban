@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_marginBottom="4dp"
     android:background="@color/trash_surface"
     android:gravity="top"
@@ -12,28 +13,37 @@
     android:paddingEnd="8dp"
     android:paddingBottom="12dp">
 
-    <ImageButton
+    <ImageView
         android:id="@+id/selectButton"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/trash_select_item"
         android:padding="6dp"
+        app:tint="#99A1AF"
         tools:src="@drawable/circle" />
 
     <FrameLayout
-        android:id="@+id/thumbContainer"
         android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="8dp"
-        android:background="@color/recent_chip_bg">
+        android:layout_height="48dp">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/filePreviewImage"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/explorer_file_icon"
+            android:scaleType="centerCrop"
+            android:src="@drawable/explorer_file_preview_placeholder"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Explorer.FilePreview" />
 
         <ImageView
-            android:id="@+id/thumbIcon"
+            android:id="@+id/fileFallbackIcon"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="center"
-            tools:src="@drawable/file_text" />
+            android:contentDescription="@string/explorer_file_icon"
+            android:src="@drawable/file_text"
+            android:tint="@color/explorer_primary"
+            tools:visibility="visible" />
     </FrameLayout>
 
     <LinearLayout
@@ -63,78 +73,31 @@
             android:textSize="13sp"
             tools:text="2.4 MB • image" />
 
+        <LinearLayout
+            android:id="@+id/tagContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            tools:visibility="visible" />
+
         <TextView
             android:id="@+id/ocrPreviewText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:background="@color/recent_chip_bg"
+            android:background="@drawable/explorer_tag_background"
             android:ellipsize="end"
             android:maxLines="1"
             android:paddingStart="8dp"
-            android:paddingTop="6dp"
+            android:paddingTop="4dp"
             android:paddingEnd="8dp"
-            android:paddingBottom="6dp"
+            android:paddingBottom="4dp"
             android:textColor="@color/trash_text_secondary"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:visibility="gone"
             tools:text="Amazon.com Order #123-4567890-123..."
             tools:visibility="visible" />
-
-        <LinearLayout
-            android:id="@+id/tagContainer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/aiChipText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/explorer_tag_background"
-                android:paddingStart="8dp"
-                android:paddingTop="3dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="3dp"
-                android:text="@string/recent_ai_analyzed"
-                android:textColor="@color/splash_logo_end"
-                android:textSize="11sp"
-                android:visibility="gone"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/tagOneText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/explorer_tag_background"
-                android:paddingStart="8dp"
-                android:paddingTop="3dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="3dp"
-                android:textColor="@color/recent_primary"
-                android:textSize="11sp"
-                android:visibility="gone"
-                tools:text="Receipt"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/tagTwoText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/explorer_tag_background"
-                android:paddingStart="8dp"
-                android:paddingTop="3dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="3dp"
-                android:textColor="@color/recent_primary"
-                android:textSize="11sp"
-                android:visibility="gone"
-                tools:text="Invoice"
-                tools:visibility="visible" />
-        </LinearLayout>
 
         <TextView
             android:id="@+id/deletedDateText"
