@@ -18,7 +18,7 @@ class MainPagerAdapter(
     override fun createFragment(position: Int): Fragment {
         return when (position) {
             0 -> ExplorerFragment.newInstance(username)
-            1 -> RecentFragment()
+            1 -> RecentFragment.newInstance(username)
             2 -> TrashFragment()
             3 -> ProfileFragment()
             else -> throw IndexOutOfBoundsException("Invalid page index: $position")

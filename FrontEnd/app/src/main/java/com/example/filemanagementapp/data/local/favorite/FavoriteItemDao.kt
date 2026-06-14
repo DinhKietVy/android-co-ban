@@ -19,6 +19,15 @@ interface FavoriteItemDao {
         paths: List<String>
     ): List<FavoriteItemEntity>
 
+    @Query(
+        """
+        SELECT * FROM favorite_items
+        WHERE username = :username
+        ORDER BY created_at DESC
+        """
+    )
+    suspend fun getAllForUser(username: String): List<FavoriteItemEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: FavoriteItemEntity)
 

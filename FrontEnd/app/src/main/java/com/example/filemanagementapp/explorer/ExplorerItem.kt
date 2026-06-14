@@ -17,6 +17,7 @@ data class ExplorerItem(
     @param:DrawableRes val fallbackIconRes: Int? = null,
     val tags: List<String> = emptyList(),
     val aiAnalyzed: Boolean = false,
+    val ocrSnippet: String? = null,
     val isFavorite: Boolean = false
 ) {
     enum class Type {

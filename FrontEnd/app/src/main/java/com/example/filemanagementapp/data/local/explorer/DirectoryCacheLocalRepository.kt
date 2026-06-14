@@ -19,6 +19,16 @@ class DirectoryCacheLocalRepository(
         )?.toSnapshot()
     }
 
+    suspend fun getAllCachedDirectories(
+        username: String
+    ): List<ExplorerDirectoryData> = withContext(Dispatchers.IO) {
+        directoryCacheDao.getAllForUser(username).mapNotNull { entity ->
+            runCatching {
+                gson.fromJson(entity.payloadJson, ExplorerDirectoryData::class.java)
+            }.getOrNull()
+        }
+    }
+
     suspend fun upsertDirectory(
         username: String,
         folderPath: String,

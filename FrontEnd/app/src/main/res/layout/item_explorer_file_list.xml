@@ -36,8 +36,8 @@
 
         <ImageView
             android:id="@+id/fileFallbackIcon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_gravity="center"
             android:contentDescription="@string/explorer_file_icon"
             android:src="@drawable/file_text"
@@ -97,6 +97,24 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:orientation="horizontal"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/ocrPreviewText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/explorer_tag_background"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingStart="8dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/explorer_text_secondary"
+            android:textSize="11sp"
+            android:visibility="gone"
+            tools:text="Amazon.com Order #123-4567890-123..."
             tools:visibility="visible" />
 
         <LinearLayout

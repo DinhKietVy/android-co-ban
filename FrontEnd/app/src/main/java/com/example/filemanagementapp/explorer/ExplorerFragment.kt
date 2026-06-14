@@ -23,6 +23,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -49,6 +50,7 @@ import com.example.filemanagementapp.explorer.ui.ExplorerUiEvent
 import com.example.filemanagementapp.explorer.ui.ExplorerUiState
 import com.example.filemanagementapp.explorer.ui.ExplorerViewModel
 import com.example.filemanagementapp.explorer.ui.SortOption
+import com.example.filemanagementapp.main.MainNavigationViewModel
 import com.example.filemanagementapp.preview.FilePreviewActivity
 import com.example.filemanagementapp.search.SearchActivity
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -58,12 +60,14 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-class ExplorerFragment : Fragment() {
+class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private val username: String
         get() = requireArguments().getString(ARG_USERNAME).orEmpty()
 
     private lateinit var viewModel: ExplorerViewModel
+    private val navigationViewModel: MainNavigationViewModel by activityViewModels()
     private lateinit var explorerRepository: ExplorerRepository
+    private lateinit var actionSheetController: FileActionSheetController
     private lateinit var breadcrumbAdapter: ExplorerBreadcrumbAdapter
     private lateinit var explorerAdapter: ExplorerAdapter
     private lateinit var homeIcon: ImageView
@@ -90,15 +94,6 @@ class ExplorerFragment : Fragment() {
     private lateinit var selectionSummaryText: TextView
     private lateinit var moveSelectedButton: View
     private lateinit var deleteSelectedButton: View
-    private lateinit var bottomSheet: LinearLayout
-    private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
-    private lateinit var bottomSheetFileIcon: ImageView
-    private lateinit var bottomSheetFileName: TextView
-    private lateinit var bottomSheetFileMeta: TextView
-    private lateinit var bottomSheetTagsContainer: LinearLayout
-    private lateinit var actionFavoriteLabel: TextView
-    private lateinit var actionAiView: View
-    private var selectedItem: ExplorerItem? = null
     private var currentDownloadProgress: ExplorerDownloadProgress? = null
     private var pendingDownloadItem: ExplorerItem? = null
     private val uploadFileLauncher = registerForActivityResult(
@@ -198,15 +193,15 @@ class ExplorerFragment : Fragment() {
         selectionSummaryText = view.findViewById(R.id.selectionSummaryText)
         moveSelectedButton = view.findViewById(R.id.moveSelectedButton)
         deleteSelectedButton = view.findViewById(R.id.deleteSelectedButton)
-        bottomSheet = view.findViewById(R.id.fileActionBottomSheet)
-        bottomSheetFileIcon = view.findViewById(R.id.bsFileIcon)
-        bottomSheetFileName = view.findViewById(R.id.bsFileName)
-        bottomSheetFileMeta = view.findViewById(R.id.bsFileMeta)
-        bottomSheetTagsContainer = view.findViewById(R.id.bsAiTagsContainer)
-        actionFavoriteLabel = view.findViewById(R.id.actionFavoriteLabel)
-        actionAiView = view.findViewById(R.id.actionAi)
 
-        setupBottomSheet(view)
+        actionSheetController = FileActionSheetController(
+            rootView = view,
+            lifecycleOwner = viewLifecycleOwner,
+            explorerRepository = explorerRepository,
+            username = username,
+            currentFolderProvider = { viewModel.uiState.value.currentFolder },
+            callbacks = this
+        )
 
         breadcrumbAdapter = ExplorerBreadcrumbAdapter { breadcrumb ->
             viewModel.loadDirectory(breadcrumb.path)
@@ -217,7 +212,7 @@ class ExplorerFragment : Fragment() {
 
         explorerAdapter = ExplorerAdapter(
             onFolderClick = { item -> viewModel.loadDirectory(item.path) },
-            onMoreClick = ::showBottomSheet,
+            onMoreClick = { item -> showActionSheet(item) },
             onItemSelectionToggle = { item -> viewModel.toggleItemSelection(item) },
             onItemLongPress = { item -> viewModel.startSelection(item) }
         )
@@ -288,6 +283,14 @@ class ExplorerFragment : Fragment() {
                             )
                         }
                     }
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                navigationViewModel.openFolderRequests.collect { folderPath ->
+                    viewModel.loadDirectory(folderPath)
                 }
             }
         }
@@ -504,7 +507,7 @@ class ExplorerFragment : Fragment() {
 
     private fun showMoveSelectedDialog() {
         val movingItems = viewModel.uiState.value.items.filter { it.path in viewModel.uiState.value.selectedPaths }
-        showFolderPickerDialog(
+        actionSheetController.pickFolder(
             titleRes = R.string.explorer_dialog_move_selected_title,
             movingItems = movingItems,
             onFolderPicked = { folderPath ->
