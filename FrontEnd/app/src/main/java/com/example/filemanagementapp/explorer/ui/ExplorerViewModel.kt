@@ -120,15 +120,9 @@ class ExplorerViewModel(
         viewModelScope.launch {
             repository.renameItem(username = username, item = item, newName = sanitizedName)
                 .onSuccess { message ->
-                    val newPath = repository.buildChildPath(
-                        item.path.substringBeforeLast('/', ""),
-                        sanitizedName
-                    )
-                    directoryCacheLocalRepository.renameItem(
+                    directoryCacheLocalRepository.invalidateDirectory(
                         username = username,
-                        oldPath = item.path,
-                        newPath = newPath,
-                        isFolder = item.type == ExplorerItem.Type.FOLDER
+                        folderPath = _uiState.value.currentFolder
                     )
                     emitMessage(UiText.DynamicString(message))
                     refreshCurrentDirectory()
@@ -149,7 +143,7 @@ class ExplorerViewModel(
         viewModelScope.launch {
             repository.createFolder(
                 username = username,
-                parentPath = _uiState.value.currentFolder,
+                targetPath = _uiState.value.currentFolder,
                 folderName = sanitizedName
             ).onSuccess { message ->
                 directoryCacheLocalRepository.invalidateDirectory(
@@ -199,12 +193,9 @@ class ExplorerViewModel(
         viewModelScope.launch {
             repository.moveItem(username = username, item = item, targetFolderPath = normalizedTarget)
                 .onSuccess { message ->
-                    val newPath = if (normalizedTarget.isBlank()) item.name else "$normalizedTarget/${item.name}"
-                    directoryCacheLocalRepository.renameItem(
+                    directoryCacheLocalRepository.invalidateDirectory(
                         username = username,
-                        oldPath = item.path,
-                        newPath = newPath,
-                        isFolder = item.type == ExplorerItem.Type.FOLDER
+                        folderPath = _uiState.value.currentFolder
                     )
                     emitMessage(UiText.DynamicString(message))
                     refreshCurrentDirectory()
@@ -464,10 +455,10 @@ class ExplorerViewModel(
                     val updatedItems = state.items.map { current ->
                         if (current.path == item.path) {
                             current.copy(
-                                aiAnalyzed = analysis.status == AiAnalysisStatus.COMPLETED,
+                                aiAnalyzed = true,
                                 tags = mergedTags,
-                                ocrSnippet = analysis.ocrText,
-                                isFavorite = item.path in favoritePaths
+                                ocrSnippet = result.texts.joinToString(separator = "\n"),
+                                isFavorite = item.isFavorite
                             )
                         } else {
                             current
@@ -476,10 +467,10 @@ class ExplorerViewModel(
                     currentDirectoryItems = currentDirectoryItems.map { current ->
                         if (current.path == item.path) {
                             current.copy(
-                                aiAnalyzed = analysis.status == AiAnalysisStatus.COMPLETED,
+                                aiAnalyzed = true,
                                 tags = mergedTags,
-                                ocrSnippet = analysis.ocrText,
-                                isFavorite = item.path in favoritePaths
+                                ocrSnippet = result.texts.joinToString(separator = "\n"),
+                                isFavorite = item.isFavorite
                             )
                         } else {
                             current
@@ -491,13 +482,11 @@ class ExplorerViewModel(
                 }
                 _events.emit(
                     ExplorerUiEvent.OpenPreview(
-                        fileName = item.name,
-                        previewUrl = item.previewUrl,
+                        item = item,
+                        username = username,
                         analyzedImagePath = result.previewImagePath,
                         ocrText = result.texts.joinToString(separator = "\n"),
                         aiTags = result.tags,
-                        fileSize = item.size,
-                        modified = item.modified,
                         showAiPanel = true
                     )
                 )
@@ -511,7 +500,7 @@ class ExplorerViewModel(
 
     private fun emitMessage(message: String) {
         viewModelScope.launch {
-            _events.emit(ExplorerUiEvent.ShowMessage(message))
+            _events.emit(ExplorerUiEvent.ShowMessage(UiText.DynamicString(message)))
         }
     }
 

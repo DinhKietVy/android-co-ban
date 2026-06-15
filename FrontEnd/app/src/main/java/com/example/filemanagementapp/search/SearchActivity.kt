@@ -286,13 +286,11 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
             startActivity(
                 FilePreviewActivity.newIntent(
                     context = this,
-                    fileName = item.name,
-                    previewUrl = item.previewUrl,
+                    item = item,
+                    username = username,
                     analyzedImagePath = null,
                     ocrText = null,
                     aiTags = emptyList(),
-                    fileSize = item.size,
-                    modified = item.modified,
                     showAiPanel = false
                 )
             )

@@ -137,13 +137,11 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 viewModel.refreshCurrentDirectory()
             }
             FilePreviewActivity.RESULT_ACTION_FAVORITE -> {
-                @Suppress("DEPRECATION")
-                val item = result.data?.getParcelableExtra<ExplorerItem>(FilePreviewActivity.EXTRA_EXPLORER_ITEM)
+                val item = result.data?.getSerializableExtra(FilePreviewActivity.EXTRA_EXPLORER_ITEM) as? ExplorerItem
                 if (item != null) viewModel.toggleFavorite(item)
             }
             FilePreviewActivity.RESULT_ACTION_AI -> {
-                @Suppress("DEPRECATION")
-                val item = result.data?.getParcelableExtra<ExplorerItem>(FilePreviewActivity.EXTRA_EXPLORER_ITEM)
+                val item = result.data?.getSerializableExtra(FilePreviewActivity.EXTRA_EXPLORER_ITEM) as? ExplorerItem
                 if (item != null) viewModel.analyzeItem(item)
             }
         }

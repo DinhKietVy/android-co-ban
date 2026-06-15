@@ -256,7 +256,7 @@ class ForgotPasswordViewModel(
                 message.contains("Ma xac nhan", ignoreCase = true) -> state.copy(
                     step = ForgotPasswordStep.OTP,
                     isResettingPassword = false,
-                    otpError = UiText.StringResource(R.string.error_invalid_reset_code),
+                    otpError = UiText.StringResource(R.string.error_auth_verify_otp_failed),
                     newPasswordError = null,
                     confirmPasswordError = null
                 )

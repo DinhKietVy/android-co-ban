@@ -72,8 +72,7 @@ class FilePreviewActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        @Suppress("DEPRECATION")
-        explorerItem = intent.getParcelableExtra(EXTRA_EXPLORER_ITEM)
+        explorerItem = intent.getSerializableExtra(EXTRA_EXPLORER_ITEM) as? ExplorerItem
         username = intent.getStringExtra(EXTRA_USERNAME).orEmpty()
         
         explorerRepository = ExplorerRepository(
