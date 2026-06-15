@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, googleAuth, login, forgotPassword, verifyResetCode, resetPassword,autoLogin } from '../controllers/user.controller';
+import { createUser, googleAuth, login, forgotPassword, verifyResetCode, resetPassword,autoLogin, updateProfile, changePassword, deleteAccount } from '../controllers/user.controller';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
@@ -247,5 +247,9 @@ router.post('/reset-password', resetPassword);
  *         description: Lỗi máy chủ
  */
 router.get('/auto-login', authenticateToken, autoLogin);
+
+router.put('/me', authenticateToken, updateProfile);
+router.post('/change-password', authenticateToken, changePassword);
+router.delete('/me', authenticateToken, deleteAccount);
 
 export default router;

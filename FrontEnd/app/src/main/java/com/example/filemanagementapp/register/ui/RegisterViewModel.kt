@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.filemanagementapp.data.auth.model.LoginUser
 import com.example.filemanagementapp.data.auth.repository.AuthRepository
+import com.example.filemanagementapp.util.UiText
+import com.example.filemanagementapp.R
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -71,28 +73,36 @@ class RegisterViewModel(
         val password = state.password
         val confirmPassword = state.confirmPassword
 
-        val fullNameError = if (fullName.isBlank()) "Vui long nhap ho ten" else null
+        val fullNameError = if (fullName.isBlank()) {
+            UiText.StringResource(R.string.error_empty_fullname)
+        } else {
+            null
+        }
         val emailError = when {
-            email.isBlank() -> "Vui long nhap email"
-            !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Email khong hop le"
+            email.isBlank() -> UiText.StringResource(R.string.error_empty_email)
+            !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> UiText.StringResource(R.string.error_invalid_email)
             else -> null
         }
         val usernameError = when {
-            username.isBlank() -> "Vui long nhap username"
-            username.length < 4 -> "Username toi thieu 4 ky tu"
+            username.isBlank() -> UiText.StringResource(R.string.error_empty_username)
+            username.length < 4 -> UiText.StringResource(R.string.error_username_too_short)
             else -> null
         }
         val passwordError = when {
-            password.isBlank() -> "Vui long nhap mat khau"
-            password.length < 6 -> "Mat khau toi thieu 6 ky tu"
+            password.isBlank() -> UiText.StringResource(R.string.error_empty_password)
+            password.length < 6 -> UiText.StringResource(R.string.error_password_too_short)
             else -> null
         }
         val confirmPasswordError = when {
-            confirmPassword.isBlank() -> "Vui long xac nhan mat khau"
-            confirmPassword != password -> "Mat khau xac nhan khong khop"
+            confirmPassword.isBlank() -> UiText.StringResource(R.string.error_empty_confirm_password)
+            confirmPassword != password -> UiText.StringResource(R.string.error_password_mismatch)
             else -> null
         }
-        val termsError = if (!state.isTermsAccepted) "Ban can dong y dieu khoan" else null
+        val termsError = if (!state.isTermsAccepted) {
+            UiText.StringResource(R.string.error_terms_required)
+        } else {
+            null
+        }
 
         if (
             fullNameError != null ||
@@ -136,19 +146,21 @@ class RegisterViewModel(
             )
                 .onSuccess {
                     _uiState.update { current -> current.copy(isRegisterLoading = false) }
-                    _events.emit(RegisterEvent.ShowMessage("Tao tai khoan thanh cong"))
+                    _events.emit(RegisterEvent.ShowMessage(UiText.StringResource(R.string.msg_register_success)))
                     _events.emit(RegisterEvent.NavigateToLogin(username))
                 }
                 .onFailure { throwable ->
                     _uiState.update { current ->
                         current.copy(
                             isRegisterLoading = false,
-                            usernameError = throwable.message
+                            usernameError = throwable.message?.let { UiText.DynamicString(it) }
+                                ?: UiText.StringResource(R.string.error_auth_register_failed)
                         )
                     }
                     _events.emit(
                         RegisterEvent.ShowMessage(
-                            throwable.message ?: "Tao tai khoan that bai"
+                            throwable.message?.let { UiText.DynamicString(it) }
+                                ?: UiText.StringResource(R.string.error_auth_register_failed)
                         )
                     )
                 }
@@ -180,14 +192,16 @@ class RegisterViewModel(
                     .onFailure { throwable ->
                         _events.emit(
                             RegisterEvent.ShowMessage(
-                                throwable.message ?: "Dong bo tai khoan Google that bai"
+                                throwable.message?.let { UiText.DynamicString(it) }
+                                    ?: UiText.StringResource(R.string.error_auth_google_sync_failed)
                             )
                         )
                     }
             }.onFailure { throwable ->
                 _events.emit(
                     RegisterEvent.ShowMessage(
-                        throwable.message ?: "Google Sign-In that bai"
+                        throwable.message?.let { UiText.DynamicString(it) }
+                            ?: UiText.StringResource(R.string.error_auth_google_sign_in_failed)
                     )
                 )
             }

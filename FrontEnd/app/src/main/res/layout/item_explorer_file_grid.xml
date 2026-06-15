@@ -33,7 +33,7 @@
                 android:layout_gravity="center"
                 android:contentDescription="@string/explorer_file_icon"
                 android:src="@drawable/file_text"
-                android:tint="@color/explorer_primary"
+                app:tint="@color/explorer_primary"
                 tools:visibility="visible" />
         </FrameLayout>
 
@@ -78,8 +78,9 @@
                     android:layout_width="14dp"
                     android:layout_height="14dp"
                     android:layout_marginStart="6dp"
+                    android:contentDescription="@string/recent_tab_favorites"
                     android:src="@drawable/star"
-                    android:tint="#F59E0B"
+                    app:tint="@color/amber_600"
                     android:visibility="gone"
                     tools:visibility="visible" />
 

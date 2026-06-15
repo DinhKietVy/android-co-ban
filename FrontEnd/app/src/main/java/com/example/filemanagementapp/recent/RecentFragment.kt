@@ -214,23 +214,23 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     override fun onDownload(item: ExplorerItem) {
-        Toast.makeText(requireContext(), "Tính năng tải xuống đang phát triển", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.recent_download_wip), Toast.LENGTH_SHORT).show()
     }
 
     override fun onRename(item: ExplorerItem, newName: String) {
-        Toast.makeText(requireContext(), "Tính năng đổi tên trong Recent đang phát triển", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.recent_rename_wip), Toast.LENGTH_SHORT).show()
     }
 
     override fun onMove(item: ExplorerItem, targetPath: String) {
-        Toast.makeText(requireContext(), "Tính năng di chuyển trong Recent đang phát triển", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.recent_move_wip), Toast.LENGTH_SHORT).show()
     }
 
     override fun onFavorite(item: ExplorerItem) {
-        Toast.makeText(requireContext(), "Tính năng cập nhật yêu thích đang phát triển", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.recent_favorite_wip), Toast.LENGTH_SHORT).show()
     }
 
     override fun onDelete(item: ExplorerItem) {
-        Toast.makeText(requireContext(), "Tính năng xoá trong Recent đang phát triển", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.recent_delete_wip), Toast.LENGTH_SHORT).show()
     }
 
     override fun onAnalyzeAi(item: ExplorerItem) {

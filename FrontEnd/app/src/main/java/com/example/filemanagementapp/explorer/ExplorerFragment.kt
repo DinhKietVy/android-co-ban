@@ -128,6 +128,26 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             ).show()
         }
     }
+    
+    private val previewLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        when (result.resultCode) {
+            android.app.Activity.RESULT_OK -> {
+                viewModel.refreshCurrentDirectory()
+            }
+            FilePreviewActivity.RESULT_ACTION_FAVORITE -> {
+                @Suppress("DEPRECATION")
+                val item = result.data?.getParcelableExtra<ExplorerItem>(FilePreviewActivity.EXTRA_EXPLORER_ITEM)
+                if (item != null) viewModel.toggleFavorite(item)
+            }
+            FilePreviewActivity.RESULT_ACTION_AI -> {
+                @Suppress("DEPRECATION")
+                val item = result.data?.getParcelableExtra<ExplorerItem>(FilePreviewActivity.EXTRA_EXPLORER_ITEM)
+                if (item != null) viewModel.analyzeItem(item)
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -165,7 +185,8 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 directoryCacheLocalRepository = DirectoryCacheLocalRepository(
                     directoryCacheDao = appDatabase.directoryCacheDao(),
                     gson = ExplorerNetworkModule.gson
-                )
+                ),
+                settingsPreferencesRepository = com.example.filemanagementapp.data.local.profile.SettingsPreferencesRepository(requireContext())
             )
         )[ExplorerViewModel::class.java]
 
@@ -212,7 +233,20 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
 
         explorerAdapter = ExplorerAdapter(
             onFolderClick = { item -> viewModel.loadDirectory(item.path) },
-            onMoreClick = { item -> showActionSheet(item) },
+            onMoreClick = { item -> 
+                actionSheetController.show(
+                    item = item,
+                    config = FileActionSheetController.ActionConfig(
+                        showOpen = item.type == ExplorerItem.Type.FOLDER,
+                        showDownload = item.type == ExplorerItem.Type.FILE,
+                        showRename = true,
+                        showMove = true,
+                        showFavorite = true,
+                        showDelete = true,
+                        showAi = item.type == ExplorerItem.Type.FILE
+                    )
+                )
+            },
             onItemSelectionToggle = { item -> viewModel.toggleItemSelection(item) },
             onItemLongPress = { item -> viewModel.startSelection(item) }
         )
@@ -264,20 +298,18 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 viewModel.events.collect { event ->
                     when (event) {
                         is ExplorerUiEvent.ShowMessage -> {
-                            Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), event.message.asString(requireContext()), Toast.LENGTH_SHORT).show()
                         }
 
                         is ExplorerUiEvent.OpenPreview -> {
-                            startActivity(
+                            previewLauncher.launch(
                                 FilePreviewActivity.newIntent(
                                     context = requireContext(),
-                                    fileName = event.fileName,
-                                    previewUrl = event.previewUrl,
+                                    item = event.item,
+                                    username = event.username,
                                     analyzedImagePath = event.analyzedImagePath,
                                     ocrText = event.ocrText,
                                     aiTags = event.aiTags,
-                                    fileSize = event.fileSize,
-                                    modified = event.modified,
                                     showAiPanel = event.showAiPanel
                                 )
                             )
@@ -365,37 +397,112 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         }
     }
 
-    private fun setupBottomSheet(root: View) {
-        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet).apply {
-            state = BottomSheetBehavior.STATE_HIDDEN
-            addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-                override fun onStateChanged(bottomSheet: View, newState: Int) {
-                    if (newState == BottomSheetBehavior.STATE_HIDDEN) {
-                        bottomSheet.visibility = View.GONE
-                    }
-                }
+    override fun onOpen(item: ExplorerItem) {
+        when (item.type) {
+            ExplorerItem.Type.FOLDER -> viewModel.loadDirectory(item.path)
+            ExplorerItem.Type.FILE -> openFilePreview(item, showAiPanel = false)
+        }
+    }
 
-                override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
-            })
+    override fun onDownload(item: ExplorerItem) {
+        if (item.type == ExplorerItem.Type.FOLDER) {
+            Toast.makeText(requireContext(), R.string.explorer_download_folder_unsupported, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (item.previewUrl.isNullOrBlank()) {
+            Toast.makeText(requireContext(), R.string.explorer_download_start_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (currentDownloadProgress != null) {
+            Toast.makeText(requireContext(), R.string.explorer_download_already_running, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            pendingDownloadItem = item
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return
+        }
+        startDownload(item)
+    }
+
+    override fun onRename(item: ExplorerItem, newName: String) {
+        viewModel.renameItem(item, newName)
+    }
+
+    override fun onMove(item: ExplorerItem, targetPath: String) {
+        viewModel.moveItem(item, targetPath)
+    }
+
+    override fun onFavorite(item: ExplorerItem) {
+        viewModel.toggleFavorite(item)
+    }
+
+    override fun onDelete(item: ExplorerItem) {
+        viewModel.deleteItem(item)
+    }
+
+    override fun onAnalyzeAi(item: ExplorerItem) {
+        viewModel.analyzeItem(item)
+    }
+
+    private fun startDownload(item: ExplorerItem) {
+        val downloadUrl = item.previewUrl ?: return
+        ExplorerDownloadService.start(
+            context = requireContext(),
+            fileName = item.name,
+            downloadUrl = downloadUrl
+        )
+        Toast.makeText(requireContext(), R.string.explorer_download_started, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun renderDownloadProgressCard(
+        progress: ExplorerDownloadProgress?,
+        hasSelectionCard: Boolean
+    ) {
+        if (progress == null) {
+            downloadProgressCard.visibility = View.GONE
+            return
         }
 
-        root.findViewById<ImageButton>(R.id.bsCloseButton).setOnClickListener {
-            hideBottomSheet()
-        }
+        downloadProgressCard.visibility = View.VISIBLE
+        val layoutParams = downloadProgressCard.layoutParams as ViewGroup.MarginLayoutParams
+        layoutParams.bottomMargin = if (hasSelectionCard) 112.dp() else 24.dp()
+        downloadProgressCard.layoutParams = layoutParams
 
-        listOf(
-            R.id.actionOpen,
-            R.id.actionDownload,
-            R.id.actionRename,
-            R.id.actionMove,
-            R.id.actionFavorite,
-            R.id.actionDelete,
-            R.id.actionAi
-        ).forEach { actionId ->
-            root.findViewById<View>(actionId).setOnClickListener { actionView ->
-                handleSheetAction(actionView)
-            }
+        downloadProgressRing.max = 100
+        downloadProgressRing.progress = progress.progressPercent
+        downloadProgressPercentText.text = getString(
+            R.string.explorer_download_progress_percent,
+            progress.progressPercent
+        )
+        downloadProgressFileName.text = progress.fileName
+        downloadProgressMetaText.text = if (progress.totalBytes != null && progress.totalBytes > 0L) {
+            getString(
+                R.string.explorer_download_progress_meta,
+                Formatter.formatShortFileSize(requireContext(), progress.downloadedBytes),
+                Formatter.formatShortFileSize(requireContext(), progress.totalBytes)
+            )
+        } else {
+            getString(R.string.explorer_download_preparing)
         }
+    }
+
+    private fun openFilePreview(item: ExplorerItem, showAiPanel: Boolean) {
+        if (item.type != ExplorerItem.Type.FILE) {
+            return
+        }
+        previewLauncher.launch(
+            FilePreviewActivity.newIntent(
+                context = requireContext(),
+                item = item,
+                username = username,
+                analyzedImagePath = null,
+                ocrText = null,
+                aiTags = emptyList(),
+                showAiPanel = showAiPanel
+            )
+        )
     }
 
     private fun showOverflowMenu(anchor: View, state: ExplorerUiState) {
@@ -526,371 +633,6 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 viewModel.deleteSelectedItems()
             }
             .show()
-    }
-
-    private fun showBottomSheet(item: ExplorerItem) {
-        selectedItem = item
-        bottomSheetFileName.text = item.name
-        bottomSheetFileMeta.text = buildBottomSheetMeta(item)
-        bottomSheetFileIcon.setImageResource(
-            when (item.type) {
-                ExplorerItem.Type.FOLDER -> R.drawable.folder
-                ExplorerItem.Type.FILE -> item.fallbackIconRes ?: R.drawable.file_text
-            }
-        )
-        actionFavoriteLabel.setText(
-            if (item.isFavorite) {
-                R.string.preview_action_unfavorite
-            } else {
-                R.string.preview_action_favorite
-            }
-        )
-        actionAiView.visibility = if (item.type == ExplorerItem.Type.FILE) View.VISIBLE else View.GONE
-        renderBottomSheetTags(item.tags)
-        bottomSheet.visibility = View.VISIBLE
-        bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
-    }
-
-    private fun hideBottomSheet() {
-        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
-    }
-
-    private fun handleSheetAction(actionView: View) {
-        val item = selectedItem ?: return
-        when (actionView.id) {
-            R.id.actionOpen -> {
-                hideBottomSheet()
-                handleOpen(item)
-            }
-
-            R.id.actionDownload -> {
-                hideBottomSheet()
-                handleDownload(item)
-            }
-
-            R.id.actionRename -> {
-                hideBottomSheet()
-                showRenameDialog(item)
-            }
-
-            R.id.actionMove -> {
-                hideBottomSheet()
-                showMoveDialog(item)
-            }
-
-            R.id.actionFavorite -> {
-                hideBottomSheet()
-                viewModel.toggleFavorite(item)
-            }
-
-            R.id.actionDelete -> {
-                hideBottomSheet()
-                showDeleteDialog(item)
-            }
-
-            R.id.actionAi -> {
-                hideBottomSheet()
-                viewModel.analyzeItem(item)
-            }
-        }
-    }
-
-    private fun handleOpen(item: ExplorerItem) {
-        when (item.type) {
-            ExplorerItem.Type.FOLDER -> viewModel.loadDirectory(item.path)
-            ExplorerItem.Type.FILE -> openFilePreview(item, showAiPanel = false)
-        }
-    }
-
-    private fun handleDownload(item: ExplorerItem) {
-        if (item.type == ExplorerItem.Type.FOLDER) {
-            Toast.makeText(
-                requireContext(),
-                R.string.explorer_download_folder_unsupported,
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        if (item.previewUrl.isNullOrBlank()) {
-            Toast.makeText(requireContext(), R.string.explorer_download_start_failed, Toast.LENGTH_SHORT)
-                .show()
-            return
-        }
-
-        if (currentDownloadProgress != null) {
-            Toast.makeText(
-                requireContext(),
-                R.string.explorer_download_already_running,
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        if (
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            pendingDownloadItem = item
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            return
-        }
-
-        startDownload(item)
-    }
-
-    private fun startDownload(item: ExplorerItem) {
-        val downloadUrl = item.previewUrl ?: return
-        ExplorerDownloadService.start(
-            context = requireContext(),
-            fileName = item.name,
-            downloadUrl = downloadUrl
-        )
-        Toast.makeText(requireContext(), R.string.explorer_download_started, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun renderDownloadProgressCard(
-        progress: ExplorerDownloadProgress?,
-        hasSelectionCard: Boolean
-    ) {
-        if (progress == null) {
-            downloadProgressCard.visibility = View.GONE
-            return
-        }
-
-        downloadProgressCard.visibility = View.VISIBLE
-        val layoutParams = downloadProgressCard.layoutParams as ViewGroup.MarginLayoutParams
-        layoutParams.bottomMargin = if (hasSelectionCard) 112.dp() else 24.dp()
-        downloadProgressCard.layoutParams = layoutParams
-
-        downloadProgressRing.max = 100
-        downloadProgressRing.progress = progress.progressPercent
-        downloadProgressPercentText.text = getString(
-            R.string.explorer_download_progress_percent,
-            progress.progressPercent
-        )
-        downloadProgressFileName.text = progress.fileName
-        downloadProgressMetaText.text = if (progress.totalBytes != null && progress.totalBytes > 0L) {
-            getString(
-                R.string.explorer_download_progress_meta,
-                Formatter.formatShortFileSize(requireContext(), progress.downloadedBytes),
-                Formatter.formatShortFileSize(requireContext(), progress.totalBytes)
-            )
-        } else {
-            getString(R.string.explorer_download_preparing)
-        }
-    }
-
-    private fun openFilePreview(item: ExplorerItem, showAiPanel: Boolean) {
-        if (item.type != ExplorerItem.Type.FILE) {
-            return
-        }
-        startActivity(
-            FilePreviewActivity.newIntent(
-                context = requireContext(),
-                fileName = item.name,
-                previewUrl = item.previewUrl,
-                analyzedImagePath = null,
-                ocrText = null,
-                aiTags = emptyList(),
-                fileSize = item.size,
-                modified = item.modified,
-                showAiPanel = showAiPanel
-            )
-        )
-    }
-
-    private fun showRenameDialog(item: ExplorerItem) {
-        val input = EditText(requireContext()).apply {
-            inputType = InputType.TYPE_CLASS_TEXT
-            setText(item.name)
-            setSelection(item.name.length)
-            hint = getString(R.string.explorer_dialog_rename_hint)
-            setPadding(24.dp(), 20.dp(), 24.dp(), 0)
-        }
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.explorer_dialog_rename_title)
-            .setView(input)
-            .setNegativeButton(R.string.explorer_dialog_cancel, null)
-            .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
-                viewModel.renameItem(item, input.text?.toString().orEmpty())
-            }
-            .show()
-    }
-
-    private fun showMoveDialog(item: ExplorerItem) {
-        showFolderPickerDialog(
-            titleRes = R.string.explorer_dialog_move_title,
-            movingItems = listOf(item),
-            onFolderPicked = { folderPath ->
-                viewModel.moveItem(item, folderPath)
-            }
-        )
-    }
-
-    private fun showDeleteDialog(item: ExplorerItem) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.explorer_dialog_delete_title)
-            .setMessage(getString(R.string.explorer_dialog_delete_message, item.name))
-            .setNegativeButton(R.string.explorer_dialog_cancel, null)
-            .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
-                viewModel.deleteItem(item)
-            }
-            .show()
-    }
-
-    private fun showFolderPickerDialog(
-        titleRes: Int,
-        movingItems: List<ExplorerItem>,
-        onFolderPicked: (String) -> Unit
-    ) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_folder_picker, null)
-        val pathText = dialogView.findViewById<TextView>(R.id.folderPickerPathText)
-        val upButton = dialogView.findViewById<TextView>(R.id.folderPickerUpButton)
-        val loadingView = dialogView.findViewById<ProgressBar>(R.id.folderPickerLoading)
-        val emptyView = dialogView.findViewById<TextView>(R.id.folderPickerEmptyText)
-        val invalidHintText = dialogView.findViewById<TextView>(R.id.folderPickerInvalidHintText)
-        val recyclerView = dialogView.findViewById<RecyclerView>(R.id.folderPickerRecyclerView)
-
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-
-        var currentPath = viewModel.uiState.value.currentFolder
-        var loadJob: Job? = null
-        lateinit var loadFolderPickerPath: (String) -> Unit
-        var positiveButton: android.widget.Button? = null
-        val adapter = FolderPickerAdapter { folder ->
-            loadFolderPickerPath(folder.path)
-        }
-        recyclerView.adapter = adapter
-
-        fun renderFolderPickerPath() {
-            pathText.text = if (currentPath.isBlank()) {
-                getString(R.string.explorer_folder_picker_current_root)
-            } else {
-                getString(R.string.explorer_folder_picker_current, currentPath)
-            }
-            upButton.visibility = if (currentPath.isBlank()) View.INVISIBLE else View.VISIBLE
-        }
-
-        loadFolderPickerPath = { targetPath ->
-            currentPath = targetPath
-            renderFolderPickerPath()
-            val isInvalidTarget = isInvalidMoveTarget(targetPath, movingItems)
-            invalidHintText.visibility = if (isInvalidTarget) View.VISIBLE else View.GONE
-            positiveButton?.isEnabled = !isInvalidTarget
-            loadJob?.cancel()
-            loadJob = viewLifecycleOwner.lifecycleScope.launch {
-                loadingView.visibility = View.VISIBLE
-                emptyView.visibility = View.GONE
-                recyclerView.alpha = 0.5f
-                explorerRepository.listDirectory(username = username, folderPath = targetPath)
-                    .onSuccess { directory ->
-                        val folders = directory.items
-                            .filter { it.type == ExplorerItem.Type.FOLDER }
-                            .map { folder ->
-                                FolderPickerEntry(
-                                    item = folder,
-                                    isEnabled = !isInvalidMoveTarget(folder.path, movingItems)
-                                )
-                            }
-                        adapter.submitItems(folders)
-                        emptyView.visibility = if (folders.isEmpty()) View.VISIBLE else View.GONE
-                        emptyView.text = getString(R.string.explorer_folder_picker_empty)
-                    }
-                    .onFailure {
-                        adapter.submitItems(emptyList())
-                        emptyView.visibility = View.VISIBLE
-                        emptyView.text = getString(R.string.explorer_folder_picker_loading_error)
-                    }
-                loadingView.visibility = View.GONE
-                recyclerView.alpha = 1f
-            }
-        }
-
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(titleRes)
-            .setView(dialogView)
-            .setNegativeButton(R.string.explorer_dialog_cancel, null)
-            .setPositiveButton(R.string.explorer_folder_picker_move_here) { _, _ ->
-                onFolderPicked(currentPath)
-            }
-            .show()
-
-        positiveButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
-
-        upButton.setOnClickListener {
-            if (currentPath.isBlank()) return@setOnClickListener
-            loadFolderPickerPath(currentPath.substringBeforeLast('/', ""))
-        }
-
-        dialog.setOnDismissListener {
-            loadJob?.cancel()
-        }
-
-        loadFolderPickerPath(currentPath)
-    }
-
-    private fun isInvalidMoveTarget(
-        targetPath: String,
-        movingItems: List<ExplorerItem>
-    ): Boolean {
-        val normalizedTarget = targetPath.trim('/').lowercase()
-        return movingItems
-            .filter { it.type == ExplorerItem.Type.FOLDER }
-            .map { it.path.trim('/').lowercase() }
-            .any { sourcePath ->
-                normalizedTarget == sourcePath ||
-                    (normalizedTarget.isNotBlank() && normalizedTarget.startsWith("$sourcePath/"))
-            }
-    }
-
-    private fun buildBottomSheetMeta(item: ExplorerItem): String {
-        return when (item.type) {
-            ExplorerItem.Type.FOLDER -> {
-                val count = getString(R.string.explorer_item_count, item.itemCount ?: 0)
-                getString(R.string.explorer_file_meta, count, item.modified)
-            }
-
-            ExplorerItem.Type.FILE -> {
-                getString(
-                    R.string.explorer_file_meta,
-                    item.size.orEmpty(),
-                    item.modified
-                )
-            }
-        }
-    }
-
-    private fun renderBottomSheetTags(tags: List<String>) {
-        bottomSheetTagsContainer.removeAllViews()
-        if (tags.isEmpty()) {
-            bottomSheetTagsContainer.visibility = View.GONE
-            return
-        }
-
-        bottomSheetTagsContainer.visibility = View.VISIBLE
-        tags.forEachIndexed { index, tag ->
-            val tagView = TextView(requireContext()).apply {
-                text = tag
-                textSize = 11f
-                setTextColor(resources.getColor(R.color.explorer_tag_text, null))
-                setBackgroundResource(R.drawable.explorer_tag_background)
-                setPadding(8.dp(), 3.dp(), 8.dp(), 3.dp())
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    if (index > 0) {
-                        marginStart = 6.dp()
-                    }
-                }
-            }
-            bottomSheetTagsContainer.addView(tagView)
-        }
     }
 
     private fun Int.dp(): Int {

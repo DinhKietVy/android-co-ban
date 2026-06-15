@@ -207,7 +207,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
-                        android:background="#FAFAFA"
+                        android:background="@color/auth_bg"
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp"
                         android:text="@string/login_or"

@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash Screen Night -->
+    <color name="splash_bg_start">#111827</color>
+    <color name="splash_bg_center">#1F2937</color>
+    <color name="splash_bg_end">#111827</color>
+    <color name="splash_orb_blue_start">#8060A5FA</color>
+    <color name="splash_orb_blue_end">#80818CF8</color>
+    <color name="splash_orb_indigo_start">#80818CF8</color>
+    <color name="splash_orb_indigo_end">#8060A5FA</color>
+    <color name="splash_logo_start">#60A5FA</color>
+    <color name="splash_logo_end">#818CF8</color>
+    <color name="splash_text_primary">#F9FAFB</color>
+    <color name="splash_text_secondary">#9CA3AF</color>
+    <color name="splash_loading_dot">#818CF8</color>
+
+    <!-- Main Activity Night -->
+    <color name="main_surface">#111827</color>
+    <color name="main_divider">#374151</color>
+    <color name="nav_item_selected">#60A5FA</color>
+    <color name="nav_item_unselected">#9CA3AF</color>
+
+    <!-- General Page Night -->
+    <color name="page_bg">#030712</color>
+    <color name="page_text">#F8FAFC</color>
+    <color name="page_subtext">#94A3B8</color>
+
+    <!-- Auth Night -->
+    <color name="auth_bg">#111827</color>
+    <color name="auth_card_shadow">#80000000</color>
+    <color name="auth_input_bg">#1F2937</color>
+    <color name="auth_input_stroke">#374151</color>
+    <color name="auth_input_focus">#818CF8</color>
+    <color name="auth_text_primary">#F3F4F6</color>
+    <color name="auth_text_secondary">#D1D5DB</color>
+    <color name="auth_text_hint">#9CA3AF</color>
+    <color name="auth_divider">#374151</color>
+    <color name="auth_gradient_start">#4F46E5</color>
+    <color name="auth_gradient_end">#7C3AED</color>
+    <color name="auth_gradient_start_pressed">#4338CA</color>
+    <color name="auth_gradient_end_pressed">#6D28D9</color>
+
+    <!-- Forgot Password Night -->
+    <color name="forgot_bg_start">#111827</color>
+    <color name="forgot_bg_mid">#1F2937</color>
+    <color name="forgot_bg_end">#111827</color>
+    <color name="forgot_blob_blue">#333B82F6</color>
+    <color name="forgot_blob_purple">#338B5CF6</color>
+    <color name="forgot_screen_bg">#030712</color>
+    <color name="forgot_text_primary">#E6E1E5</color>
+    <color name="forgot_text_secondary">#CAC4D0</color>
+    <color name="forgot_text_hint">#938F99</color>
+    <color name="forgot_border">#49454F</color>
+    <color name="forgot_blue">#60A5FA</color>
+    <color name="forgot_blue_dark">#93C5FD</color>
+    <color name="forgot_green">#4ADE80</color>
+    <color name="forgot_success_bg">#064E3B</color>
+    <color name="forgot_warning_bg">#451A03</color>
+    <color name="forgot_warning_border">#B45309</color>
+    <color name="forgot_warning_text">#FDE68A</color>
+    <color name="forgot_ring_blue">#1E3A8A</color>
+    <color name="forgot_ring_purple">#4C1D95</color>
+    <color name="forgot_inner_blue">#1D4ED8</color>
+    <color name="forgot_inner_purple">#5B21B6</color>
+
+    <!-- Explorer Night -->
+    <color name="explorer_bg">#030712</color>
+    <color name="explorer_border">#374151</color>
+    <color name="explorer_secondary_bg">#111827</color>
+    <color name="explorer_primary">#60A5FA</color>
+    <color name="explorer_primary_soft">#1E3A8A</color>
+    <color name="explorer_text_primary">#F9FAFB</color>
+    <color name="explorer_text_secondary">#9CA3AF</color>
+    <color name="explorer_tag_bg">#1E3A8A</color>
+    <color name="explorer_tag_text">#DBEAFE</color>
+    <color name="explorer_placeholder_bg">#1F2937</color>
+
+    <!-- Recent Night -->
+    <color name="recent_bg">#030712</color>
+    <color name="recent_surface">#111827</color>
+    <color name="recent_border">#374151</color>
+    <color name="recent_text_primary">#E8EAED</color>
+    <color name="recent_text_secondary">#9AA0A6</color>
+    <color name="recent_primary">#8AB4F8</color>
+    <color name="recent_primary_soft">#174EA6</color>
+    <color name="recent_chip_bg">#202124</color>
+    <color name="recent_folder_bg">#451A03</color>
+    <color name="recent_folder_tint">#FBBF24</color>
+    <color name="recent_pdf">#F87171</color>
+    <color name="recent_pdf_bg">#450A0A</color>
+    <color name="recent_image">#60A5FA</color>
+    <color name="recent_image_bg">#1E3A8A</color>
+    <color name="recent_video">#C084FC</color>
+    <color name="recent_video_bg">#4C1D95</color>
+    <color name="recent_doc">#4ADE80</color>
+    <color name="recent_doc_bg">#064E3B</color>
+    <color name="recent_audio">#FB923C</color>
+    <color name="recent_audio_bg">#7C2D12</color>
+
+    <!-- Trash Night -->
+    <color name="trash_bg">#030712</color>
+    <color name="trash_surface">#111827</color>
+    <color name="trash_border">#374151</color>
+    <color name="trash_text_primary">#F9FAFB</color>
+    <color name="trash_text_secondary">#9CA3AF</color>
+    <color name="trash_info_bg">#1E3A8A</color>
+    <color name="trash_info_border">#1D4ED8</color>
+    <color name="trash_info_text">#DBEAFE</color>
+    <color name="trash_select_bg">#1E3A8A</color>
+    <color name="trash_restore">#60A5FA</color>
+    <color name="trash_delete">#F87171</color>
+    <color name="trash_empty_bg">#1F2937</color>
+    <color name="trash_empty_icon">#4B5563</color>
+    <color name="trash_success">#4ADE80</color>
+
+    <!-- Profile Night -->
+    <color name="profile_bg">#030712</color>
+    <color name="profile_surface">#111827</color>
+    <color name="profile_border">#4D374151</color>
+    <color name="profile_text_primary">#E8EAED</color>
+    <color name="profile_text_secondary">#9AA0A6</color>
+    <color name="profile_primary">#8AB4F8</color>
+    <color name="profile_primary_soft">#158AB4F8</color>
+    <color name="profile_images">#8AB4F8</color>
+    <color name="profile_documents">#81C995</color>
+    <color name="profile_documents_soft">#1581C995</color>
+    <color name="profile_videos">#FDE293</color>
+    <color name="profile_videos_soft">#15FDE293</color>
+    <color name="profile_other">#F28B82</color>
+    <color name="profile_other_soft">#15F28B82</color>
+    <color name="profile_warning">#FDBA74</color>
+    <color name="profile_danger">#F87171</color>
+
+    <!-- Preview Night -->
+    <color name="preview_bg">#000000</color>
+    <color name="preview_surface">#111827</color>
+    <color name="preview_border">#374151</color>
+    <color name="preview_text_primary">#F9FAFB</color>
+    <color name="preview_text_secondary">#9CA3AF</color>
+    <color name="preview_primary">#60A5FA</color>
+    <color name="preview_primary_soft">#1A60A5FA</color>
+    <color name="preview_accent">#1F2937</color>
+    <color name="preview_destructive">#F87171</color>
+
+    <!-- Search Night -->
+    <color name="search_bg">#030712</color>
+    <color name="search_surface">#111827</color>
+    <color name="search_border">#374151</color>
+    <color name="search_input_bg">#1F2937</color>
+    <color name="search_text_primary">#F9FAFB</color>
+    <color name="search_text_secondary">#9CA3AF</color>
+    <color name="search_primary">#60A5FA</color>
+    <color name="search_primary_soft">#1A60A5FA</color>
+    <color name="search_destructive">#F87171</color>
+
+    <!-- Global / Shared Colors Night -->
+    <color name="amber_50">#451A03</color>
+    <color name="amber_600">#FBBF24</color>
+    <color name="red_50">#450A0A</color>
+    <color name="red_500">#F87171</color>
+    <color name="blue_100">#1E3A8A</color>
+    <color name="blue_50">#172554</color>
+    <color name="blue_600">#60A5FA</color>
+    <color name="grey_50">#1F2937</color>
+    <color name="grey_100">#374151</color>
+    <color name="grey_200">#4B5563</color>
+    <color name="grey_400">#9CA3AF</color>
+    <color name="grey_500">#D1D5DB</color>
+    <color name="grey_600">#E5E7EB</color>
+    <color name="grey_700">#F3F4F6</color>
+    <color name="grey_800">#F9FAFB</color>
+    <color name="grey_900">#FFFFFF</color>
+    <color name="scrim_33">#33000000</color>
+    <color name="scrim_66">#66000000</color>
+    <color name="forgot_divider_light">#49454F</color>
+    <color name="forgot_secondary_pressed">#1D192B</color>
+    <color name="blue_primary">#60A5FA</color>
+    <color name="grey_text_label">#9CA3AF</color>
+    <color name="grey_300">#4B5563</color>
+    <color name="grey_border_light">#374151</color>
+    <color name="auth_button_disabled">#1E3A8A</color>
+    <color name="auth_button_pressed">#4338CA</color>
+    <color name="auth_text_disabled">#6B7280</color>
+    <color name="launcher_background">#111827</color>
+    <color name="launcher_grid">#1AFFFFFF</color>
+    <color name="launcher_shadow">#80000000</color>
+    <color name="profile_avatar_gradient_start">#1E3A8A</color>
+    <color name="profile_avatar_gradient_end">#4C1D95</color>
+</resources>

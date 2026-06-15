@@ -19,7 +19,7 @@
         android:layout_height="32dp"
         android:contentDescription="@string/trash_select_item"
         android:padding="6dp"
-        app:tint="#99A1AF"
+        app:tint="@color/grey_400"
         tools:src="@drawable/circle" />
 
     <FrameLayout

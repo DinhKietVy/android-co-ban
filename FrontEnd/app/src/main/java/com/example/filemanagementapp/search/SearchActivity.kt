@@ -3,7 +3,6 @@ package com.example.filemanagementapp.search
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
@@ -11,32 +10,44 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.filemanagementapp.R
+import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
+import com.example.filemanagementapp.data.explorer.repository.ExplorerRepository
+import com.example.filemanagementapp.data.local.ai.AiAnalysisLocalRepository
+import com.example.filemanagementapp.data.local.explorer.DirectoryCacheLocalRepository
+import com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository
+import com.example.filemanagementapp.data.local.search.SearchHistoryPreferencesRepository
+import com.example.filemanagementapp.explorer.ExplorerItem
+import com.example.filemanagementapp.explorer.FileActionSheetController
+import com.example.filemanagementapp.preview.FilePreviewActivity
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
-class SearchActivity : AppCompatActivity() {
+class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks {
     private lateinit var adapter: SearchResultAdapter
     private lateinit var recentSearchSection: View
     private lateinit var resultBannerText: TextView
-    private lateinit var actionSheet: View
-    private lateinit var scrimView: View
-    private lateinit var sheetThumb: View
-    private lateinit var sheetThumbIcon: ImageView
-    private lateinit var sheetFileName: TextView
-    private lateinit var sheetFileMeta: TextView
     private lateinit var categoryChipRow: LinearLayout
     private lateinit var recentSearchChipRow: LinearLayout
     private lateinit var searchEditText: EditText
-    private lateinit var actionList: LinearLayout
-
-    private var currentSort = Sort.NAME
-    private var selectedCategory = CATEGORY_ALL
+    
+    private lateinit var viewModel: SearchViewModel
+    private lateinit var actionSheetController: FileActionSheetController
+    private lateinit var explorerRepository: ExplorerRepository
+    
+    private var username: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,26 +61,28 @@ class SearchActivity : AppCompatActivity() {
 
         bindViews()
         setupRecycler()
-        setupHeader()
-        renderCategoryChips()
-        renderRecentSearches()
-        renderActionSheetActions()
-        submitResults("")
+        
+        lifecycleScope.launch {
+            val loginPrefs = LoginPreferencesRepository(applicationContext)
+            val prefs = loginPrefs.preferencesFlow.first()
+            username = prefs.rememberedUsername
+            if (username.isBlank()) {
+                finish()
+                return@launch
+            }
+
+            initViewModelAndRepositories(username)
+            setupHeader()
+            observeViewModel()
+        }
     }
 
     private fun bindViews() {
         recentSearchSection = findViewById(R.id.recentSearchSection)
         resultBannerText = findViewById(R.id.resultBannerText)
-        actionSheet = findViewById(R.id.actionSheet)
-        scrimView = findViewById(R.id.scrimView)
-        sheetThumb = findViewById(R.id.sheetThumb)
-        sheetThumbIcon = findViewById(R.id.sheetThumbIcon)
-        sheetFileName = findViewById(R.id.sheetFileName)
-        sheetFileMeta = findViewById(R.id.sheetFileMeta)
         categoryChipRow = findViewById(R.id.categoryChipRow)
         recentSearchChipRow = findViewById(R.id.recentSearchChipRow)
         searchEditText = findViewById(R.id.searchEditText)
-        actionList = findViewById(R.id.actionList)
     }
 
     private fun setupRecycler() {
@@ -79,17 +92,74 @@ class SearchActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
     }
 
+    private fun initViewModelAndRepositories(username: String) {
+        val appContext = applicationContext
+        val appDatabase = com.example.filemanagementapp.data.local.AppDatabase.getInstance(appContext)
+        val directoryCache = DirectoryCacheLocalRepository(appDatabase.directoryCacheDao(), com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.gson)
+        val aiAnalysis = AiAnalysisLocalRepository(appDatabase.aiAnalysisCacheDao(), com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.gson)
+        val favoriteLocal = FavoriteLocalRepository(appDatabase.favoriteItemDao())
+        val searchHistory = SearchHistoryPreferencesRepository(appContext)
+        val searchRepo = SearchRepository(directoryCache, aiAnalysis, favoriteLocal)
+        
+        explorerRepository = com.example.filemanagementapp.data.explorer.repository.ExplorerRepository(
+            appContext = applicationContext,
+            explorerApiService = com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.explorerApiService,
+            gson = com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.gson
+        )
+
+        actionSheetController = FileActionSheetController(
+            rootView = findViewById(android.R.id.content),
+            lifecycleOwner = this,
+            explorerRepository = explorerRepository,
+            username = username,
+            currentFolderProvider = { "" },
+            callbacks = this
+        )
+
+        val factory = SearchViewModel.Factory(username, searchRepo, searchHistory, favoriteLocal)
+        viewModel = ViewModelProvider(this, factory)[SearchViewModel::class.java]
+    }
+
     private fun setupHeader() {
-        findViewById<ImageButton>(R.id.backButton).setOnClickListener { finish() }
         findViewById<ImageButton>(R.id.filterButton).setOnClickListener(::showSortMenu)
-        findViewById<ImageButton>(R.id.closeSheetButton).setOnClickListener { hideActionSheet() }
-        scrimView.setOnClickListener { hideActionSheet() }
         searchEditText.doAfterTextChanged { editable ->
-            submitResults(editable?.toString().orEmpty())
+            val query = editable?.toString().orEmpty()
+            viewModel.updateQuery(query)
+        }
+        
+        // Save search query when pressing enter or equivalent
+        searchEditText.setOnEditorActionListener { _, _, _ ->
+            val query = searchEditText.text.toString()
+            if (query.isNotBlank()) {
+                viewModel.addRecentSearch(query)
+            }
+            false
         }
     }
 
-    private fun renderCategoryChips() {
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    adapter.submitItems(state.filteredItems)
+                    
+                    recentSearchSection.visibility = if (state.query.isBlank()) View.VISIBLE else View.GONE
+                    
+                    if (state.query.isBlank()) {
+                        resultBannerText.visibility = View.GONE
+                    } else {
+                        resultBannerText.visibility = View.VISIBLE
+                        resultBannerText.text = getString(R.string.search_results_banner, state.filteredItems.size, state.query)
+                    }
+                    
+                    renderCategoryChips(state.selectedCategory)
+                    renderRecentSearches(state.recentSearches)
+                }
+            }
+        }
+    }
+
+    private fun renderCategoryChips(selectedCategory: String) {
         val categories = listOf(
             CATEGORY_ALL to getString(R.string.search_category_all),
             CATEGORY_IMAGES to getString(R.string.search_category_images),
@@ -111,9 +181,7 @@ class SearchActivity : AppCompatActivity() {
             chip.textSize = 14f
             chip.setPadding(28, 18, 28, 18)
             chip.setOnClickListener {
-                selectedCategory = id
-                renderCategoryChips()
-                submitResults(searchEditText.text?.toString().orEmpty())
+                viewModel.selectCategory(id)
             }
             styleChip(chip, selectedCategory == id)
             chip.layoutParams = LinearLayout.LayoutParams(
@@ -126,8 +194,7 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    private fun renderRecentSearches() {
-        val searches = listOf("invoice", "car", "meeting notes", "receipt")
+    private fun renderRecentSearches(searches: List<String>) {
         recentSearchChipRow.removeAllViews()
         searches.forEach { search ->
             val chip = layoutInflater.inflate(
@@ -140,7 +207,11 @@ class SearchActivity : AppCompatActivity() {
             chip.setPadding(24, 14, 24, 14)
             chip.background = getDrawable(R.drawable.explorer_tag_background)
             chip.setTextColor(getColor(R.color.search_text_primary))
-            chip.setOnClickListener { searchEditText.setText(search) }
+            chip.setOnClickListener { 
+                searchEditText.setText(search)
+                searchEditText.setSelection(search.length)
+                viewModel.addRecentSearch(search)
+            }
             chip.layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -151,123 +222,51 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    private fun renderActionSheetActions() {
-        val actions = listOf(
-            SearchAction(R.drawable.external_link, getString(R.string.search_action_open), false),
-            SearchAction(R.drawable.download, getString(R.string.preview_action_download), false),
-            SearchAction(R.drawable.share_2, getString(R.string.preview_action_share), false),
-            SearchAction(R.drawable.star, getString(R.string.preview_action_favorite), false),
-            SearchAction(R.drawable.trash_2, getString(R.string.preview_action_delete), true),
-            SearchAction(R.drawable.sparkles, getString(R.string.preview_action_ai), false)
-        )
-        actionList.removeAllViews()
-        actions.forEach { action ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(20, 18, 20, 18)
-                setOnClickListener { hideActionSheet() }
-            }
-            val icon = ImageView(this).apply {
-                setImageResource(action.iconRes)
-                imageTintList = getColorStateList(
-                    if (action.destructive) R.color.search_destructive else R.color.search_text_primary
-                )
-            }
-            val label = TextView(this).apply {
-                text = action.label
-                textSize = 14f
-                setTextColor(
-                    getColor(if (action.destructive) R.color.search_destructive else R.color.search_text_primary)
-                )
-                setPadding(16, 0, 0, 0)
-            }
-            row.addView(icon)
-            row.addView(label)
-            actionList.addView(row)
-        }
-    }
-
-    private fun submitResults(query: String) {
-        val filtered = filterItems(query)
-        adapter.submitItems(filtered)
-        recentSearchSection.visibility = if (query.isBlank()) View.VISIBLE else View.GONE
-        if (query.isBlank()) {
-            resultBannerText.visibility = View.GONE
-        } else {
-            resultBannerText.visibility = View.VISIBLE
-            resultBannerText.text = "${filtered.size} results for \"$query\""
-        }
-    }
-
-    private fun filterItems(query: String): List<SearchItem> {
-        val base = allItems().filter { item ->
-            val matchesQuery = query.isBlank() ||
-                item.name.contains(query, ignoreCase = true) ||
-                (item.ocrText?.contains(query, ignoreCase = true) == true) ||
-                item.tags.any { it.contains(query, ignoreCase = true) }
-
-            val matchesCategory = when (selectedCategory) {
-                CATEGORY_ALL -> true
-                CATEGORY_IMAGES -> item.category == SearchItem.Category.IMAGE
-                CATEGORY_DOCUMENTS -> item.category == SearchItem.Category.DOCUMENT
-                CATEGORY_PDF -> item.category == SearchItem.Category.PDF
-                CATEGORY_VIDEOS -> false
-                CATEGORY_OCR -> !item.ocrText.isNullOrBlank()
-                CATEGORY_AI_OBJECTS -> item.tags.any { it != "AI analyzed" }
-                CATEGORY_FAVORITES -> item.tags.any { it.equals("AI analyzed", true) }
-                else -> true
-            }
-            matchesQuery && matchesCategory
-        }
-
-        return when (currentSort) {
-            Sort.NAME -> base.sortedBy { it.name }
-            Sort.DATE -> base.sortedByDescending { it.date }
-            Sort.SIZE -> base.sortedByDescending { it.size }
-        }
-    }
-
     private fun showSortMenu(anchor: View) {
-        val popup = PopupMenu(this, anchor)
-        popup.menu.add(0, MENU_SORT_NAME, 0, R.string.search_sort_name)
-        popup.menu.add(0, MENU_SORT_DATE, 1, R.string.search_sort_date)
-        popup.menu.add(0, MENU_SORT_SIZE, 2, R.string.search_sort_size)
-        popup.setOnMenuItemClickListener {
-            currentSort = when (it.itemId) {
-                MENU_SORT_NAME -> Sort.NAME
-                MENU_SORT_DATE -> Sort.DATE
-                else -> Sort.SIZE
-            }
-            submitResults(searchEditText.text?.toString().orEmpty())
+        val popupView = layoutInflater.inflate(R.layout.popup_search_sort, null)
+        val popupWindow = android.widget.PopupWindow(
+            popupView,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
             true
+        )
+        popupWindow.elevation = 8f
+        popupWindow.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+
+        val currentSort = viewModel.uiState.value.currentSort
+
+        val checkSortName = popupView.findViewById<ImageView>(R.id.checkSortName)
+        val checkSortDate = popupView.findViewById<ImageView>(R.id.checkSortDate)
+        val checkSortSize = popupView.findViewById<ImageView>(R.id.checkSortSize)
+
+        checkSortName?.visibility = if (currentSort == SearchViewModel.Sort.NAME) View.VISIBLE else View.INVISIBLE
+        checkSortDate?.visibility = if (currentSort == SearchViewModel.Sort.DATE) View.VISIBLE else View.INVISIBLE
+        checkSortSize?.visibility = if (currentSort == SearchViewModel.Sort.SIZE) View.VISIBLE else View.INVISIBLE
+
+        popupView.findViewById<View>(R.id.menuSortName).setOnClickListener {
+            viewModel.selectSort(SearchViewModel.Sort.NAME)
+            popupWindow.dismiss()
         }
-        popup.show()
+        popupView.findViewById<View>(R.id.menuSortDate).setOnClickListener {
+            viewModel.selectSort(SearchViewModel.Sort.DATE)
+            popupWindow.dismiss()
+        }
+        popupView.findViewById<View>(R.id.menuSortSize).setOnClickListener {
+            viewModel.selectSort(SearchViewModel.Sort.SIZE)
+            popupWindow.dismiss()
+        }
+
+        popupWindow.showAsDropDown(anchor, 0, 8)
     }
 
     private fun showActionSheet(item: SearchItem) {
-        val style = when (item.category) {
-            SearchItem.Category.PDF ->
-                Triple(R.drawable.file_text, R.color.recent_pdf_bg, R.color.recent_pdf)
-
-            SearchItem.Category.IMAGE ->
-                Triple(R.drawable.image_icon, R.color.recent_image_bg, R.color.recent_image)
-
-            SearchItem.Category.DOCUMENT ->
-                Triple(R.drawable.file_text, R.color.recent_doc_bg, R.color.recent_doc)
-        }
-        sheetThumb.backgroundTintList = getColorStateList(style.second)
-        sheetThumbIcon.setImageResource(style.first)
-        sheetThumbIcon.imageTintList = getColorStateList(style.third)
-        sheetFileName.text = item.name
-        sheetFileMeta.text = "${item.type} • ${item.size}"
-        scrimView.visibility = View.VISIBLE
-        actionSheet.visibility = View.VISIBLE
-    }
-
-    private fun hideActionSheet() {
-        scrimView.visibility = View.GONE
-        actionSheet.visibility = View.GONE
+        actionSheetController.show(
+            item.rawItem,
+            FileActionSheetController.ActionConfig(
+                showRename = false,
+                showMove = false
+            )
+        )
     }
 
     private fun styleChip(chip: TextView, selected: Boolean) {
@@ -278,59 +277,57 @@ class SearchActivity : AppCompatActivity() {
         )
     }
 
-    private fun allItems(): List<SearchItem> = listOf(
-        SearchItem(
-            1,
-            getString(R.string.search_file_name_1),
-            "PDF",
-            "2.4 MB",
-            "Mar 15, 2024",
-            SearchItem.Category.PDF,
-            getString(R.string.search_ocr_1),
-            listOf("Invoice", "Receipt", "AI analyzed")
-        ),
-        SearchItem(
-            2,
-            getString(R.string.search_file_name_2),
-            "Image",
-            "4.1 MB",
-            "Mar 10, 2024",
-            SearchItem.Category.IMAGE,
-            null,
-            listOf("Car", "Vehicle", "AI analyzed")
-        ),
-        SearchItem(
-            3,
-            getString(R.string.search_file_name_3),
-            "Document",
-            "156 KB",
-            "Mar 8, 2024",
-            SearchItem.Category.DOCUMENT,
-            getString(R.string.search_ocr_3),
-            listOf("Document", "Meeting")
-        ),
-        SearchItem(
-            4,
-            getString(R.string.search_file_name_4),
-            "PDF",
-            "890 KB",
-            "Feb 28, 2024",
-            SearchItem.Category.PDF,
-            getString(R.string.search_ocr_4),
-            listOf("Receipt", "Laptop", "AI analyzed")
-        )
-    )
+    // --- FileActionSheetController.Callbacks ---
 
-    private data class SearchAction(
-        val iconRes: Int,
-        val label: String,
-        val destructive: Boolean
-    )
+    override fun onOpen(item: ExplorerItem) {
+        if (item.type == ExplorerItem.Type.FOLDER) {
+            Toast.makeText(this, getString(R.string.search_cannot_open_folder), Toast.LENGTH_SHORT).show()
+        } else {
+            startActivity(
+                FilePreviewActivity.newIntent(
+                    context = this,
+                    fileName = item.name,
+                    previewUrl = item.previewUrl,
+                    analyzedImagePath = null,
+                    ocrText = null,
+                    aiTags = emptyList(),
+                    fileSize = item.size,
+                    modified = item.modified,
+                    showAiPanel = false
+                )
+            )
+        }
+    }
 
-    private enum class Sort {
-        NAME,
-        DATE,
-        SIZE
+    override fun onDownload(item: ExplorerItem) {
+        Toast.makeText(this, getString(R.string.search_downloading, item.name), Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onRename(item: ExplorerItem, newName: String) {
+        // Hidden
+    }
+
+    override fun onMove(item: ExplorerItem, targetPath: String) {
+        // Hidden
+    }
+
+    override fun onFavorite(item: ExplorerItem) {
+        val searchItem = viewModel.uiState.value.allItems.find { it.rawItem.path == item.path }
+        if (searchItem != null) {
+            viewModel.toggleFavorite(searchItem)
+        }
+    }
+
+    override fun onDelete(item: ExplorerItem) {
+        lifecycleScope.launch {
+            explorerRepository.deleteItem(username, item)
+            viewModel.loadFiles() // Refresh search results
+            Toast.makeText(this@SearchActivity, getString(R.string.search_deleted, item.name), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onAnalyzeAi(item: ExplorerItem) {
+        Toast.makeText(this, getString(R.string.search_ai_scheduled, item.name), Toast.LENGTH_SHORT).show()
     }
 
     companion object {

@@ -162,10 +162,10 @@ class ForgotPasswordActivity : AppCompatActivity() {
         successContent.visibility =
             if (state.step == ForgotPasswordStep.SUCCESS) View.VISIBLE else View.GONE
 
-        emailInputLayout.error = state.emailError
-        otpInputLayout.error = state.otpError
-        newPasswordInputLayout.error = state.newPasswordError
-        confirmPasswordInputLayout.error = state.confirmPasswordError
+        emailInputLayout.error = state.emailError?.asString(this)
+        otpInputLayout.error = state.otpError?.asString(this)
+        newPasswordInputLayout.error = state.newPasswordError?.asString(this)
+        confirmPasswordInputLayout.error = state.confirmPasswordError?.asString(this)
 
         val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(state.email.trim()).matches()
         emailInputLayout.endIconMode =
@@ -233,7 +233,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
     private fun handleEvent(event: ForgotPasswordEvent) {
         when (event) {
             is ForgotPasswordEvent.ShowMessage -> {
-                Toast.makeText(this, event.message, Toast.LENGTH_LONG).show()
+                Toast.makeText(this, event.message.asString(this), Toast.LENGTH_LONG).show()
             }
         }
     }

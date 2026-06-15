@@ -11,6 +11,8 @@ import com.example.filemanagementapp.data.auth.model.LoginUser
 import com.example.filemanagementapp.data.auth.model.ResetPasswordRequest
 import com.example.filemanagementapp.data.auth.model.RegisterRequest
 import com.example.filemanagementapp.data.auth.model.VerifyResetCodeRequest
+import com.example.filemanagementapp.data.auth.model.ChangePasswordRequest
+import com.example.filemanagementapp.data.auth.model.UpdateProfileRequest
 import com.example.filemanagementapp.data.auth.network.AuthApiService
 import com.example.filemanagementapp.data.auth.network.SessionCookieJar
 import com.google.gson.Gson
@@ -161,6 +163,70 @@ class AuthRepository(
                 )
             } catch (exception: Exception) {
                 Result.failure(Exception(exception.message ?: "Dat lai mat khau that bai"))
+            }
+        }
+
+    suspend fun updateProfile(fullName: String, email: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                authApiService.updateProfile(
+                    UpdateProfileRequest(
+                        fullName = fullName,
+                        email = email
+                    )
+                ).toMessageResult(defaultErrorMessage = "Cap nhat thong tin that bai")
+            } catch (ioException: IOException) {
+                Result.failure(
+                    Exception("Khong the ket noi toi server. Kiem tra backend local va mang cua may ao.")
+                )
+            } catch (exception: Exception) {
+                Result.failure(Exception(exception.message ?: "Cap nhat thong tin that bai"))
+            }
+        }
+
+    suspend fun changePassword(request: ChangePasswordRequest): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = authApiService.changePassword(request)
+                if (response.isSuccessful) {
+                    val message = response.body()?.message ?: "Password changed successfully"
+                    Result.success(message)
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        gson.fromJson(errorBody, AuthApiError::class.java).error
+                    } catch (e: Exception) {
+                        "Unknown error occurred"
+                    }
+                    Result.failure(Exception(errorMessage))
+                }
+            } catch (e: IOException) {
+                Result.failure(Exception("Network error. Please check your connection."))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    suspend fun deleteAccount(): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = authApiService.deleteAccount()
+                if (response.isSuccessful) {
+                    val message = response.body()?.message ?: "Account deleted successfully"
+                    Result.success(message)
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        gson.fromJson(errorBody, AuthApiError::class.java).error
+                    } catch (e: Exception) {
+                        "Unknown error occurred"
+                    }
+                    Result.failure(Exception(errorMessage))
+                }
+            } catch (e: IOException) {
+                Result.failure(Exception("Network error. Please check your connection."))
+            } catch (e: Exception) {
+                Result.failure(e)
             }
         }
 

@@ -114,7 +114,7 @@ class ExplorerRepository(
         username: String,
         targetPath: String,
         fileUri: Uri
-    ): Result<String> = withContext(Dispatchers.IO) {
+    ): Result<Pair<String, String>> = withContext(Dispatchers.IO) {
         try {
             val resolver = appContext.contentResolver
             val fileName = resolveDisplayName(fileUri) ?: "upload-${System.currentTimeMillis()}"
@@ -133,7 +133,8 @@ class ExplorerRepository(
                 )
             )
             tempFile.delete()
-            response.toMutationResult()
+            val mutationResult = response.toMutationResult()
+            mutationResult.map { message -> Pair(message, fileName) }
         } catch (ioException: IOException) {
             Result.failure(Exception("Khong the ket noi toi server. Kiem tra backend va mang."))
         } catch (exception: Exception) {

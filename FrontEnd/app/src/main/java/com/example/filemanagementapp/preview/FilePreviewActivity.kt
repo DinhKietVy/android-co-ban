@@ -10,13 +10,33 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.VideoView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import coil.load
 import com.example.filemanagementapp.R
+import android.text.InputType
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ProgressBar
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
+import com.example.filemanagementapp.data.explorer.repository.ExplorerRepository
+import com.example.filemanagementapp.download.ExplorerDownloadService
+import com.example.filemanagementapp.explorer.ExplorerItem
+import com.example.filemanagementapp.explorer.FolderPickerAdapter
+import com.example.filemanagementapp.explorer.FolderPickerEntry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class FilePreviewActivity : AppCompatActivity() {
@@ -34,14 +54,33 @@ class FilePreviewActivity : AppCompatActivity() {
     private lateinit var objectTagsTitle: TextView
     private lateinit var titleText: TextView
     private lateinit var previewImage: ImageView
+    private lateinit var previewVideo: VideoView
+    private lateinit var previewTextScroll: ScrollView
+    private lateinit var previewText: TextView
+    private lateinit var previewUnsupported: LinearLayout
+    private lateinit var openExternallyButton: com.google.android.material.button.MaterialButton
     private lateinit var previewInfoNameValue: TextView
     private lateinit var previewInfoTypeValue: TextView
     private lateinit var previewInfoSizeValue: TextView
     private lateinit var previewInfoUploadedValue: TextView
     private lateinit var previewInfoModifiedValue: TextView
 
+    private lateinit var explorerRepository: ExplorerRepository
+    private var explorerItem: ExplorerItem? = null
+    private var username: String = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        @Suppress("DEPRECATION")
+        explorerItem = intent.getParcelableExtra(EXTRA_EXPLORER_ITEM)
+        username = intent.getStringExtra(EXTRA_USERNAME).orEmpty()
+        
+        explorerRepository = ExplorerRepository(
+            appContext = applicationContext,
+            explorerApiService = ExplorerNetworkModule.explorerApiService,
+            gson = ExplorerNetworkModule.gson
+        )
         enableEdgeToEdge()
         setContentView(R.layout.activity_file_preview)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -77,6 +116,11 @@ class FilePreviewActivity : AppCompatActivity() {
         objectTagsTitle = findViewById(R.id.objectTagsTitle)
         titleText = findViewById(R.id.titleText)
         previewImage = findViewById(R.id.previewImage)
+        previewVideo = findViewById(R.id.previewVideo)
+        previewTextScroll = findViewById(R.id.previewTextScroll)
+        previewText = findViewById(R.id.previewText)
+        previewUnsupported = findViewById(R.id.previewUnsupported)
+        openExternallyButton = findViewById(R.id.openExternallyButton)
         previewInfoNameValue = findViewById(R.id.previewInfoNameValue)
         previewInfoTypeValue = findViewById(R.id.previewInfoTypeValue)
         previewInfoSizeValue = findViewById(R.id.previewInfoSizeValue)
@@ -92,24 +136,75 @@ class FilePreviewActivity : AppCompatActivity() {
         val aiTags = intent.getStringArrayListExtra(EXTRA_AI_TAGS).orEmpty()
         titleText.text = fileName.ifBlank { getString(R.string.preview_file_name) }
         previewInfoNameValue.text = fileName.ifBlank { getString(R.string.preview_file_name) }
-        previewInfoTypeValue.text = fileName.substringAfterLast('.', "Unknown").uppercase()
-        previewInfoSizeValue.text = intent.getStringExtra(EXTRA_FILE_SIZE).orEmpty()
-            .ifBlank { getString(R.string.preview_file_size) }
-        val modified = intent.getStringExtra(EXTRA_FILE_MODIFIED).orEmpty()
-        previewInfoUploadedValue.text = modified.ifBlank { getString(R.string.preview_upload_date) }
-        previewInfoModifiedValue.text = modified.ifBlank { getString(R.string.preview_modified_date) }
+        
+        val type = explorerItem?.type?.name ?: fileName.substringAfterLast('.', "Unknown").uppercase()
+        previewInfoTypeValue.text = type
+        
+        previewInfoSizeValue.text = explorerItem?.size ?: getString(R.string.preview_file_size)
+        val modified = explorerItem?.modified ?: getString(R.string.preview_modified_date)
+        previewInfoUploadedValue.text = modified
+        previewInfoModifiedValue.text = modified
 
         val resolvedPreviewSource = analyzedImagePath
             ?.takeIf { it.isNotBlank() }
             ?.let { Uri.fromFile(File(it)) }
-            ?: previewUrl
-        if (resolvedPreviewSource == null) {
-            previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
+            ?: previewUrl?.let { Uri.parse(it) }
+
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+        val isImage = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
+        val isVideo = extension in listOf("mp4", "mkv", "webm", "avi")
+        val isAudio = extension in listOf("mp3", "wav", "ogg", "m4a")
+        val isText = extension in listOf("txt", "json", "xml", "md", "csv", "kt", "java", "py", "html", "css", "js", "sh")
+
+        previewImage.visibility = View.GONE
+        previewVideo.visibility = View.GONE
+        previewTextScroll.visibility = View.GONE
+        previewUnsupported.visibility = View.GONE
+
+        if (isImage || (extension.isBlank() && resolvedPreviewSource != null)) {
+            previewImage.visibility = View.VISIBLE
+            if (resolvedPreviewSource == null) {
+                previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
+            } else {
+                previewImage.load(resolvedPreviewSource) {
+                    crossfade(true)
+                    placeholder(R.drawable.explorer_file_preview_placeholder)
+                    error(R.drawable.explorer_file_preview_placeholder)
+                }
+            }
+        } else if (isVideo || isAudio) {
+            previewVideo.visibility = View.VISIBLE
+            val mediaController = android.widget.MediaController(this)
+            mediaController.setAnchorView(previewVideo)
+            previewVideo.setMediaController(mediaController)
+            if (resolvedPreviewSource != null) {
+                previewVideo.setVideoURI(resolvedPreviewSource)
+                previewVideo.setOnPreparedListener { it.start() }
+            }
+        } else if (isText) {
+            previewTextScroll.visibility = View.VISIBLE
+            previewText.text = getString(R.string.preview_loading_text)
+            lifecycleScope.launch {
+                try {
+                    val content = withContext(Dispatchers.IO) {
+                        java.net.URL(previewUrl).readText()
+                    }
+                    previewText.text = content
+                } catch (e: Exception) {
+                    previewText.text = getString(R.string.preview_error_loading_text) + "\n" + e.message
+                }
+            }
         } else {
-            previewImage.load(resolvedPreviewSource) {
-                crossfade(true)
-                placeholder(R.drawable.explorer_file_preview_placeholder)
-                error(R.drawable.explorer_file_preview_placeholder)
+            previewUnsupported.visibility = View.VISIBLE
+            openExternallyButton.setOnClickListener {
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(Uri.parse(previewUrl), "*/*")
+                }
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(this@FilePreviewActivity, "No app found to open this file.", android.widget.Toast.LENGTH_SHORT).show()
+                }
             }
         }
         findViewById<TextView>(R.id.ocrTextView).text = ocrText.ifBlank {
@@ -203,21 +298,222 @@ class FilePreviewActivity : AppCompatActivity() {
     }
 
     private fun showOverflowMenu(anchor: View) {
-        val popup = PopupMenu(this, anchor)
-        popup.menu.apply {
-            add(0, MENU_DOWNLOAD, 0, R.string.preview_action_download)
-            add(0, MENU_SHARE, 1, R.string.preview_action_share)
-            add(0, MENU_RENAME, 2, R.string.preview_action_rename)
-            add(0, MENU_MOVE, 3, R.string.preview_action_move)
-            add(0, MENU_FAVORITE, 4, R.string.preview_action_favorite)
-            add(0, MENU_AI, 5, R.string.preview_action_ai)
-            add(0, MENU_DELETE, 6, R.string.preview_action_delete)
+        val popupView = layoutInflater.inflate(R.layout.popup_preview_actions, null)
+        val popupWindow = android.widget.PopupWindow(
+            popupView,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            elevation = 12f
         }
-        popup.setOnMenuItemClickListener(::handleMenuAction)
-        popup.show()
+
+        popupView.findViewById<View>(R.id.menuDownload).setOnClickListener {
+            popupWindow.dismiss()
+            handleActionClick("download")
+        }
+        popupView.findViewById<View>(R.id.menuShare).setOnClickListener {
+            popupWindow.dismiss()
+            handleActionClick("share")
+        }
+        popupView.findViewById<View>(R.id.menuRename).setOnClickListener {
+            popupWindow.dismiss()
+            handleActionClick("rename")
+        }
+        popupView.findViewById<View>(R.id.menuMove).setOnClickListener {
+            popupWindow.dismiss()
+            handleActionClick("move")
+        }
+        popupView.findViewById<View>(R.id.menuFavorite).setOnClickListener {
+            popupWindow.dismiss()
+            handleActionClick("favorite")
+        }
+        popupView.findViewById<View>(R.id.menuAi).setOnClickListener {
+            popupWindow.dismiss()
+            handleActionClick("ai")
+        }
+        popupView.findViewById<View>(R.id.menuDelete).setOnClickListener {
+            popupWindow.dismiss()
+            handleActionClick("delete")
+        }
+
+        popupWindow.showAsDropDown(anchor, -24, 8, android.view.Gravity.END)
     }
 
-    private fun handleMenuAction(item: MenuItem): Boolean = true
+    private fun handleActionClick(action: String) {
+        val item = explorerItem ?: return
+        when (action) {
+            "download" -> {
+                ExplorerDownloadService.start(this, item.name, item.previewUrl.orEmpty())
+                android.widget.Toast.makeText(this, R.string.explorer_download_started, android.widget.Toast.LENGTH_SHORT).show()
+            }
+            "share" -> {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, item.previewUrl)
+                }
+                startActivity(Intent.createChooser(shareIntent, getString(R.string.preview_action_share)))
+            }
+            "rename" -> showRenameDialog(item)
+            "move" -> showMoveDialog(item)
+            "favorite" -> {
+                setResult(RESULT_ACTION_FAVORITE, Intent().putExtra(EXTRA_EXPLORER_ITEM, item))
+                finish()
+            }
+            "delete" -> showDeleteDialog(item)
+            "ai" -> {
+                setResult(RESULT_ACTION_AI, Intent().putExtra(EXTRA_EXPLORER_ITEM, item))
+                finish()
+            }
+        }
+    }
+
+    private fun showRenameDialog(item: ExplorerItem) {
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_TEXT
+            setText(item.name)
+            setSelection(item.name.length)
+            hint = getString(R.string.explorer_dialog_rename_hint)
+            setPadding(64, 50, 64, 0)
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.explorer_dialog_rename_title)
+            .setView(input)
+            .setNegativeButton(R.string.explorer_dialog_cancel, null)
+            .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
+                val newName = input.text?.toString().orEmpty()
+                lifecycleScope.launch {
+                    explorerRepository.renameItem(username, item, newName)
+                        .onSuccess { 
+                            setResult(RESULT_OK)
+                            finish()
+                        }
+                        .onFailure { throwable ->
+                            android.widget.Toast.makeText(this@FilePreviewActivity, throwable.message, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
+            .show()
+    }
+
+    private fun showDeleteDialog(item: ExplorerItem) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.explorer_dialog_delete_title)
+            .setMessage(getString(R.string.explorer_dialog_delete_message, item.name))
+            .setNegativeButton(R.string.explorer_dialog_cancel, null)
+            .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
+                lifecycleScope.launch {
+                    explorerRepository.deleteItem(username, item)
+                        .onSuccess {
+                            setResult(RESULT_OK)
+                            finish()
+                        }
+                        .onFailure { throwable ->
+                            android.widget.Toast.makeText(this@FilePreviewActivity, throwable.message, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
+            .show()
+    }
+
+    private fun showMoveDialog(item: ExplorerItem) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_folder_picker, null)
+        val pathText = dialogView.findViewById<TextView>(R.id.folderPickerPathText)
+        val upButton = dialogView.findViewById<TextView>(R.id.folderPickerUpButton)
+        val loadingView = dialogView.findViewById<ProgressBar>(R.id.folderPickerLoading)
+        val emptyView = dialogView.findViewById<TextView>(R.id.folderPickerEmptyText)
+        val invalidHintText = dialogView.findViewById<TextView>(R.id.folderPickerInvalidHintText)
+        val recyclerView = dialogView.findViewById<RecyclerView>(R.id.folderPickerRecyclerView)
+
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        var currentPath = ""
+        var loadJob: Job? = null
+        lateinit var loadFolderPickerPath: (String) -> Unit
+        var positiveButton: Button? = null
+        val adapter = FolderPickerAdapter { folder -> loadFolderPickerPath(folder.path) }
+        recyclerView.adapter = adapter
+
+        fun renderFolderPickerPath() {
+            pathText.text = if (currentPath.isBlank()) {
+                getString(R.string.explorer_folder_picker_current_root)
+            } else {
+                getString(R.string.explorer_folder_picker_current, currentPath)
+            }
+            upButton.visibility = if (currentPath.isBlank()) View.INVISIBLE else View.VISIBLE
+        }
+
+        fun isInvalidTarget(target: String): Boolean {
+            val normalizedTarget = target.trim('/').lowercase()
+            val sourcePath = item.path.trim('/').lowercase()
+            return normalizedTarget == sourcePath || (normalizedTarget.isNotBlank() && normalizedTarget.startsWith("$sourcePath/"))
+        }
+
+        loadFolderPickerPath = { targetPath ->
+            currentPath = targetPath
+            renderFolderPickerPath()
+            val invalidTarget = isInvalidTarget(targetPath)
+            invalidHintText.visibility = if (invalidTarget) View.VISIBLE else View.GONE
+            positiveButton?.isEnabled = !invalidTarget
+            loadJob?.cancel()
+            loadJob = lifecycleScope.launch {
+                loadingView.visibility = View.VISIBLE
+                emptyView.visibility = View.GONE
+                recyclerView.alpha = 0.5f
+                explorerRepository.listDirectory(username = username, folderPath = targetPath)
+                    .onSuccess { directory ->
+                        val folders = directory.items
+                            .filter { it.type == ExplorerItem.Type.FOLDER }
+                            .map { folder ->
+                                FolderPickerEntry(
+                                    item = folder,
+                                    isEnabled = !isInvalidTarget(folder.path)
+                                )
+                            }
+                        adapter.submitItems(folders)
+                        emptyView.visibility = if (folders.isEmpty()) View.VISIBLE else View.GONE
+                        emptyView.text = getString(R.string.explorer_folder_picker_empty)
+                    }
+                    .onFailure {
+                        adapter.submitItems(emptyList())
+                        emptyView.visibility = View.VISIBLE
+                        emptyView.text = getString(R.string.explorer_folder_picker_loading_error)
+                    }
+                loadingView.visibility = View.GONE
+                recyclerView.alpha = 1f
+            }
+        }
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.explorer_dialog_move_title)
+            .setView(dialogView)
+            .setNegativeButton(R.string.explorer_dialog_cancel, null)
+            .setPositiveButton(R.string.explorer_folder_picker_move_here) { _, _ ->
+                lifecycleScope.launch {
+                    explorerRepository.moveItem(username, item, currentPath)
+                        .onSuccess {
+                            setResult(RESULT_OK)
+                            finish()
+                        }
+                        .onFailure { throwable ->
+                            android.widget.Toast.makeText(this@FilePreviewActivity, throwable.message, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
+            .show()
+
+        positiveButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+
+        upButton.setOnClickListener {
+            if (currentPath.isBlank()) return@setOnClickListener
+            loadFolderPickerPath(currentPath.substringBeforeLast('/', ""))
+        }
+
+        dialog.setOnDismissListener { loadJob?.cancel() }
+
+        loadFolderPickerPath(currentPath)
+    }
 
     private enum class Panel {
         FILE_INFO,
@@ -225,41 +521,34 @@ class FilePreviewActivity : AppCompatActivity() {
     }
 
     companion object {
+        const val RESULT_ACTION_FAVORITE = 101
+        const val RESULT_ACTION_AI = 102
+        const val EXTRA_EXPLORER_ITEM = "extra_explorer_item"
+        private const val EXTRA_USERNAME = "extra_username"
         private const val EXTRA_FILE_NAME = "extra_file_name"
         private const val EXTRA_PREVIEW_URL = "extra_preview_url"
         private const val EXTRA_ANALYZED_IMAGE_PATH = "extra_analyzed_image_path"
         private const val EXTRA_OCR_TEXT = "extra_ocr_text"
         private const val EXTRA_AI_TAGS = "extra_ai_tags"
-        private const val EXTRA_FILE_SIZE = "extra_file_size"
-        private const val EXTRA_FILE_MODIFIED = "extra_file_modified"
         private const val EXTRA_SHOW_AI_PANEL = "extra_show_ai_panel"
-        private const val MENU_DOWNLOAD = 1
-        private const val MENU_SHARE = 2
-        private const val MENU_RENAME = 3
-        private const val MENU_MOVE = 4
-        private const val MENU_FAVORITE = 5
-        private const val MENU_AI = 6
-        private const val MENU_DELETE = 7
 
         fun newIntent(
             context: Context,
-            fileName: String,
-            previewUrl: String?,
+            item: ExplorerItem,
+            username: String,
             analyzedImagePath: String?,
             ocrText: String?,
             aiTags: List<String>,
-            fileSize: String? = null,
-            modified: String? = null,
             showAiPanel: Boolean = false
         ): Intent {
             return Intent(context, FilePreviewActivity::class.java).apply {
-                putExtra(EXTRA_FILE_NAME, fileName)
-                putExtra(EXTRA_PREVIEW_URL, previewUrl)
+                putExtra(EXTRA_EXPLORER_ITEM, item)
+                putExtra(EXTRA_USERNAME, username)
+                putExtra(EXTRA_FILE_NAME, item.name)
+                putExtra(EXTRA_PREVIEW_URL, item.previewUrl)
                 putExtra(EXTRA_ANALYZED_IMAGE_PATH, analyzedImagePath)
                 putExtra(EXTRA_OCR_TEXT, ocrText)
                 putStringArrayListExtra(EXTRA_AI_TAGS, ArrayList(aiTags))
-                putExtra(EXTRA_FILE_SIZE, fileSize)
-                putExtra(EXTRA_FILE_MODIFIED, modified)
                 putExtra(EXTRA_SHOW_AI_PANEL, showAiPanel)
             }
         }
