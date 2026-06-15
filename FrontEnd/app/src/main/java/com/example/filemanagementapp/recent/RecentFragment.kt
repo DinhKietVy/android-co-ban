@@ -179,14 +179,12 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
         startActivity(
             FilePreviewActivity.newIntent(
                 context = requireContext(),
-                fileName = item.name,
-                previewUrl = item.previewUrl,
-                analyzedImagePath = null,
-                ocrText = item.ocrSnippet,
-                aiTags = item.aiTags,
-                fileSize = item.size,
-                modified = item.lastModified,
-                showAiPanel = false
+                                item = item.toExplorerItem(),
+                                username = username,
+                                analyzedImagePath = null,
+                                ocrText = null,
+                                aiTags = emptyList(),
+                                showAiPanel = false
             )
         )
     }
@@ -241,13 +239,11 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
         startActivity(
             FilePreviewActivity.newIntent(
                 context = requireContext(),
-                fileName = recentItem.name,
-                previewUrl = recentItem.previewUrl,
+                item = recentItem.toExplorerItem(),
+                username = username,
                 analyzedImagePath = null,
                 ocrText = recentItem.ocrSnippet,
                 aiTags = recentItem.aiTags,
-                fileSize = recentItem.size,
-                modified = recentItem.lastModified,
                 showAiPanel = true
             )
         )

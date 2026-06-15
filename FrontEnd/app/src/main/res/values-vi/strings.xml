@@ -188,6 +188,7 @@
     <string name="trash_more">Thêm tùy chọn</string>
     <string name="trash_select_item">Chọn mục</string>
     <string name="profile_title">Hồ sơ &amp; Cài đặt</string>
+    <string name="profile_avatar">Ảnh đại diện</string>
     <string name="profile_name">Alex Morgan</string>
     <string name="profile_email">alex.morgan@email.com</string>
     <string name="profile_username">\@alexmorgan</string>
@@ -216,7 +217,6 @@
     <string name="profile_ai_server_url">URL Máy chủ AI</string>
     <string name="profile_cache_sync">Cài đặt Bộ nhớ đệm &amp; Đồng bộ</string>
     <string name="profile_auto_upload">Cài đặt Tự động tải lên</string>
-    <string name="profile_theme">Giao diện</string>
     <string name="profile_language">Ngôn ngữ</string>
     <string name="profile_auto_ocr">Tự động phân tích OCR</string>
     <string name="profile_auto_object">Tự động nhận diện vật thể</string>

@@ -87,49 +87,16 @@ class GoogleAuthUiClient(
                 return GoogleIdTokenCredential.createFrom(credential.data)
             } catch (exception: GoogleIdTokenParsingException) {
                 throw IllegalStateException(
-                    context.getString(R.string.login_google_token_error),
+                    context.getString(R.string.error_auth_google_sign_in_failed),
                     exception
                 )
             }
         }
 
-        throw IllegalStateException(context.getString(R.string.login_google_credential_error))
+        throw IllegalStateException(context.getString(R.string.error_auth_google_sign_in_failed))
     }
 
     private fun toReadableError(throwable: Throwable): String {
-        return when (throwable) {
-            is GetCredentialCancellationException -> {
-                context.getString(R.string.login_google_cancelled)
-            }
-
-            is NoCredentialException -> {
-                context.getString(R.string.login_google_no_credential)
-            }
-
-            is GetCredentialProviderConfigurationException -> {
-                context.getString(R.string.login_google_provider_error)
-            }
-
-            is GetCredentialInterruptedException -> {
-                context.getString(R.string.login_google_interrupted)
-            }
-
-            is FirebaseAuthInvalidCredentialsException -> {
-                context.getString(R.string.login_google_invalid_credential)
-            }
-
-            is FirebaseAuthInvalidUserException -> {
-                context.getString(R.string.login_google_invalid_user)
-            }
-
-            is GetCredentialException -> {
-                throwable.message?.takeUnless { it.isBlank() }
-                    ?: context.getString(R.string.login_google_generic_error)
-            }
-
-            else -> {
-                throwable.message ?: context.getString(R.string.login_google_generic_error)
-            }
-        }
+        return throwable.message ?: context.getString(R.string.error_auth_google_sign_in_failed)
     }
 }

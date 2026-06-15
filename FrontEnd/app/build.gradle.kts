@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
     id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+    id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 android {

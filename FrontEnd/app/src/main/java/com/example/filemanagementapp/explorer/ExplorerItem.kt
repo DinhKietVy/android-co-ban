@@ -1,10 +1,9 @@
 package com.example.filemanagementapp.explorer
 
-import android.os.Parcelable
+import java.io.Serializable
 import androidx.annotation.DrawableRes
-import kotlinx.parcelize.Parcelize
 
-@Parcelize
+
 data class ExplorerItem(
     val id: String,
     val name: String,
@@ -22,7 +21,7 @@ data class ExplorerItem(
     val aiAnalyzed: Boolean = false,
     val ocrSnippet: String? = null,
     val isFavorite: Boolean = false
-) : Parcelable {
+) : Serializable {
     enum class Type {
         FOLDER,
         FILE
