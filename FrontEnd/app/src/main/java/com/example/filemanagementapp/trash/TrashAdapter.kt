@@ -75,9 +75,13 @@ class TrashAdapter(
 
             itemNameText.text = item.name
             itemMetaText.text = if (item.type == TrashItemModel.Type.FOLDER) {
-                context.getString(R.string.trash_folder_label)
+                context.getString(R.string.trash_type_folder)
             } else {
-                "${item.size.orEmpty()} • ${item.type.name.lowercase()}"
+                context.getString(
+                    R.string.trash_file_meta,
+                    item.size.orEmpty(),
+                    context.getString(typeStringRes(item.type))
+                )
             }
 
             renderTags(item)
@@ -132,6 +136,17 @@ class TrashAdapter(
                 TrashItemModel.Type.IMAGE -> R.drawable.image_icon
                 TrashItemModel.Type.VIDEO -> R.drawable.film
                 else -> R.drawable.file_text
+            }
+        }
+
+        private fun typeStringRes(type: TrashItemModel.Type): Int {
+            return when (type) {
+                TrashItemModel.Type.FOLDER -> R.string.trash_type_folder
+                TrashItemModel.Type.IMAGE -> R.string.trash_type_image
+                TrashItemModel.Type.DOCUMENT -> R.string.trash_type_document
+                TrashItemModel.Type.SPREADSHEET -> R.string.trash_type_spreadsheet
+                TrashItemModel.Type.VIDEO -> R.string.trash_type_video
+                TrashItemModel.Type.FILE -> R.string.trash_type_file
             }
         }
 

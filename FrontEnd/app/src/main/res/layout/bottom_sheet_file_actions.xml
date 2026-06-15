@@ -6,9 +6,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bottom_sheet_bg"
-    android:orientation="vertical"
     android:elevation="16dp"
-    android:visibility="gone"
+    android:orientation="vertical"
+    android:visibility="visible"
     app:behavior_hideable="true"
     app:behavior_peekHeight="0dp"
     app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
@@ -35,7 +35,8 @@
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="@drawable/file_icon_bg"
-            android:backgroundTint="#E9EBEF">
+            android:backgroundTint="@color/grey_border_light">
+
             <ImageView
                 android:id="@+id/bsFileIcon"
                 android:layout_width="28dp"
@@ -90,7 +91,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Close"
+            android:contentDescription="@string/action_close"
             android:padding="8dp"
             android:src="@drawable/x_close"
             android:tint="@color/explorer_text_secondary" />
@@ -131,7 +132,8 @@
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="#F3F4F6">
+                    android:backgroundTint="@color/grey_100">
+
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
@@ -146,10 +148,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
+                    android:text="@string/action_open"
                     android:textColor="@color/explorer_text_primary"
                     android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:text="Open" />
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Download -->
@@ -169,7 +171,8 @@
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="#F3F4F6">
+                    android:backgroundTint="@color/grey_100">
+
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
@@ -183,10 +186,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
+                    android:text="@string/action_download"
                     android:textColor="@color/explorer_text_primary"
                     android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:text="Download" />
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Rename -->
@@ -206,7 +209,8 @@
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="#F3F4F6">
+                    android:backgroundTint="@color/grey_100">
+
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
@@ -220,10 +224,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
+                    android:text="@string/action_rename"
                     android:textColor="@color/explorer_text_primary"
                     android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:text="Rename" />
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Move -->
@@ -243,7 +247,8 @@
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="#F3F4F6">
+                    android:backgroundTint="@color/grey_100">
+
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
@@ -257,10 +262,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
+                    android:text="@string/action_move"
                     android:textColor="@color/explorer_text_primary"
                     android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:text="Move" />
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <View
@@ -287,13 +292,14 @@
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="#FFFBEB">
+                    android:backgroundTint="@color/amber_50">
+
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="center"
                         android:src="@drawable/star"
-                        android:tint="#F59E0B" />
+                        android:tint="@color/amber_600" />
                 </FrameLayout>
 
                 <TextView
@@ -301,10 +307,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
+                    android:text="@string/action_favorite"
                     android:textColor="@color/explorer_text_primary"
                     android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:text="Favorite" />
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Delete -->
@@ -324,13 +330,14 @@
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="#FEF2F2">
+                    android:backgroundTint="@color/red_50">
+
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="center"
                         android:src="@drawable/trash_2"
-                        android:tint="#EF4444" />
+                        android:tint="@color/red_500" />
                 </FrameLayout>
 
                 <TextView
@@ -338,10 +345,10 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
-                    android:textColor="#EF4444"
+                    android:text="@string/action_delete"
+                    android:textColor="@color/red_500"
                     android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:text="Delete" />
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Analyze with AI -->
@@ -361,13 +368,14 @@
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="#EFF6FF">
+                    android:backgroundTint="@color/blue_50">
+
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="center"
                         android:src="@drawable/sparkles"
-                        android:tint="#2563EB" />
+                        android:tint="@color/blue_600" />
                 </FrameLayout>
 
                 <TextView
@@ -375,8 +383,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
-                    android:text="Analyze with AI"
-                    android:textColor="#2563EB"
+                    android:text="@string/action_analyze_ai"
+                    android:textColor="@color/blue_600"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -386,9 +394,9 @@
                     android:background="@drawable/badge_bg_blue"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="2dp"
-                    android:text="AI"
+                    android:text="@string/action_ai_badge"
                     android:textAllCaps="true"
-                    android:textColor="#2563EB"
+                    android:textColor="@color/blue_600"
                     android:textSize="10sp"
                     android:textStyle="bold" />
             </LinearLayout>

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
 import com.example.filemanagementapp.data.auth.model.LoginUser
 import com.example.filemanagementapp.data.auth.repository.AuthRepository
+import com.example.filemanagementapp.util.UiText
+import com.example.filemanagementapp.R
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -66,12 +68,12 @@ class LoginViewModel(
         val password = currentState.password
 
         val usernameError = if (username.isBlank()) {
-            "Vui long nhap email hoac username"
+            UiText.StringResource(R.string.error_empty_email_or_user)
         } else {
             null
         }
         val passwordError = if (password.isBlank()) {
-            "Vui long nhap mat khau"
+            UiText.StringResource(R.string.error_empty_password)
         } else {
             null
         }
@@ -105,12 +107,14 @@ class LoginViewModel(
                     _uiState.update {
                         it.copy(
                             isLoginLoading = false,
-                            passwordError = throwable.message
+                            passwordError = throwable.message?.let { UiText.DynamicString(it) }
+                                ?: UiText.StringResource(R.string.error_auth_login_failed)
                         )
                     }
                     _events.emit(
                         LoginEvent.ShowMessage(
-                            throwable.message ?: "Dang nhap that bai"
+                            throwable.message?.let { UiText.DynamicString(it) }
+                                ?: UiText.StringResource(R.string.error_auth_login_failed)
                         )
                     )
                 }
@@ -139,16 +143,20 @@ class LoginViewModel(
                     .onFailure { throwable ->
                         _events.emit(
                             LoginEvent.ShowMessage(
-                                throwable.message ?: "Dong bo tai khoan Google that bai"
+                                throwable.message?.let { UiText.DynamicString(it) }
+                                    ?: UiText.StringResource(R.string.error_auth_google_sync_failed)
                             )
                         )
                     }
             }.onFailure { throwable ->
                 _events.emit(
                     LoginEvent.ShowMessage(
-                        throwable.message ?: "Google Sign-In that bai"
+                        throwable.message?.let { UiText.DynamicString(it) }
+                            ?: UiText.StringResource(R.string.error_auth_login_failed)
                     )
                 )
+            }.also {
+                _uiState.update { it.copy(isGoogleLoading = false) }
             }
         }
     }

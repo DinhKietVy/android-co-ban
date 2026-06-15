@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { connectDB } from './config/database';
 
-import routes from './routes/index.routes.ts';
+import routes from './routes/index.routes';
 import cookieParser from 'cookie-parser';
 
 import { setupSwagger } from "./config/swagger";

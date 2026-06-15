@@ -20,16 +20,70 @@
     <string name="login_google_loading">Connecting Google...</string>
     <string name="login_signup_prompt">Don\'t have an account?</string>
     <string name="login_signup_action">Sign Up</string>
-    <string name="login_toggle_password">Toggle password visibility</string>
-    <string name="login_google_credential_error">Không nhận được credential hợp lệ từ Google Sign-In.</string>
-    <string name="login_google_token_error">Không thể đọc Google ID token từ credential trả về.</string>
-    <string name="login_google_cancelled">Bạn đã hủy đăng nhập Google.</string>
-    <string name="login_google_no_credential">Không tìm thấy tài khoản Google khả dụng trên thiết bị.</string>
-    <string name="login_google_provider_error">Thiết bị chưa sẵn sàng cho Google Sign-In. Hãy cập nhật Google Play Services.</string>
-    <string name="login_google_interrupted">Đăng nhập Google bị gián đoạn. Hãy thử lại.</string>
-    <string name="login_google_invalid_credential">Token Google không hợp lệ. Hãy thử đăng nhập lại.</string>
-    <string name="login_google_invalid_user">Tài khoản Google không hợp lệ hoặc đã bị vô hiệu hóa.</string>
-    <string name="login_google_generic_error">Google Sign-In thất bại. Hãy thử lại.</string>
+
+    <!-- Error Messages (Extracted) -->
+    <string name="error_ai_load_file">Cannot load file for AI analysis</string>
+    <string name="error_ai_analyze">Cannot analyze file with AI</string>
+    <string name="error_ai_server">AI server returned an error</string>
+    <string name="error_ai_invalid_data">AI server returned invalid data</string>
+
+    <string name="error_auth_google_sync_failed">Google account sync failed</string>
+    <string name="error_auth_register_failed">Registration failed</string>
+    <string name="error_auth_login_failed">Login failed</string>
+    <string name="error_auth_session_expired">Session expired</string>
+    <string name="error_auth_auto_login_failed">Auto login failed</string>
+    <string name="error_auth_send_otp_failed">Failed to send reset password code</string>
+    <string name="error_auth_verify_otp_failed">OTP verification failed</string>
+    <string name="error_auth_reset_password_failed">Password reset failed</string>
+    <string name="error_auth_update_info_failed">Information update failed</string>
+    <string name="error_auth_invalid_user_data">Server returned invalid account information</string>
+
+    <string name="error_explorer_load_failed">Cannot load folder list</string>
+    <string name="error_explorer_rename_failed">Cannot rename item</string>
+    <string name="error_explorer_create_folder_failed">Cannot create folder</string>
+    <string name="error_explorer_read_file_failed">Cannot read selected file</string>
+    <string name="error_explorer_upload_failed">Cannot upload file</string>
+    <string name="error_explorer_move_failed">Cannot move item</string>
+    <string name="error_explorer_delete_failed">Cannot delete item</string>
+    <string name="error_explorer_invalid_folder_data">Server returned invalid folder data</string>
+    <string name="error_explorer_action_failed">Cannot perform operation</string>
+
+    <string name="msg_action_success">Operation successful</string>
+    <string name="msg_uploading_file">Uploading file...</string>
+    <string name="msg_added_favorites">Added to favorites</string>
+    <string name="msg_removed_favorites">Removed from favorites</string>
+
+    <string name="error_no_item_selected">No item selected</string>
+    <string name="error_cannot_move_selected">Cannot move selected items</string>
+    <string name="error_cannot_delete_selected">Cannot delete selected items</string>
+    <string name="msg_moved_items">Moved %1$d items</string>
+    <string name="msg_deleted_items">Deleted %1$d items</string>
+    <string name="error_ai_only_file">AI analysis is only supported for files</string>
+    <string name="error_ai_no_file_path">File path not found for AI analysis</string>
+
+    <string name="error_empty_new_name">New name cannot be empty</string>
+    <string name="error_empty_folder_name">Folder name cannot be empty</string>
+
+    <string name="error_empty_email_or_user">Please enter email or username</string>
+    <string name="error_empty_password">Please enter password</string>
+
+    <string name="error_empty_fullname">Please enter full name</string>
+    <string name="error_empty_email">Please enter email</string>
+    <string name="error_invalid_email">Invalid email</string>
+    <string name="error_empty_username">Please enter username</string>
+    <string name="error_empty_confirm_password">Please confirm password</string>
+
+    <string name="error_otp_invalid_length">OTP must be 6 digits</string>
+    <string name="error_password_too_short">New password must be at least 6 characters</string>
+    <string name="error_email_not_found">Email does not exist</string>
+    <string name="error_username_too_short">Username must be at least 4 characters</string>
+    <string name="error_terms_required">You must agree to the terms</string>
+    <string name="error_auth_google_sign_in_failed">Google Sign-In failed</string>
+    <string name="error_empty_new_password">Please enter new password</string>
+    <string name="error_empty_confirm_new_password">Please confirm new password</string>
+    <string name="error_password_mismatch">Password confirmation does not match</string>
+
+    <string name="msg_register_success">Account created successfully</string>
     <string name="register_subtitle">Create your smart storage workspace</string>
     <string name="register_full_name_label">Full name</string>
     <string name="register_email_label">Email</string>
@@ -79,7 +133,7 @@
     <string name="forgot_toggle_info">i</string>
     <string name="forgot_secure_illustration">Security illustration</string>
     <string name="explorer_title">Smart File Manager</string>
-    <string name="explorer_storage">12.4 GB of 50 GB used</string>
+    <string name="explorer_storage">12.4 GB used</string>
     <string name="explorer_storage_label">Storage:</string>
     <string name="explorer_home">Home</string>
     <string name="explorer_documents">Documents</string>
@@ -112,7 +166,7 @@
     <string name="recent_type_aud">AUD</string>
     <string name="recent_folder_item_count">%1$d items</string>
     <string name="recent_file_meta">%1$s · %2$s</string>
-    <string name="recent_open_folder_unsupported">Mở thư mục từ đây chưa được hỗ trợ</string>
+    <string name="recent_open_folder_unsupported">Opening folder from here is not supported</string>
     <string name="trash_title">Trash</string>
     <string name="trash_info">Items in Trash are automatically deleted after 30 days.</string>
     <string name="trash_deleted">Deleted %1$s</string>
@@ -122,7 +176,13 @@
     <string name="trash_selected_count">%1$d selected</string>
     <string name="trash_empty_title">Trash is empty</string>
     <string name="trash_empty_subtitle">Deleted files will appear here before permanent removal</string>
-    <string name="trash_folder_label">Folder</string>
+    <string name="trash_file_meta">%1$s • %2$s</string>
+    <string name="trash_type_folder">Folder</string>
+    <string name="trash_type_image">Image</string>
+    <string name="trash_type_document">Document</string>
+    <string name="trash_type_spreadsheet">Spreadsheet</string>
+    <string name="trash_type_video">Video</string>
+    <string name="trash_type_file">File</string>
     <string name="trash_search">Search trash</string>
     <string name="trash_sort">Sort and filter</string>
     <string name="trash_more">More options</string>
@@ -133,7 +193,7 @@
     <string name="profile_username">@alexmorgan</string>
     <string name="profile_pro">Pro</string>
     <string name="profile_storage_title">Storage Usage</string>
-    <string name="profile_storage_value">12.4 GB of 50 GB</string>
+    <string name="profile_storage_value">12.4 GB</string>
     <string name="profile_section_account">Account</string>
     <string name="profile_section_app">Application Settings</string>
     <string name="profile_section_ai">AI Features</string>
@@ -167,7 +227,17 @@
     <string name="profile_logout">Logout</string>
     <string name="profile_delete_account">Delete Account</string>
     <string name="profile_settings">Profile settings</string>
-    <string name="profile_avatar">Profile avatar</string>
+    <string name="error_auth_delete_account_failed">Delete account failed</string>
+    <string name="profile_language_system">System Default</string>
+    <string name="profile_language_en">English</string>
+    <string name="profile_language_vi">Tiếng Việt</string>
+
+    <string name="profile_theme">Theme</string>
+    <string name="profile_theme_light">Light</string>
+    <string name="profile_theme_dark">Dark</string>
+    <string name="profile_theme_system">System Default</string>
+
+    <string name="profile_default_name">User</string>
     <string name="preview_file_name">Business_Invoice_2024.jpg</string>
     <string name="preview_file_type">Image</string>
     <string name="preview_file_size">2.4 MB</string>
@@ -200,6 +270,12 @@
     <string name="preview_action_unfavorite">Remove from Favorites</string>
     <string name="preview_action_ai">Re-analyze with AI</string>
     <string name="preview_action_delete">Delete</string>
+
+    <string name="preview_open_externally">Mở bằng ứng dụng khác</string>
+    <string name="preview_unsupported_file">Không thể xem trước định dạng này</string>
+    <string name="preview_loading_text">Đang tải nội dung...</string>
+    <string name="preview_error_loading_text">Lỗi tải nội dung</string>
+
     <string name="explorer_dialog_rename_title">Rename item</string>
     <string name="explorer_dialog_rename_hint">New name</string>
     <string name="explorer_dialog_move_title">Move item</string>
@@ -281,4 +357,93 @@
     <string name="search_mic">Voice search</string>
     <string name="search_more">More actions</string>
     <string name="search_action_open">Open</string>
+
+    <!-- Trash module - additional -->
+    <string name="trash_search_hint">Search...</string>
+    <string name="trash_select_all">Select all</string>
+    <string name="trash_deselect_all">Deselect all</string>
+    <string name="trash_empty_trash">Empty trash</string>
+    <string name="trash_menu_restore">Restore</string>
+    <string name="trash_menu_download">Download</string>
+    <string name="trash_menu_details">View details</string>
+    <string name="trash_menu_delete_forever">Delete permanently</string>
+    <string name="trash_restored_item">Restored %1$s</string>
+    <string name="trash_downloading_item">Downloading %1$s</string>
+    <string name="trash_details_item">Details %1$s</string>
+    <string name="trash_deleted_item">Deleted %1$s</string>
+    <string name="trash_empty_confirm_title">Empty trash?</string>
+    <string name="trash_empty_confirm_message">All %1$d items will be permanently deleted. This action cannot be undone.</string>
+    <string name="trash_empty_confirm_positive">Empty</string>
+    <string name="trash_empty_confirm_negative">Cancel</string>
+    <string name="trash_emptied">Trash emptied</string>
+    <string name="trash_bulk_action_message">%1$s %2$d items</string>
+    <string name="trash_bulk_restored">Restored</string>
+    <string name="trash_bulk_deleted">Permanently deleted</string>
+    <string name="trash_sort_header">SORT BY</string>
+    <string name="trash_sort_date_deleted">Date deleted</string>
+    <string name="trash_sort_name">Name</string>
+    <string name="trash_sort_file_size">File size</string>
+    <string name="trash_sort_days_left">Days until removal</string>
+
+    <!-- Recent module - additional -->
+    <string name="recent_download_wip">Download feature is under development</string>
+    <string name="recent_rename_wip">Rename feature in Recent is under development</string>
+    <string name="recent_move_wip">Move feature in Recent is under development</string>
+    <string name="recent_favorite_wip">Favorite update feature is under development</string>
+    <string name="recent_delete_wip">Delete feature in Recent is under development</string>
+
+    <!-- Profile module - additional -->
+    <string name="profile_delete_title">Delete Account</string>
+    <string name="profile_delete_message">Are you sure you want to delete your account? This action cannot be undone and all your data will be lost.</string>
+    <string name="profile_delete_positive">Delete</string>
+    <string name="profile_delete_negative">Cancel</string>
+    <string name="profile_account_deleted">Account deleted successfully</string>
+    <string name="profile_storage_format">%1$s GB</string>
+
+    <!-- Edit Profile module -->
+    <string name="edit_profile_title">Edit Profile</string>
+    <string name="edit_profile_subtitle">Update your personal information</string>
+    <string name="edit_profile_hint_full_name">Full Name</string>
+    <string name="edit_profile_hint_email">Email</string>
+    <string name="edit_profile_hint_username">Username</string>
+    <string name="edit_profile_save">Save Changes</string>
+    <string name="edit_profile_fill_all_fields">Please fill in all fields</string>
+
+    <!-- Change Password module -->
+    <string name="change_password_title">Change Password</string>
+    <string name="change_password_subtitle">Secure your account with a new password</string>
+    <string name="change_password_hint_current">Current Password</string>
+    <string name="change_password_hint_new">New Password</string>
+    <string name="change_password_hint_confirm">Confirm New Password</string>
+    <string name="change_password_submit">Update Password</string>
+    <string name="change_password_fill_all_fields">Please fill in all fields</string>
+    <string name="change_password_mismatch">New passwords do not match</string>
+    <string name="change_password_too_short">Password must be at least 6 characters</string>
+    <string name="change_password_success">Password updated. Please log in again.</string>
+
+    <!-- Search module - additional -->
+    <string name="search_results_banner">%1$d results for \"%2$s\"</string>
+    <string name="search_file_meta_format">%1$s • %2$s</string>
+    <string name="search_cannot_open_folder">Cannot open folder directly from search</string>
+    <string name="search_downloading">Downloading %1$s…</string>
+    <string name="search_deleted">Deleted %1$s</string>
+    <string name="search_ai_scheduled">AI Analysis scheduled for %1$s</string>
+
+    <!-- Bottom Sheet / File Actions -->
+    <string name="action_close">Close</string>
+    <string name="action_open">Open</string>
+    <string name="action_download">Download</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_move">Move</string>
+    <string name="action_favorite">Favorite</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_analyze_ai">Analyze with AI</string>
+    <string name="action_ai_badge">AI</string>
+
+    <!-- Explorer module - additional -->
+    <string name="explorer_select_mode">Select mode</string>
+    <string name="explorer_dot_separator">•</string>
+
+    <!-- Forgot Password module - additional -->
+    <string name="forgot_email_emoji">📬</string>
 </resources>

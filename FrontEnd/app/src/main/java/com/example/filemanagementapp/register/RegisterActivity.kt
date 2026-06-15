@@ -146,11 +146,11 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun render(state: RegisterUiState) {
-        fullNameInputLayout.error = state.fullNameError
-        emailInputLayout.error = state.emailError
-        usernameInputLayout.error = state.usernameError
-        passwordInputLayout.error = state.passwordError
-        confirmPasswordInputLayout.error = state.confirmPasswordError ?: state.termsError
+        fullNameInputLayout.error = state.fullNameError?.asString(this)
+        emailInputLayout.error = state.emailError?.asString(this)
+        usernameInputLayout.error = state.usernameError?.asString(this)
+        passwordInputLayout.error = state.passwordError?.asString(this)
+        confirmPasswordInputLayout.error = (state.confirmPasswordError ?: state.termsError)?.asString(this)
 
         if (termsCheckbox.isChecked != state.isTermsAccepted) {
             termsCheckbox.isChecked = state.isTermsAccepted
@@ -208,7 +208,7 @@ class RegisterActivity : AppCompatActivity() {
             }
 
             is RegisterEvent.ShowMessage -> {
-                Toast.makeText(this, event.message, Toast.LENGTH_LONG).show()
+                Toast.makeText(this, event.message.asString(this), Toast.LENGTH_LONG).show()
             }
         }
     }

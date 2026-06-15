@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.EditText
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -68,10 +69,10 @@ class TrashFragment : Fragment() {
         recyclerView.adapter = adapter
 
         view.findViewById<View>(R.id.restoreSelectedButton).setOnClickListener {
-            removeSelectedItems("Đã khôi phục")
+            removeSelectedItems(getString(R.string.trash_bulk_restored))
         }
         view.findViewById<View>(R.id.deleteSelectedButton).setOnClickListener {
-            removeSelectedItems("Đã xoá vĩnh viễn")
+            removeSelectedItems(getString(R.string.trash_bulk_deleted))
         }
         view.findViewById<View>(R.id.closeSelectionButton)?.setOnClickListener {
             selectedIds.clear()
@@ -218,7 +219,7 @@ class TrashFragment : Fragment() {
 
         val isAllSelected = selectedIds.size == trashItems.size && trashItems.isNotEmpty()
         val textSelectAll = popupView.findViewById<android.widget.TextView>(R.id.textSelectAll)
-        textSelectAll.text = if (isAllSelected) "Bỏ chọn tất cả" else "Chọn tất cả"
+        textSelectAll.text = if (isAllSelected) getString(R.string.trash_deselect_all) else getString(R.string.trash_select_all)
 
         popupView.findViewById<View>(R.id.menuSelectAll).setOnClickListener {
             popupWindow.dismiss()
@@ -242,10 +243,10 @@ class TrashFragment : Fragment() {
 
     private fun showItemMoreMenu(item: TrashItemModel, anchor: View) {
         val popup = PopupMenu(requireContext(), anchor)
-        popup.menu.add(0, 1, 0, "Khôi phục")
-        popup.menu.add(0, 2, 0, "Tải xuống")
-        popup.menu.add(0, 3, 0, "Xem chi tiết")
-        popup.menu.add(0, 4, 0, "Xoá vĩnh viễn")
+        popup.menu.add(0, 1, 0, getString(R.string.trash_menu_restore))
+        popup.menu.add(0, 2, 0, getString(R.string.trash_menu_download))
+        popup.menu.add(0, 3, 0, getString(R.string.trash_menu_details))
+        popup.menu.add(0, 4, 0, getString(R.string.trash_menu_delete_forever))
         
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
@@ -254,20 +255,20 @@ class TrashFragment : Fragment() {
                     selectedIds.remove(item.id)
                     adapter.submitItems(getSortedItems())
                     renderState()
-                    Toast.makeText(requireContext(), "Đã khôi phục ${item.name}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.trash_restored_item, item.name), Toast.LENGTH_SHORT).show()
                 }
                 2 -> {
-                    Toast.makeText(requireContext(), "Đang tải xuống ${item.name}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.trash_downloading_item, item.name), Toast.LENGTH_SHORT).show()
                 }
                 3 -> {
-                    Toast.makeText(requireContext(), "Chi tiết ${item.name}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.trash_details_item, item.name), Toast.LENGTH_SHORT).show()
                 }
                 4 -> {
                     trashItems.removeAll { it.id == item.id }
                     selectedIds.remove(item.id)
                     adapter.submitItems(getSortedItems())
                     renderState()
-                    Toast.makeText(requireContext(), "Đã xoá ${item.name}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.trash_deleted_item, item.name), Toast.LENGTH_SHORT).show()
                 }
             }
             true
@@ -278,16 +279,16 @@ class TrashFragment : Fragment() {
     private fun showEmptyTrashConfirmDialog() {
         if (trashItems.isEmpty()) return
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Dọn sạch thùng rác?")
-            .setMessage("Tất cả ${trashItems.size} mục sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.")
-            .setPositiveButton("Dọn sạch") { _, _ ->
+            .setTitle(getString(R.string.trash_empty_confirm_title))
+            .setMessage(getString(R.string.trash_empty_confirm_message, trashItems.size))
+            .setPositiveButton(getString(R.string.trash_empty_confirm_positive)) { _, _ ->
                 trashItems.clear()
                 selectedIds.clear()
                 adapter.submitItems(emptyList())
                 renderState()
-                Toast.makeText(requireContext(), "Đã dọn sạch thùng rác", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.trash_emptied), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Hủy", null)
+            .setNegativeButton(getString(R.string.trash_empty_confirm_negative), null)
             .show()
     }
 
@@ -307,7 +308,7 @@ class TrashFragment : Fragment() {
         selectedIds.clear()
         adapter.submitItems(getSortedItems())
         renderState()
-        Toast.makeText(requireContext(), "$messagePrefix $count mục", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.trash_bulk_action_message, messagePrefix, count), Toast.LENGTH_SHORT).show()
     }
 
     private fun renderState() {

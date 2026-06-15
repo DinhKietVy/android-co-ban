@@ -41,7 +41,7 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="@drawable/item_explorer_file_bg"
-            android:backgroundTint="#EFF6FF">
+            android:backgroundTint="@color/blue_50">
 
             <ImageView
                 android:layout_width="18dp"
@@ -78,13 +78,13 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="@drawable/item_explorer_file_bg"
-            android:backgroundTint="#F3F4F6">
+            android:backgroundTint="@color/grey_100">
 
             <ImageView
                 android:layout_width="18dp"
                 android:layout_height="18dp"
                 android:layout_gravity="center"
-                android:src="@drawable/upload"
+                android:src="@drawable/cloud"
                 android:tint="@color/explorer_text_primary" />
         </FrameLayout>
 

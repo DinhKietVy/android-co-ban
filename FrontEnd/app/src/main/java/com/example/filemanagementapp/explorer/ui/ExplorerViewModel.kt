@@ -10,15 +10,19 @@ import com.example.filemanagementapp.data.local.ai.AiAnalysisLocalRepository
 import com.example.filemanagementapp.data.local.ai.AiAnalysisStatus
 import com.example.filemanagementapp.data.local.explorer.DirectoryCacheLocalRepository
 import com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository
+import com.example.filemanagementapp.data.local.profile.SettingsPreferencesRepository
 import com.example.filemanagementapp.data.explorer.repository.ExplorerRepository
 import com.example.filemanagementapp.explorer.ExplorerAdapter
 import com.example.filemanagementapp.explorer.ExplorerItem
+import com.example.filemanagementapp.util.UiText
+import com.example.filemanagementapp.R
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -28,7 +32,8 @@ class ExplorerViewModel(
     private val aiAnalysisRepository: AiAnalysisRepository,
     private val aiAnalysisLocalRepository: AiAnalysisLocalRepository,
     private val favoriteLocalRepository: FavoriteLocalRepository,
-    private val directoryCacheLocalRepository: DirectoryCacheLocalRepository
+    private val directoryCacheLocalRepository: DirectoryCacheLocalRepository,
+    private val settingsPreferencesRepository: SettingsPreferencesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExplorerUiState(isLoading = true))
@@ -108,38 +113,28 @@ class ExplorerViewModel(
     fun renameItem(item: ExplorerItem, newName: String) {
         val sanitizedName = newName.trim()
         if (sanitizedName.isBlank()) {
-            emitMessage("Ten moi khong duoc de trong")
+            emitMessage(UiText.StringResource(R.string.error_empty_new_name))
             return
         }
 
         viewModelScope.launch {
             repository.renameItem(username = username, item = item, newName = sanitizedName)
                 .onSuccess { message ->
-                    directoryCacheLocalRepository.invalidateDirectory(
-                        username = username,
-                        folderPath = _uiState.value.currentFolder
-                    )
                     val newPath = repository.buildChildPath(
                         item.path.substringBeforeLast('/', ""),
                         sanitizedName
                     )
-                    aiAnalysisLocalRepository.updatePath(
+                    directoryCacheLocalRepository.renameItem(
                         username = username,
                         oldPath = item.path,
                         newPath = newPath,
                         isFolder = item.type == ExplorerItem.Type.FOLDER
                     )
-                    favoriteLocalRepository.updatePath(
-                        username = username,
-                        oldPath = item.path,
-                        newPath = newPath,
-                        isFolder = item.type == ExplorerItem.Type.FOLDER
-                    )
-                    emitMessage(message)
+                    emitMessage(UiText.DynamicString(message))
                     refreshCurrentDirectory()
                 }
                 .onFailure { throwable ->
-                    emitMessage(throwable.message ?: "Khong the doi ten muc")
+                    emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
                 }
         }
     }
@@ -147,44 +142,54 @@ class ExplorerViewModel(
     fun createFolder(folderName: String) {
         val sanitizedName = folderName.trim()
         if (sanitizedName.isBlank()) {
-            emitMessage("Ten folder khong duoc de trong")
+            emitMessage(UiText.StringResource(R.string.error_empty_folder_name))
             return
         }
 
         viewModelScope.launch {
             repository.createFolder(
                 username = username,
-                targetPath = _uiState.value.currentFolder,
+                parentPath = _uiState.value.currentFolder,
                 folderName = sanitizedName
             ).onSuccess { message ->
                 directoryCacheLocalRepository.invalidateDirectory(
                     username = username,
                     folderPath = _uiState.value.currentFolder
                 )
-                emitMessage(message)
+                emitMessage(UiText.DynamicString(message))
                 refreshCurrentDirectory()
             }.onFailure { throwable ->
-                emitMessage(throwable.message ?: "Khong the tao folder")
+                emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
             }
         }
     }
 
     fun uploadFile(fileUri: Uri) {
         viewModelScope.launch {
-            emitMessage("Dang upload file...")
+            emitMessage(UiText.StringResource(R.string.msg_uploading_file))
             repository.uploadFile(
                 username = username,
                 targetPath = _uiState.value.currentFolder,
                 fileUri = fileUri
-            ).onSuccess { message ->
+            ).onSuccess { (message, uploadedFileName) ->
                 directoryCacheLocalRepository.invalidateDirectory(
                     username = username,
                     folderPath = _uiState.value.currentFolder
                 )
-                emitMessage(message)
+                emitMessage(UiText.DynamicString(message))
                 refreshCurrentDirectory()
+
+                val settings = settingsPreferencesRepository.aiSettingsFlow.first()
+                if (settings.autoOcrEnabled || settings.autoObjectEnabled) {
+                    repository.listDirectory(username, _uiState.value.currentFolder).onSuccess { directory ->
+                        val uploadedItem = directory.items.find { it.name == uploadedFileName }
+                        if (uploadedItem != null && uploadedItem.type == ExplorerItem.Type.FILE) {
+                            analyzeItem(uploadedItem)
+                        }
+                    }
+                }
             }.onFailure { throwable ->
-                emitMessage(throwable.message ?: "Khong the upload file")
+                emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
             }
         }
     }
@@ -194,32 +199,18 @@ class ExplorerViewModel(
         viewModelScope.launch {
             repository.moveItem(username = username, item = item, targetFolderPath = normalizedTarget)
                 .onSuccess { message ->
-                    directoryCacheLocalRepository.invalidateDirectory(
-                        username = username,
-                        folderPath = _uiState.value.currentFolder
-                    )
-                    directoryCacheLocalRepository.invalidateDirectory(
-                        username = username,
-                        folderPath = normalizedTarget
-                    )
-                    val newPath = repository.buildChildPath(normalizedTarget, item.name)
-                    aiAnalysisLocalRepository.updatePath(
+                    val newPath = if (normalizedTarget.isBlank()) item.name else "$normalizedTarget/${item.name}"
+                    directoryCacheLocalRepository.renameItem(
                         username = username,
                         oldPath = item.path,
                         newPath = newPath,
                         isFolder = item.type == ExplorerItem.Type.FOLDER
                     )
-                    favoriteLocalRepository.updatePath(
-                        username = username,
-                        oldPath = item.path,
-                        newPath = newPath,
-                        isFolder = item.type == ExplorerItem.Type.FOLDER
-                    )
-                    emitMessage(message)
+                    emitMessage(UiText.DynamicString(message))
                     refreshCurrentDirectory()
                 }
                 .onFailure { throwable ->
-                    emitMessage(throwable.message ?: "Khong the di chuyen muc")
+                    emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
                 }
         }
     }
@@ -228,25 +219,16 @@ class ExplorerViewModel(
         viewModelScope.launch {
             repository.deleteItem(username = username, item = item)
                 .onSuccess { message ->
-                    directoryCacheLocalRepository.invalidateDirectory(
-                        username = username,
-                        folderPath = _uiState.value.currentFolder
-                    )
-                    aiAnalysisLocalRepository.deletePath(
-                        username = username,
-                        path = item.path,
-                        isFolder = item.type == ExplorerItem.Type.FOLDER
-                    )
                     favoriteLocalRepository.deletePath(
                         username = username,
                         path = item.path,
                         isFolder = item.type == ExplorerItem.Type.FOLDER
                     )
-                    emitMessage(message)
+                    emitMessage(UiText.DynamicString(message))
                     refreshCurrentDirectory()
                 }
                 .onFailure { throwable ->
-                    emitMessage(throwable.message ?: "Khong the xoa muc")
+                    emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
                 }
         }
     }
@@ -255,7 +237,7 @@ class ExplorerViewModel(
         viewModelScope.launch {
             val isFavorite = favoriteLocalRepository.toggleFavorite(username, item)
             emitMessage(
-                if (isFavorite) "Da them vao favorites" else "Da bo khoi favorites"
+                UiText.StringResource(if (isFavorite) R.string.msg_added_favorites else R.string.msg_removed_favorites)
             )
             _uiState.update { state ->
                 val updatedItems = state.items.map { current ->
@@ -344,7 +326,7 @@ class ExplorerViewModel(
     fun moveSelectedItems(targetFolderPath: String) {
         val selectedItems = currentDirectoryItems.filter { it.path in _uiState.value.selectedPaths }
         if (selectedItems.isEmpty()) {
-            emitMessage("Chua co item nao duoc chon")
+            emitMessage(UiText.StringResource(R.string.error_no_item_selected))
             return
         }
 
@@ -390,9 +372,9 @@ class ExplorerViewModel(
                 )
             }
             if (movedCount > 0) {
-                emitMessage("Da di chuyen $movedCount item")
+                emitMessage(UiText.StringResource(R.string.msg_moved_items, movedCount))
             } else {
-                emitMessage("Khong the di chuyen cac item da chon")
+                emitMessage(UiText.StringResource(R.string.error_cannot_move_selected))
             }
             refreshCurrentDirectory()
         }
@@ -401,7 +383,7 @@ class ExplorerViewModel(
     fun deleteSelectedItems() {
         val selectedItems = currentDirectoryItems.filter { it.path in _uiState.value.selectedPaths }
         if (selectedItems.isEmpty()) {
-            emitMessage("Chua co item nao duoc chon")
+            emitMessage(UiText.StringResource(R.string.error_no_item_selected))
             return
         }
 
@@ -436,9 +418,9 @@ class ExplorerViewModel(
                 )
             }
             if (deletedCount > 0) {
-                emitMessage("Da xoa $deletedCount item")
+                emitMessage(UiText.StringResource(R.string.msg_deleted_items, deletedCount))
             } else {
-                emitMessage("Khong the xoa cac item da chon")
+                emitMessage(UiText.StringResource(R.string.error_cannot_delete_selected))
             }
             refreshCurrentDirectory()
         }
@@ -446,12 +428,12 @@ class ExplorerViewModel(
 
     fun analyzeItem(item: ExplorerItem) {
         if (item.type != ExplorerItem.Type.FILE) {
-            emitMessage("Chi ho tro AI analysis cho file")
+            emitMessage(UiText.StringResource(R.string.error_ai_only_file))
             return
         }
         val previewUrl = item.previewUrl
         if (previewUrl.isNullOrBlank()) {
-            emitMessage("Khong tim thay duong dan file de gui sang AI")
+            emitMessage(UiText.StringResource(R.string.error_ai_no_file_path))
             return
         }
 
@@ -482,8 +464,10 @@ class ExplorerViewModel(
                     val updatedItems = state.items.map { current ->
                         if (current.path == item.path) {
                             current.copy(
-                                aiAnalyzed = true,
-                                tags = mergedTags
+                                aiAnalyzed = analysis.status == AiAnalysisStatus.COMPLETED,
+                                tags = mergedTags,
+                                ocrSnippet = analysis.ocrText,
+                                isFavorite = item.path in favoritePaths
                             )
                         } else {
                             current
@@ -492,8 +476,10 @@ class ExplorerViewModel(
                     currentDirectoryItems = currentDirectoryItems.map { current ->
                         if (current.path == item.path) {
                             current.copy(
-                                aiAnalyzed = true,
-                                tags = mergedTags
+                                aiAnalyzed = analysis.status == AiAnalysisStatus.COMPLETED,
+                                tags = mergedTags,
+                                ocrSnippet = analysis.ocrText,
+                                isFavorite = item.path in favoritePaths
                             )
                         } else {
                             current
@@ -516,7 +502,7 @@ class ExplorerViewModel(
                     )
                 )
             }.onFailure { throwable ->
-                emitMessage(throwable.message ?: "Khong the phan tich file voi AI")
+                emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
             }.also {
                 _uiState.update { state -> state.copy(isAnalyzingAi = false) }
             }
@@ -524,6 +510,12 @@ class ExplorerViewModel(
     }
 
     private fun emitMessage(message: String) {
+        viewModelScope.launch {
+            _events.emit(ExplorerUiEvent.ShowMessage(message))
+        }
+    }
+
+    private fun emitMessage(message: UiText) {
         viewModelScope.launch {
             _events.emit(ExplorerUiEvent.ShowMessage(message))
         }
@@ -621,7 +613,8 @@ class ExplorerViewModel(
         private val aiAnalysisRepository: AiAnalysisRepository,
         private val aiAnalysisLocalRepository: AiAnalysisLocalRepository,
         private val favoriteLocalRepository: FavoriteLocalRepository,
-        private val directoryCacheLocalRepository: DirectoryCacheLocalRepository
+        private val directoryCacheLocalRepository: DirectoryCacheLocalRepository,
+        private val settingsPreferencesRepository: SettingsPreferencesRepository
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ExplorerViewModel::class.java)) {
@@ -632,7 +625,8 @@ class ExplorerViewModel(
                     aiAnalysisRepository = aiAnalysisRepository,
                     aiAnalysisLocalRepository = aiAnalysisLocalRepository,
                     favoriteLocalRepository = favoriteLocalRepository,
-                    directoryCacheLocalRepository = directoryCacheLocalRepository
+                    directoryCacheLocalRepository = directoryCacheLocalRepository,
+                    settingsPreferencesRepository = settingsPreferencesRepository
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

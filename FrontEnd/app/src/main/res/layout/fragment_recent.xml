@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA"
+    android:background="@color/recent_bg"
     tools:context=".recent.RecentFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -33,7 +33,7 @@
                     android:layout_height="36dp"
                     android:layout_gravity="center_vertical|start"
                     android:layout_marginStart="8dp"
-                    app:cardBackgroundColor="#F1F3F4"
+                    app:cardBackgroundColor="@color/recent_chip_bg"
                     app:cardCornerRadius="18dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp">
@@ -60,8 +60,8 @@
                                 android:layout_width="90dp"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
-                                android:text="Recent"
-                                android:textColor="#1565C0"
+                                android:text="@string/recent_tab_recent"
+                                android:textColor="@color/recent_primary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
                         </com.google.android.material.card.MaterialCardView>
@@ -81,8 +81,8 @@
                                 android:layout_width="100dp"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
-                                android:text="Favorites"
-                                android:textColor="#5F6368"
+                                android:text="@string/recent_tab_favorites"
+                                android:textColor="@color/recent_text_secondary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
                         </com.google.android.material.card.MaterialCardView>
@@ -94,7 +94,7 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#E8EAED" />
+                android:background="@color/recent_border" />
         </LinearLayout>
 
         <androidx.core.widget.NestedScrollView
@@ -125,8 +125,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_marginBottom="12dp"
-                        android:text="QUICK ACCESS"
-                        android:textColor="#5F6368"
+                        android:text="@string/recent_quick_access"
+                        android:textColor="@color/recent_text_secondary"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.1" />

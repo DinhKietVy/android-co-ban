@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.filemanagementapp.data.auth.repository.AuthRepository
+import com.example.filemanagementapp.util.UiText
+import com.example.filemanagementapp.R
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -64,8 +66,8 @@ class ForgotPasswordViewModel(
     fun sendResetEmail(isResend: Boolean = false) {
         val email = _uiState.value.email.trim()
         val emailError = when {
-            email.isBlank() -> "Vui long nhap email"
-            !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Email khong hop le"
+            email.isBlank() -> UiText.StringResource(R.string.error_empty_email)
+            !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> UiText.StringResource(R.string.error_invalid_email)
             else -> null
         }
 
@@ -95,13 +97,14 @@ class ForgotPasswordViewModel(
                             isSendingEmail = false
                         )
                     }
-                    _events.emit(ForgotPasswordEvent.ShowMessage(message))
+                    _events.emit(ForgotPasswordEvent.ShowMessage(UiText.DynamicString(message)))
                 }
                 .onFailure { throwable ->
                     _uiState.update {
                         it.copy(
                             isSendingEmail = false,
-                            emailError = throwable.message ?: "Gui ma dat lai mat khau that bai"
+                            emailError = throwable.message?.let { UiText.DynamicString(it) }
+                                ?: UiText.StringResource(R.string.error_auth_send_otp_failed)
                         )
                     }
                 }
@@ -113,8 +116,8 @@ class ForgotPasswordViewModel(
         val email = state.email.trim()
         val otp = state.otp.trim()
         val otpError = when {
-            otp.isBlank() -> "Vui long nhap ma OTP"
-            otp.length != 6 -> "Ma OTP phai gom 6 chu so"
+            otp.isBlank() -> UiText.StringResource(R.string.error_otp_invalid_length) // Reuse or add error_empty_otp
+            otp.length != 6 -> UiText.StringResource(R.string.error_otp_invalid_length)
             else -> null
         }
 
@@ -140,7 +143,7 @@ class ForgotPasswordViewModel(
                             otpError = null
                         )
                     }
-                    _events.emit(ForgotPasswordEvent.ShowMessage(message))
+                    _events.emit(ForgotPasswordEvent.ShowMessage(UiText.DynamicString(message)))
                 }
                 .onFailure { throwable ->
                     handleOtpFailure(throwable.message ?: "Xac thuc ma OTP that bai")
@@ -154,13 +157,13 @@ class ForgotPasswordViewModel(
         val confirmPassword = state.confirmPassword
 
         val newPasswordError = when {
-            newPassword.isBlank() -> "Vui long nhap mat khau moi"
-            newPassword.length < 6 -> "Mat khau moi toi thieu 6 ky tu"
+            newPassword.isBlank() -> UiText.StringResource(R.string.error_empty_new_password)
+            newPassword.length < 6 -> UiText.StringResource(R.string.error_password_too_short)
             else -> null
         }
         val confirmPasswordError = when {
-            confirmPassword.isBlank() -> "Vui long xac nhan mat khau moi"
-            confirmPassword != newPassword -> "Mat khau xac nhan khong khop"
+            confirmPassword.isBlank() -> UiText.StringResource(R.string.error_empty_confirm_new_password)
+            confirmPassword != newPassword -> UiText.StringResource(R.string.error_password_mismatch)
             else -> null
         }
 
@@ -198,7 +201,7 @@ class ForgotPasswordViewModel(
                         confirmPasswordError = null
                     )
                 }
-                _events.emit(ForgotPasswordEvent.ShowMessage(message))
+                _events.emit(ForgotPasswordEvent.ShowMessage(UiText.DynamicString(message)))
             }.onFailure { throwable ->
                 handleResetFailure(throwable.message ?: "Dat lai mat khau that bai")
             }
@@ -235,13 +238,13 @@ class ForgotPasswordViewModel(
                 message.contains("Email khong ton tai", ignoreCase = true) -> state.copy(
                     step = ForgotPasswordStep.EMAIL,
                     isVerifyingOtp = false,
-                    emailError = message,
+                    emailError = UiText.StringResource(R.string.error_email_not_found),
                     otpError = null
                 )
 
                 else -> state.copy(
                     isVerifyingOtp = false,
-                    otpError = message
+                    otpError = UiText.DynamicString(message)
                 )
             }
         }
@@ -253,7 +256,7 @@ class ForgotPasswordViewModel(
                 message.contains("Ma xac nhan", ignoreCase = true) -> state.copy(
                     step = ForgotPasswordStep.OTP,
                     isResettingPassword = false,
-                    otpError = message,
+                    otpError = UiText.StringResource(R.string.error_invalid_reset_code),
                     newPasswordError = null,
                     confirmPasswordError = null
                 )
@@ -261,7 +264,7 @@ class ForgotPasswordViewModel(
                 message.contains("Email khong ton tai", ignoreCase = true) -> state.copy(
                     step = ForgotPasswordStep.EMAIL,
                     isResettingPassword = false,
-                    emailError = message,
+                    emailError = UiText.StringResource(R.string.error_email_not_found),
                     otpError = null,
                     newPasswordError = null,
                     confirmPasswordError = null
@@ -269,7 +272,7 @@ class ForgotPasswordViewModel(
 
                 else -> state.copy(
                     isResettingPassword = false,
-                    newPasswordError = message
+                    newPasswordError = UiText.DynamicString(message)
                 )
             }
         }

@@ -18,7 +18,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.FileManagementApp">
+        android:theme="@style/Theme.FileManagementApp"
+        android:localeConfig="@xml/locales_config">
         <activity
             android:name=".search.SearchActivity"
             android:exported="false" />
@@ -51,6 +52,18 @@
             android:name=".download.ExplorerDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <activity
+            android:name=".profile.edit.EditProfileActivity"
+            android:exported="false" />
+        <activity
+            android:name=".profile.password.ChangePasswordActivity"
+            android:exported="false" />
+        <activity
+            android:name=".profile.language.LanguageActivity"
+            android:exported="false" />
+        <activity
+            android:name=".profile.theme.ThemeActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

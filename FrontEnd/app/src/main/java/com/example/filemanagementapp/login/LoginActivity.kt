@@ -154,8 +154,8 @@ class LoginActivity : AppCompatActivity() {
             rememberMeCheckbox.isChecked = state.isRememberMeChecked
         }
 
-        emailInputLayout.error = state.usernameError
-        passwordInputLayout.error = state.passwordError
+        emailInputLayout.error = state.usernameError?.asString(this)
+        passwordInputLayout.error = state.passwordError?.asString(this)
 
         passwordEditText.transformationMethod = if (state.isPasswordVisible) {
             HideReturnsTransformationMethod.getInstance()
@@ -193,14 +193,13 @@ class LoginActivity : AppCompatActivity() {
                 startActivity(
                     Intent(this, MainActivity::class.java).apply {
                         putExtra(EXTRA_USERNAME, event.user.username)
-                        putExtra(EXTRA_PROVIDER, event.user.provider.name)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     }
                 )
             }
 
             is LoginEvent.ShowMessage -> {
-                Toast.makeText(this, event.message, Toast.LENGTH_LONG).show()
+                Toast.makeText(this, event.message.asString(this), Toast.LENGTH_LONG).show()
             }
         }
     }

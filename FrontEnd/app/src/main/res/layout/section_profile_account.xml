@@ -3,12 +3,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="12dp" android:paddingStart="4dp" android:text="@string/profile_section_account" android:textColor="@color/profile_text_secondary" android:textSize="13sp" android:textStyle="bold"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="12dp" android:paddingStart="4dp" android:text="@string/profile_section_account" android:textColor="@color/profile_text_secondary" android:textSize="13sp" android:textStyle="bold" android:textAllCaps="true" android:letterSpacing="0.05"/>
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/profile_card_background" android:orientation="vertical">
-        <include layout="@layout/row_profile_edit"/>
-        <include layout="@layout/row_profile_password"/>
-        <include layout="@layout/row_profile_devices"/>
-        <include layout="@layout/row_profile_security"/>
-        <include layout="@layout/row_profile_notifications"/>
+        <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileEdit" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfilePassword" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileDevices" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileSecurity" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileNotifications" android:layout_width="match_parent" android:layout_height="wrap_content"/>
     </LinearLayout>
 </LinearLayout>
