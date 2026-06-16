@@ -12,11 +12,25 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:5000",
+        url: "/",
+        description: "Current Server",
+      },
+    ],
+    components: {
+      securitySchemes: {
+        cookieAuth: {
+          type: "apiKey",
+          in: "cookie",
+          name: "accessToken",
+        },
+      },
+    },
+    security: [
+      {
+        cookieAuth: [],
       },
     ],
   },
-
   apis: ["./src/routes/**/*.ts"],
 };
 
@@ -26,6 +40,10 @@ export const setupSwagger = (app: Express) => {
   app.use(
     "/api-docs",
     swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec)
+    swaggerUi.setup(swaggerSpec, {
+      swaggerOptions: {
+        withCredentials: true,
+      },
+    })
   );
 };
