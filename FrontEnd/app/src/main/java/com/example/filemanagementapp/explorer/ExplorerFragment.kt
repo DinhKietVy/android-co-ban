@@ -80,6 +80,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var aiLoadingOverlay: View
     private lateinit var aiLoadingAnimation: LottieAnimationView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var emptyStateContainer: View
     private lateinit var storageValueText: TextView
     private lateinit var sortAndSelectContainer: View
     private lateinit var sortByText: TextView
@@ -194,6 +195,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         headerMoreButton = view.findViewById(R.id.explorerHeaderMoreButton)
         breadcrumbRecyclerView = view.findViewById(R.id.breadcrumbRecyclerView)
         swipeRefreshLayout = view.findViewById(R.id.explorerSwipeRefresh)
+        emptyStateContainer = view.findViewById(R.id.emptyStateContainer)
         recyclerView = view.findViewById(R.id.explorerRecyclerView)
         loadingIndicator = view.findViewById(R.id.explorerLoadingIndicator)
         aiLoadingOverlay = view.findViewById(R.id.aiLoadingOverlay)
@@ -351,7 +353,12 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         swipeRefreshLayout.isRefreshing = state.isRefreshing
         swipeRefreshLayout.isEnabled = !state.isAnalyzingAi && !state.isSelectionMode
         storageValueText.text = state.storageSummary
-        sortAndSelectContainer.visibility = if (state.items.isEmpty()) View.GONE else View.VISIBLE
+        val isListEmpty = state.items.isEmpty()
+        
+        emptyStateContainer.visibility = if (isListEmpty && !state.isLoading) View.VISIBLE else View.GONE
+        recyclerView.visibility = if (isListEmpty && !state.isLoading) View.GONE else View.VISIBLE
+        
+        sortAndSelectContainer.visibility = if (isListEmpty) View.GONE else View.VISIBLE
         updateListLayoutManager(state.displayMode)
         val sortLabel = when (state.sortOption) {
             SortOption.NAME -> getString(R.string.explorer_sort_name)
@@ -594,15 +601,15 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     private fun showCreateFolderDialog() {
-        val input = EditText(requireContext()).apply {
-            inputType = InputType.TYPE_CLASS_TEXT
-            hint = getString(R.string.explorer_dialog_create_folder_hint)
-            setPadding(24.dp(), 20.dp(), 24.dp(), 0)
-        }
+        val view = layoutInflater.inflate(R.layout.dialog_input, null)
+        val inputLayout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+        
+        inputLayout.hint = getString(R.string.explorer_dialog_create_folder_hint)
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.explorer_dialog_create_folder_title)
-            .setView(input)
+            .setView(view)
             .setNegativeButton(R.string.explorer_dialog_cancel, null)
             .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
                 viewModel.createFolder(input.text?.toString().orEmpty())

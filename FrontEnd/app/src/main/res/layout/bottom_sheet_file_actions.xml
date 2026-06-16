@@ -113,7 +113,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingTop="8dp"
-            android:paddingBottom="32dp">
+            android:paddingBottom="12dp">
 
             <!-- Open -->
             <LinearLayout
@@ -143,7 +143,6 @@
                 </FrameLayout>
 
                 <TextView
-                    android:id="@+id/actionFavoriteLabel"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
@@ -303,6 +302,7 @@
                 </FrameLayout>
 
                 <TextView
+                    android:id="@+id/actionFavoriteLabel"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"

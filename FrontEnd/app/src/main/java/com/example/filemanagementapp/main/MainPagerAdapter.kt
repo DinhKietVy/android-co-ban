@@ -19,7 +19,7 @@ class MainPagerAdapter(
         return when (position) {
             0 -> ExplorerFragment.newInstance(username)
             1 -> RecentFragment.newInstance(username)
-            2 -> TrashFragment()
+            2 -> TrashFragment.newInstance(username)
             3 -> ProfileFragment()
             else -> throw IndexOutOfBoundsException("Invalid page index: $position")
         }

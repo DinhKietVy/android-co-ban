@@ -29,39 +29,22 @@ class ExplorerAdapter(
     override fun getItemCount(): Int = items.size
 
     override fun getItemViewType(position: Int): Int {
+        val isGrid = displayMode == DisplayMode.GRID
         return if (items[position].type == ExplorerItem.Type.FOLDER) {
-            VIEW_TYPE_FOLDER
+            if (isGrid) VIEW_TYPE_FOLDER_GRID else VIEW_TYPE_FOLDER_LIST
         } else {
-            VIEW_TYPE_FILE
+            if (isGrid) VIEW_TYPE_FILE_GRID else VIEW_TYPE_FILE_LIST
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return if (viewType == VIEW_TYPE_FOLDER) {
-            FolderViewHolder(
-                inflater.inflate(
-                    if (displayMode == DisplayMode.GRID) {
-                        R.layout.item_explorer_folder_grid
-                    } else {
-                        R.layout.item_explorer_folder_list
-                    },
-                    parent,
-                    false
-                )
-            )
-        } else {
-            FileViewHolder(
-                inflater.inflate(
-                    if (displayMode == DisplayMode.GRID) {
-                        R.layout.item_explorer_file_grid
-                    } else {
-                        R.layout.item_explorer_file_list
-                    },
-                    parent,
-                    false
-                )
-            )
+        return when (viewType) {
+            VIEW_TYPE_FOLDER_GRID -> FolderViewHolder(inflater.inflate(R.layout.item_explorer_folder_grid, parent, false))
+            VIEW_TYPE_FOLDER_LIST -> FolderViewHolder(inflater.inflate(R.layout.item_explorer_folder_list, parent, false))
+            VIEW_TYPE_FILE_GRID -> FileViewHolder(inflater.inflate(R.layout.item_explorer_file_grid, parent, false))
+            VIEW_TYPE_FILE_LIST -> FileViewHolder(inflater.inflate(R.layout.item_explorer_file_list, parent, false))
+            else -> throw IllegalArgumentException("Unknown viewType: $viewType")
         }
     }
 
@@ -249,8 +232,10 @@ class ExplorerAdapter(
     }
 
     companion object {
-        private const val VIEW_TYPE_FOLDER = 0
-        private const val VIEW_TYPE_FILE = 1
+        private const val VIEW_TYPE_FOLDER_LIST = 0
+        private const val VIEW_TYPE_FILE_LIST = 1
+        private const val VIEW_TYPE_FOLDER_GRID = 2
+        private const val VIEW_TYPE_FILE_GRID = 3
     }
 
     enum class DisplayMode {

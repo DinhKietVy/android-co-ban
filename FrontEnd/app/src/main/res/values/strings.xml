@@ -249,6 +249,14 @@
     <string name="preview_ai_analysis">AI Analysis</string>
     <string name="preview_sheet_file_info">File Information</string>
     <string name="preview_sheet_ai">AI Analysis</string>
+
+    <string name="explorer_empty_title">No Files Here</string>
+    <string name="explorer_empty_subtitle">Create or upload files to get started</string>
+    <string name="recent_empty_title">No Recent Files</string>
+    <string name="recent_empty_subtitle">Files you open will appear here</string>
+    <string name="search_empty_title">No Results Found</string>
+    <string name="search_empty_subtitle">Try adjusting your search query</string>
+
     <string name="preview_info_name">Name</string>
     <string name="preview_info_type">Type</string>
     <string name="preview_info_size">Size</string>
