@@ -30,11 +30,30 @@ const storage = multer.diskStorage({
       fs.mkdirSync(absoluteTargetPath, { recursive: true });
     }
 
+    // Lưu lại đường dẫn để dùng ở hàm filename
+    (req as any).uploadDestination = absoluteTargetPath;
+
     cb(null, absoluteTargetPath);
   },
   filename: (req, file, cb) => {
-    // Lưu file với thời gian để tránh trùng tên
-    cb(null, Date.now() + '-' + file.originalname);
+    const absoluteTargetPath = (req as any).uploadDestination;
+    let finalName = file.originalname;
+    
+    if (absoluteTargetPath) {
+      let counter = 1;
+      const ext = path.extname(file.originalname);
+      const baseName = path.basename(file.originalname, ext);
+      
+      while (fs.existsSync(path.join(absoluteTargetPath, finalName))) {
+        finalName = `${baseName} (${counter})${ext}`;
+        counter++;
+      }
+    } else {
+      // Fallback nếu không có absoluteTargetPath
+      finalName = Date.now() + '-' + file.originalname;
+    }
+    
+    cb(null, finalName);
   }
 });
 
