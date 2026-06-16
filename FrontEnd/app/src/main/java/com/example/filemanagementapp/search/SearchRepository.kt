@@ -15,7 +15,11 @@ class SearchRepository(
 ) {
     suspend fun loadAllSearchItems(username: String): List<SearchItem> = withContext(Dispatchers.IO) {
         val cachedDirectories = directoryCacheLocalRepository.getAllCachedDirectories(username)
-        val allItems = cachedDirectories.flatMap { it.items }.associateBy { it.path }.values.toList()
+        val allItems = cachedDirectories.flatMap { it.items }
+            .associateBy { it.path }
+            .values
+            .filter { !it.path.startsWith("trash", ignoreCase = true) && !it.path.startsWith(".trash", ignoreCase = true) }
+            .toList()
 
         val analysisMap = aiAnalysisLocalRepository.getAnalysisByPaths(
             username = username,

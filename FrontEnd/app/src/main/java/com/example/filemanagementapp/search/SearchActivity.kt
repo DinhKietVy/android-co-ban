@@ -42,6 +42,7 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
     private lateinit var categoryChipRow: LinearLayout
     private lateinit var recentSearchChipRow: LinearLayout
     private lateinit var searchEditText: EditText
+    private lateinit var emptyStateContainer: View
     
     private lateinit var viewModel: SearchViewModel
     private lateinit var actionSheetController: FileActionSheetController
@@ -83,6 +84,7 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         categoryChipRow = findViewById(R.id.categoryChipRow)
         recentSearchChipRow = findViewById(R.id.recentSearchChipRow)
         searchEditText = findViewById(R.id.searchEditText)
+        emptyStateContainer = findViewById(R.id.emptyStateContainer)
     }
 
     private fun setupRecycler() {
@@ -147,9 +149,11 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
                     
                     if (state.query.isBlank()) {
                         resultBannerText.visibility = View.GONE
+                        emptyStateContainer.visibility = View.GONE
                     } else {
                         resultBannerText.visibility = View.VISIBLE
                         resultBannerText.text = getString(R.string.search_results_banner, state.filteredItems.size, state.query)
+                        emptyStateContainer.visibility = if (state.filteredItems.isEmpty()) View.VISIBLE else View.GONE
                     }
                     
                     renderCategoryChips(state.selectedCategory)

@@ -73,7 +73,8 @@ class ExplorerViewModel(
                 folderPath = normalizedFolderPath
             )
             if (cachedSnapshot != null) {
-                val mergedItems = mergeLocalMetadata(cachedSnapshot.directory.items)
+                val filteredItems = cachedSnapshot.directory.items.filter { !it.name.equals(".trash", ignoreCase = true) && !it.name.equals("trash", ignoreCase = true) }
+                val mergedItems = mergeLocalMetadata(filteredItems)
                 applyDirectoryState(
                     directory = cachedSnapshot.directory,
                     mergedItems = mergedItems,
@@ -89,7 +90,8 @@ class ExplorerViewModel(
                         folderPath = normalizedFolderPath,
                         directory = directory
                     )
-                    val mergedItems = mergeLocalMetadata(directory.items)
+                    val filteredItems = directory.items.filter { !it.name.equals(".trash", ignoreCase = true) && !it.name.equals("trash", ignoreCase = true) }
+                    val mergedItems = mergeLocalMetadata(filteredItems)
                     applyDirectoryState(
                         directory = directory,
                         mergedItems = mergedItems,
@@ -208,7 +210,10 @@ class ExplorerViewModel(
 
     fun deleteItem(item: ExplorerItem) {
         viewModelScope.launch {
-            repository.deleteItem(username = username, item = item)
+            // Ensure trash exists (ignore error if it already exists)
+            repository.createFolder(username = username, targetPath = "", folderName = "trash")
+            
+            repository.moveItem(username = username, item = item, targetFolderPath = "trash")
                 .onSuccess { message ->
                     favoriteLocalRepository.deletePath(
                         username = username,
@@ -379,9 +384,11 @@ class ExplorerViewModel(
         }
 
         viewModelScope.launch {
+            repository.createFolder(username = username, targetPath = "", folderName = "trash")
+            
             var deletedCount = 0
             selectedItems.forEach { item ->
-                repository.deleteItem(username = username, item = item)
+                repository.moveItem(username = username, item = item, targetFolderPath = "trash")
                     .onSuccess {
                         deletedCount++
                         aiAnalysisLocalRepository.deletePath(

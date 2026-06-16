@@ -33,7 +33,6 @@
         android:background="@color/main_surface"
         android:minHeight="76dp"
         android:paddingTop="8dp"
-        android:paddingBottom="10dp"
         app:itemActiveIndicatorStyle="@null"
         app:itemIconSize="24dp"
         app:itemIconTint="@color/main_bottom_nav_item_colors"

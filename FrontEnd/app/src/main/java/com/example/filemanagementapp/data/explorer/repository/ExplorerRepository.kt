@@ -239,7 +239,7 @@ class ExplorerRepository(
         val explorerItems = buildList {
             folders.forEach { folder ->
                 val folderName = folder.name.orEmpty()
-                if (folderName.isNotBlank()) {
+                if (folderName.isNotBlank() && !folderName.equals("trash", ignoreCase = true) && !folderName.equals(".trash", ignoreCase = true)) {
                     add(
                         ExplorerItem(
                             id = "folder:${joinPath(normalizedFolder, folderName)}",
@@ -278,8 +278,8 @@ class ExplorerRepository(
         return ExplorerDirectoryData(
             currentFolder = normalizedFolder,
             storageSummary = buildStorageSummary(
-                totalFileBytes = files.sumOf { it.size ?: 0L },
-                totalItems = folders.size + files.size
+                totalFileBytes = explorerItems.sumOf { it.sizeBytes ?: 0L },
+                totalItems = explorerItems.size
             ),
             breadcrumbs = buildBreadcrumbs(normalizedFolder),
             items = explorerItems

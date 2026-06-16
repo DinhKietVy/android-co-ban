@@ -42,6 +42,7 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var quickAccessRow: LinearLayout
     private lateinit var recentTabButton: TextView
     private lateinit var favoritesTabButton: TextView
+    private lateinit var emptyStateContainer: View
     private lateinit var actionSheetController: FileActionSheetController
 
     override fun onCreateView(
@@ -79,6 +80,7 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
         quickAccessRow = view.findViewById(R.id.quickAccessRow)
         recentTabButton = view.findViewById(R.id.recentTabButton)
         favoritesTabButton = view.findViewById(R.id.favoritesTabButton)
+        emptyStateContainer = view.findViewById(R.id.emptyStateContainer)
 
         adapter = RecentAdapter(
             items = emptyList(),
@@ -122,9 +124,10 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
 
     private fun render(state: RecentUiState) {
         renderTabState(state.activeTab)
-        quickAccessContainer.isVisible = state.activeTab == RecentTab.RECENT
+        quickAccessContainer.isVisible = state.activeTab == RecentTab.RECENT && state.quickAccess.isNotEmpty()
         renderQuickAccess(state.quickAccess)
         adapter.submitItems(state.listItems)
+        emptyStateContainer.isVisible = state.listItems.isEmpty()
     }
 
     private fun renderTabState(activeTab: RecentTab) {

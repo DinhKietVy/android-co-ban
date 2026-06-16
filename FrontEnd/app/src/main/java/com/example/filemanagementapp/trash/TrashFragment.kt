@@ -11,19 +11,39 @@ import android.widget.EditText
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.filemanagementapp.R
+import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
+import com.example.filemanagementapp.data.explorer.repository.ExplorerRepository
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.launch
 
 class TrashFragment : Fragment() {
+    companion object {
+        const val ARG_USERNAME = "arg_username"
+        fun newInstance(username: String): TrashFragment {
+            return TrashFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_USERNAME, username)
+                }
+            }
+        }
+    }
+
+    private val username: String
+        get() = arguments?.getString(ARG_USERNAME) ?: "tester"
+
     private val selectedIds = linkedSetOf<String>()
     private lateinit var adapter: TrashAdapter
     private lateinit var emptyStateContainer: View
     private lateinit var infoCard: View
     private lateinit var bulkActionBar: LinearLayout
     private lateinit var selectedCountText: TextView
-    private val trashItems = mutableListOf<TrashItemModel>()
 
     private lateinit var defaultTopBar: View
     private lateinit var searchTopBar: View
@@ -35,6 +55,8 @@ class TrashFragment : Fragment() {
     private var sortBy = "date"
     private var sortDir = "desc"
 
+    private lateinit var viewModel: TrashViewModel
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -44,6 +66,18 @@ class TrashFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
+        val explorerRepository = ExplorerRepository(
+            appContext = requireContext().applicationContext,
+            explorerApiService = ExplorerNetworkModule.explorerApiService,
+            gson = ExplorerNetworkModule.gson
+        )
+        
+        viewModel = ViewModelProvider(
+            this,
+            TrashViewModel.Factory(username, explorerRepository)
+        )[TrashViewModel::class.java]
+
         val recyclerView = view.findViewById<RecyclerView>(R.id.trashRecyclerView)
         emptyStateContainer = view.findViewById(R.id.emptyStateContainer)
         infoCard = view.findViewById(R.id.infoCard)
@@ -56,10 +90,8 @@ class TrashFragment : Fragment() {
         closeSearchButton = view.findViewById(R.id.closeSearchButton)
         clearSearchButton = view.findViewById(R.id.clearSearchButton)
 
-        trashItems += sampleItems()
-        
         adapter = TrashAdapter(
-            items = getSortedItems(),
+            items = emptyList(),
             selectedIds = selectedIds,
             onToggleSelect = { id -> toggleSelected(id) },
             onMoreClick = { item, anchorView -> showItemMoreMenu(item, anchorView) }
@@ -69,10 +101,18 @@ class TrashFragment : Fragment() {
         recyclerView.adapter = adapter
 
         view.findViewById<View>(R.id.restoreSelectedButton).setOnClickListener {
-            removeSelectedItems(getString(R.string.trash_bulk_restored))
+            val count = selectedIds.size
+            viewModel.restoreItems(selectedIds.toSet())
+            selectedIds.clear()
+            renderSelectionState()
+            Toast.makeText(requireContext(), getString(R.string.trash_bulk_restored, count), Toast.LENGTH_SHORT).show()
         }
         view.findViewById<View>(R.id.deleteSelectedButton).setOnClickListener {
-            removeSelectedItems(getString(R.string.trash_bulk_deleted))
+            val count = selectedIds.size
+            viewModel.deleteItemsForever(selectedIds.toSet())
+            selectedIds.clear()
+            renderSelectionState()
+            Toast.makeText(requireContext(), getString(R.string.trash_bulk_deleted, count), Toast.LENGTH_SHORT).show()
         }
         view.findViewById<View>(R.id.closeSelectionButton)?.setOnClickListener {
             selectedIds.clear()
@@ -112,13 +152,20 @@ class TrashFragment : Fragment() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 searchQuery = s?.toString()?.trim().orEmpty()
                 clearSearchButton.visibility = if (searchQuery.isNotEmpty()) View.VISIBLE else View.GONE
-                adapter.submitItems(getSortedItems())
-                renderState()
+                updateAdapterData(viewModel.uiState.value.items)
             }
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
 
-        renderState()
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    renderState(state)
+                }
+            }
+        }
+        
+        viewModel.loadTrash()
     }
 
     private fun showSortMenu(anchor: View) {
@@ -194,7 +241,7 @@ class TrashFragment : Fragment() {
                 sortBy = newSortBy
                 sortDir = "asc"
             }
-            adapter.submitItems(getSortedItems())
+            updateAdapterData(viewModel.uiState.value.items)
             popupWindow.dismiss()
         }
 
@@ -217,7 +264,8 @@ class TrashFragment : Fragment() {
         popupWindow.elevation = 8f
         popupWindow.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
 
-        val isAllSelected = selectedIds.size == trashItems.size && trashItems.isNotEmpty()
+        val currentItems = viewModel.uiState.value.items
+        val isAllSelected = selectedIds.size == currentItems.size && currentItems.isNotEmpty()
         val textSelectAll = popupView.findViewById<android.widget.TextView>(R.id.textSelectAll)
         textSelectAll.text = if (isAllSelected) getString(R.string.trash_deselect_all) else getString(R.string.trash_select_all)
 
@@ -227,7 +275,7 @@ class TrashFragment : Fragment() {
                 selectedIds.clear()
             } else {
                 selectedIds.clear()
-                selectedIds.addAll(trashItems.map { it.id })
+                selectedIds.addAll(currentItems.map { it.id })
             }
             adapter.notifyDataSetChanged()
             renderSelectionState()
@@ -244,30 +292,20 @@ class TrashFragment : Fragment() {
     private fun showItemMoreMenu(item: TrashItemModel, anchor: View) {
         val popup = PopupMenu(requireContext(), anchor)
         popup.menu.add(0, 1, 0, getString(R.string.trash_menu_restore))
-        popup.menu.add(0, 2, 0, getString(R.string.trash_menu_download))
-        popup.menu.add(0, 3, 0, getString(R.string.trash_menu_details))
         popup.menu.add(0, 4, 0, getString(R.string.trash_menu_delete_forever))
         
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 1 -> {
-                    trashItems.removeAll { it.id == item.id }
+                    viewModel.restoreItems(setOf(item.id))
                     selectedIds.remove(item.id)
-                    adapter.submitItems(getSortedItems())
-                    renderState()
+                    renderSelectionState()
                     Toast.makeText(requireContext(), getString(R.string.trash_restored_item, item.name), Toast.LENGTH_SHORT).show()
                 }
-                2 -> {
-                    Toast.makeText(requireContext(), getString(R.string.trash_downloading_item, item.name), Toast.LENGTH_SHORT).show()
-                }
-                3 -> {
-                    Toast.makeText(requireContext(), getString(R.string.trash_details_item, item.name), Toast.LENGTH_SHORT).show()
-                }
                 4 -> {
-                    trashItems.removeAll { it.id == item.id }
+                    viewModel.deleteItemsForever(setOf(item.id))
                     selectedIds.remove(item.id)
-                    adapter.submitItems(getSortedItems())
-                    renderState()
+                    renderSelectionState()
                     Toast.makeText(requireContext(), getString(R.string.trash_deleted_item, item.name), Toast.LENGTH_SHORT).show()
                 }
             }
@@ -277,15 +315,15 @@ class TrashFragment : Fragment() {
     }
 
     private fun showEmptyTrashConfirmDialog() {
-        if (trashItems.isEmpty()) return
+        val currentItems = viewModel.uiState.value.items
+        if (currentItems.isEmpty()) return
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.trash_empty_confirm_title))
-            .setMessage(getString(R.string.trash_empty_confirm_message, trashItems.size))
+            .setMessage(getString(R.string.trash_empty_confirm_message, currentItems.size))
             .setPositiveButton(getString(R.string.trash_empty_confirm_positive)) { _, _ ->
-                trashItems.clear()
+                viewModel.emptyTrash()
                 selectedIds.clear()
-                adapter.submitItems(emptyList())
-                renderState()
+                renderSelectionState()
                 Toast.makeText(requireContext(), getString(R.string.trash_emptied), Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(getString(R.string.trash_empty_confirm_negative), null)
@@ -302,34 +340,29 @@ class TrashFragment : Fragment() {
         renderSelectionState()
     }
 
-    private fun removeSelectedItems(messagePrefix: String) {
-        val count = selectedIds.size
-        trashItems.removeAll { selectedIds.contains(it.id) }
-        selectedIds.clear()
-        adapter.submitItems(getSortedItems())
-        renderState()
-        Toast.makeText(requireContext(), getString(R.string.trash_bulk_action_message, messagePrefix, count), Toast.LENGTH_SHORT).show()
-    }
-
-    private fun renderState() {
-        val hasItems = trashItems.isNotEmpty()
-        view?.findViewById<RecyclerView>(R.id.trashRecyclerView)?.isVisible = hasItems
-        infoCard.isVisible = hasItems
-        emptyStateContainer.isVisible = !hasItems
+    private fun renderState(state: TrashUiState) {
+        val hasItems = state.items.isNotEmpty()
+        view?.findViewById<RecyclerView>(R.id.trashRecyclerView)?.isVisible = hasItems && !state.isLoading
+        infoCard.isVisible = hasItems && !state.isLoading
+        emptyStateContainer.isVisible = !hasItems && !state.isLoading
+        
+        if (!state.isLoading) {
+            updateAdapterData(state.items)
+        }
+        
         renderSelectionState()
+        
+        state.errorMessage?.let { msg ->
+            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private fun renderSelectionState() {
-        bulkActionBar.isVisible = selectedIds.isNotEmpty()
-        selectedCountText.text = getString(R.string.trash_selected_count, selectedIds.size)
-    }
-
-    private fun getSortedItems(): List<TrashItemModel> {
+    private fun updateAdapterData(items: List<TrashItemModel>) {
         val filtered = if (searchQuery.isBlank()) {
-            trashItems
+            items
         } else {
             val q = searchQuery.lowercase()
-            trashItems.filter { it.name.lowercase().contains(q) }
+            items.filter { it.name.lowercase().contains(q) }
         }
         
         val sorted = filtered.sortedWith { a, b ->
@@ -341,21 +374,15 @@ class TrashFragment : Fragment() {
                     sizeA.compareTo(sizeB)
                 }
                 "daysLeft" -> a.daysUntilRemoval.compareTo(b.daysUntilRemoval)
-                else -> b.daysUntilRemoval.compareTo(a.daysUntilRemoval) // date: more recently deleted = fewer days left remaining -> larger daysLeft = older deletion
+                else -> b.daysUntilRemoval.compareTo(a.daysUntilRemoval)
             }
             if (sortDir == "asc") cmp else -cmp
         }
-        return sorted
+        adapter.submitItems(sorted)
     }
 
-    private fun sampleItems(): List<TrashItemModel> = listOf(
-        TrashItemModel("1", "Project Documents", TrashItemModel.Type.FOLDER, "2 days ago", 28, itemCount = 24),
-        TrashItemModel("2", "Receipt_Amazon_2026.jpg", TrashItemModel.Type.IMAGE, "3 days ago", 27, size = "2.4 MB", aiAnalyzed = true, aiTags = listOf("Receipt", "Invoice"), ocrPreview = "Amazon.com Order #123-4567890-123..."),
-        TrashItemModel("3", "Laptop_Setup_Guide.pdf", TrashItemModel.Type.DOCUMENT, "5 days ago", 25, size = "1.8 MB", aiAnalyzed = true, aiTags = listOf("Laptop", "Manual")),
-        TrashItemModel("4", "Vacation_Photos", TrashItemModel.Type.FOLDER, "1 week ago", 23, itemCount = 86),
-        TrashItemModel("5", "Beach_Sunset.jpg", TrashItemModel.Type.IMAGE, "1 week ago", 23, size = "5.2 MB", aiAnalyzed = true, aiTags = listOf("Sunset", "Beach")),
-        TrashItemModel("6", "Budget_2026.xlsx", TrashItemModel.Type.SPREADSHEET, "10 days ago", 20, size = "342 KB"),
-        TrashItemModel("7", "Product_Demo.mp4", TrashItemModel.Type.VIDEO, "2 weeks ago", 16, size = "45.8 MB", aiAnalyzed = true, aiTags = listOf("Product", "Demo")),
-        TrashItemModel("8", "Business_Card.jpg", TrashItemModel.Type.IMAGE, "3 weeks ago", 9, size = "1.1 MB", aiAnalyzed = true, aiTags = listOf("Business Card", "Contact"), ocrPreview = "John Smith - Senior Developer...")
-    )
+    private fun renderSelectionState() {
+        bulkActionBar.isVisible = selectedIds.isNotEmpty()
+        selectedCountText.text = getString(R.string.trash_selected_count, selectedIds.size)
+    }
 }

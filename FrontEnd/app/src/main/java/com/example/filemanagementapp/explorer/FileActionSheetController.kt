@@ -147,17 +147,17 @@ class FileActionSheetController(
     }
 
     private fun showRenameDialog(item: ExplorerItem) {
-        val input = EditText(context).apply {
-            inputType = InputType.TYPE_CLASS_TEXT
-            setText(item.name)
-            setSelection(item.name.length)
-            hint = context.getString(R.string.explorer_dialog_rename_hint)
-            setPadding(24.dp(), 20.dp(), 24.dp(), 0)
-        }
+        val view = android.view.LayoutInflater.from(context).inflate(R.layout.dialog_input, null)
+        val inputLayout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+        
+        inputLayout.hint = context.getString(R.string.explorer_dialog_rename_hint)
+        input.setText(item.name)
+        input.setSelection(item.name.length)
 
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.explorer_dialog_rename_title)
-            .setView(input)
+            .setView(view)
             .setNegativeButton(R.string.explorer_dialog_cancel, null)
             .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
                 callbacks.onRename(item, input.text?.toString().orEmpty())

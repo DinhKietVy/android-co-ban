@@ -247,6 +247,14 @@
     <string name="preview_ai_analysis">Phân tích AI</string>
     <string name="preview_sheet_file_info">Thông tin tệp tin</string>
     <string name="preview_sheet_ai">Phân tích AI</string>
+
+    <string name="explorer_empty_title">Thư mục trống</string>
+    <string name="explorer_empty_subtitle">Tạo hoặc tải file lên để bắt đầu</string>
+    <string name="recent_empty_title">Chưa có file gần đây</string>
+    <string name="recent_empty_subtitle">Các file bạn mở sẽ xuất hiện ở đây</string>
+    <string name="search_empty_title">Không tìm thấy kết quả</string>
+    <string name="search_empty_subtitle">Hãy thử thay đổi từ khóa tìm kiếm</string>
+
     <string name="preview_info_name">Tên</string>
     <string name="preview_info_type">Loại</string>
     <string name="preview_info_size">Kích thước</string>
