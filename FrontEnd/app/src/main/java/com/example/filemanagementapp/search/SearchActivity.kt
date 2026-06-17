@@ -63,19 +63,15 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         bindViews()
         setupRecycler()
         
-        lifecycleScope.launch {
-            val loginPrefs = LoginPreferencesRepository(applicationContext)
-            val prefs = loginPrefs.preferencesFlow.first()
-            username = prefs.rememberedUsername
-            if (username.isBlank()) {
-                finish()
-                return@launch
-            }
-
-            initViewModelAndRepositories(username)
-            setupHeader()
-            observeViewModel()
+        username = intent.getStringExtra(EXTRA_USERNAME) ?: ""
+        if (username.isBlank()) {
+            finish()
+            return
         }
+
+        initViewModelAndRepositories(username)
+        setupHeader()
+        observeViewModel()
     }
 
     private fun bindViews() {
@@ -89,7 +85,11 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
 
     private fun setupRecycler() {
         val recyclerView = findViewById<RecyclerView>(R.id.resultsRecyclerView)
-        adapter = SearchResultAdapter(emptyList(), ::showActionSheet)
+        adapter = SearchResultAdapter(
+            items = emptyList(),
+            onItemClick = { item -> onOpen(item.rawItem) },
+            onMoreClick = ::showActionSheet
+        )
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
     }
@@ -122,20 +122,55 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         viewModel = ViewModelProvider(this, factory)[SearchViewModel::class.java]
     }
 
+    private val micActivityLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            val matches = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            if (!matches.isNullOrEmpty()) {
+                val spokenText = matches[0]
+                searchEditText.setText(spokenText)
+                searchEditText.setSelection(spokenText.length)
+                viewModel.updateQuery(spokenText)
+                viewModel.addRecentSearch(spokenText)
+            }
+        }
+    }
+
     private fun setupHeader() {
+        findViewById<ImageButton>(R.id.backButton).setOnClickListener { finish() }
         findViewById<ImageButton>(R.id.filterButton).setOnClickListener(::showSortMenu)
-        searchEditText.doAfterTextChanged { editable ->
-            val query = editable?.toString().orEmpty()
-            viewModel.updateQuery(query)
+        
+        findViewById<ImageButton>(R.id.micButton).setOnClickListener {
+            val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, getString(R.string.search_hint))
+            }
+            try {
+                micActivityLauncher.launch(intent)
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(this, "Voice search is not supported on this device", android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
         
-        // Save search query when pressing enter or equivalent
-        searchEditText.setOnEditorActionListener { _, _, _ ->
+        searchEditText.doAfterTextChanged { editable ->
+            val query = editable?.toString().orEmpty()
+            if (query.isBlank()) {
+                viewModel.updateQuery("")
+            }
+        }
+        
+        // Execute search when pressing enter or equivalent
+        searchEditText.setOnEditorActionListener { v, _, _ ->
             val query = searchEditText.text.toString()
+            viewModel.updateQuery(query)
             if (query.isNotBlank()) {
                 viewModel.addRecentSearch(query)
             }
-            false
+            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.hideSoftInputFromWindow(v.windowToken, 0)
+            true
         }
     }
 
@@ -145,14 +180,26 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
                 viewModel.uiState.collect { state ->
                     adapter.submitItems(state.filteredItems)
                     
-                    recentSearchSection.visibility = if (state.query.isBlank()) View.VISIBLE else View.GONE
+                    val isSearching = state.query.isNotBlank()
                     
-                    if (state.query.isBlank()) {
+                    recentSearchSection.visibility = if (!isSearching && state.recentSearches.isNotEmpty()) View.VISIBLE else View.GONE
+                    
+                    if (!isSearching) {
                         resultBannerText.visibility = View.GONE
                         emptyStateContainer.visibility = View.GONE
                     } else {
                         resultBannerText.visibility = View.VISIBLE
-                        resultBannerText.text = getString(R.string.search_results_banner, state.filteredItems.size, state.query)
+                        val bannerSuffix = if (state.query.isNotBlank()) state.query else when (state.selectedCategory) {
+                            CATEGORY_IMAGES -> getString(R.string.search_category_images)
+                            CATEGORY_DOCUMENTS -> getString(R.string.search_category_documents)
+                            CATEGORY_PDF -> getString(R.string.search_category_pdf)
+                            CATEGORY_VIDEOS -> getString(R.string.search_category_videos)
+                            CATEGORY_OCR -> getString(R.string.search_category_ocr)
+                            CATEGORY_AI_OBJECTS -> getString(R.string.search_category_ai_objects)
+                            CATEGORY_FAVORITES -> getString(R.string.search_category_favorites)
+                            else -> ""
+                        }
+                        resultBannerText.text = getString(R.string.search_results_banner, state.filteredItems.size, bannerSuffix)
                         emptyStateContainer.visibility = if (state.filteredItems.isEmpty()) View.VISIBLE else View.GONE
                     }
                     
@@ -214,7 +261,10 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
             chip.setOnClickListener { 
                 searchEditText.setText(search)
                 searchEditText.setSelection(search.length)
+                viewModel.updateQuery(search)
                 viewModel.addRecentSearch(search)
+                val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(searchEditText.windowToken, 0)
             }
             chip.layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -285,16 +335,20 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
 
     override fun onOpen(item: ExplorerItem) {
         if (item.type == ExplorerItem.Type.FOLDER) {
-            Toast.makeText(this, getString(R.string.search_cannot_open_folder), Toast.LENGTH_SHORT).show()
+            val resultIntent = android.content.Intent().apply {
+                putExtra(EXTRA_RESULT_FOLDER_PATH, item.path)
+            }
+            setResult(android.app.Activity.RESULT_OK, resultIntent)
+            finish()
         } else {
             startActivity(
                 FilePreviewActivity.newIntent(
                     context = this,
                     item = item,
                     username = username,
-                    analyzedImagePath = null,
-                    ocrText = null,
-                    aiTags = emptyList(),
+                    analyzedImagePath = item.analyzedImagePath,
+                    ocrText = item.ocrSnippet,
+                    aiTags = item.tags,
                     showAiPanel = false
                 )
             )
@@ -333,8 +387,13 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
     }
 
     companion object {
-        fun newIntent(context: Context): Intent {
-            return Intent(context, SearchActivity::class.java)
+        const val EXTRA_USERNAME = "extra_username"
+        const val EXTRA_RESULT_FOLDER_PATH = "extra_result_folder_path"
+
+        fun newIntent(context: Context, username: String): Intent {
+            return Intent(context, SearchActivity::class.java).apply {
+                putExtra(EXTRA_USERNAME, username)
+            }
         }
 
         private const val CATEGORY_ALL = "all"

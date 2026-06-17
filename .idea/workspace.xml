@@ -4,7 +4,12 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c799f538-d6f4-4cd4-b0fe-d1c238691f5b" name="Changes" comment="" />
+    <list default="true" id="c799f538-d6f4-4cd4-b0fe-d1c238691f5b" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/data/explorer/repository/ExplorerRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/data/explorer/repository/ExplorerRepository.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/explorer/ExplorerFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/explorer/ExplorerFragment.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/search/SearchActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/search/SearchActivity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_search.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_search.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -45,6 +50,9 @@
     &quot;assignee&quot;: &quot;huuxuan0711&quot;
   }
 }</component>
+  <component name="GithubDefaultAccount">
+    <option name="defaultAccountId" value="6db6eb5a-75a0-4f79-9bf9-5630812f1b42" />
+  </component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/DinhKietVy/android-co-ban&quot;,
@@ -76,7 +84,8 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "android",
-    "kotlin-language-version-configured": "true"
+    "kotlin-language-version-configured": "true",
+    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
   }
 }]]></component>
   <component name="TaskManager">

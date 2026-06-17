@@ -186,12 +186,12 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
         startActivity(
             FilePreviewActivity.newIntent(
                 context = requireContext(),
-                                item = item.toExplorerItem(),
-                                username = username,
-                                analyzedImagePath = null,
-                                ocrText = null,
-                                aiTags = emptyList(),
-                                showAiPanel = false
+                item = item.toExplorerItem(),
+                username = username,
+                analyzedImagePath = null,
+                ocrText = item.ocrSnippet,
+                aiTags = item.aiTags,
+                showAiPanel = false
             )
         )
     }

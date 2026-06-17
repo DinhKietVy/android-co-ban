@@ -132,6 +132,7 @@ class RecentRepository(
                 ?.lineSequence()
                 ?.firstOrNull { it.isNotBlank() }
                 ?.trim(),
+            analyzedImagePath = analysis?.previewImagePath,
             isFavorite = isFavorite
         )
     }

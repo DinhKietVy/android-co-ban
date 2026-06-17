@@ -42,11 +42,16 @@ class SearchRepository(
                 ?.distinct()
                 .orEmpty()
             
-            // Add "AI analyzed" tag if it has completed AI analysis
-            val finalTags = if (analysis?.status == AiAnalysisStatus.COMPLETED) {
-                aiTags + "AI analyzed"
+            // Merge original item tags (like file extensions) with AI tags
+            val mergedTags = (item.tags + aiTags)
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+
+            val finalTags = if (analysis?.status == com.example.filemanagementapp.data.local.ai.AiAnalysisStatus.COMPLETED) {
+                mergedTags + "AI analyzed"
             } else {
-                aiTags
+                mergedTags
             }
 
             SearchItem(
@@ -59,9 +64,14 @@ class SearchRepository(
                 modifiedEpochMillis = item.modifiedEpochMillis,
                 category = if (isFolder) SearchItem.Category.FOLDER else resolveCategory(item.name),
                 ocrText = analysis?.ocrText?.lineSequence()?.firstOrNull { it.isNotBlank() }?.trim(),
-                tags = finalTags.distinct(),
+                tags = finalTags,
                 isFavorite = isFavorite,
-                rawItem = item
+                rawItem = item.copy(
+                    aiAnalyzed = analysis?.status == com.example.filemanagementapp.data.local.ai.AiAnalysisStatus.COMPLETED,
+                    isFavorite = isFavorite,
+                    tags = finalTags,
+                    analyzedImagePath = analysis?.previewImagePath
+                )
             )
         }
     }

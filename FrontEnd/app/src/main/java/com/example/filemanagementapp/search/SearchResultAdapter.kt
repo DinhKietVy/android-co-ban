@@ -10,10 +10,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 import com.example.filemanagementapp.R
 
 class SearchResultAdapter(
     private var items: List<SearchItem>,
+    private val onItemClick: (SearchItem) -> Unit,
     private val onMoreClick: (SearchItem) -> Unit
 ) : RecyclerView.Adapter<SearchResultAdapter.SearchViewHolder>() {
 
@@ -25,7 +27,7 @@ class SearchResultAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_explorer_file_list, parent, false)
-        return SearchViewHolder(view, onMoreClick)
+        return SearchViewHolder(view, onItemClick, onMoreClick)
     }
 
     override fun getItemCount(): Int = items.size
@@ -36,6 +38,7 @@ class SearchResultAdapter(
 
     class SearchViewHolder(
         itemView: View,
+        private val onItemClick: (SearchItem) -> Unit,
         private val onMoreClick: (SearchItem) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
         private val thumbContainer: FrameLayout = itemView.findViewById(R.id.thumbContainer)
@@ -62,53 +65,72 @@ class SearchResultAdapter(
                 SearchItem.Category.OTHER -> Triple(R.drawable.file_text, R.color.search_surface, R.color.explorer_text_secondary)
             }
             
-            filePreviewImage.visibility = View.GONE
-            thumbIcon.visibility = View.VISIBLE
-            
-            thumbContainer.backgroundTintList = ContextCompat.getColorStateList(context, style.second)
-            thumbIcon.setImageResource(style.first)
-            thumbIcon.imageTintList = ContextCompat.getColorStateList(context, style.third)
+            if (item.rawItem.isImagePreviewable && !item.rawItem.previewUrl.isNullOrBlank()) {
+                thumbIcon.visibility = View.GONE
+                filePreviewImage.visibility = View.VISIBLE
+                thumbContainer.backgroundTintList = null
+                
+                filePreviewImage.load(item.rawItem.previewUrl) {
+                    crossfade(true)
+                    placeholder(R.drawable.explorer_file_preview_placeholder)
+                    error(R.drawable.explorer_file_preview_placeholder)
+                }
+            } else {
+                filePreviewImage.visibility = View.GONE
+                thumbIcon.visibility = View.VISIBLE
+                
+                thumbContainer.backgroundTintList = ContextCompat.getColorStateList(context, style.second)
+                thumbIcon.setImageResource(style.first)
+                thumbIcon.imageTintList = ContextCompat.getColorStateList(context, style.third)
+            }
 
             fileNameText.text = item.name
-            itemMetaText.text = context.getString(R.string.search_file_meta_format, item.type, item.size)
+            if (item.rawItem.type == com.example.filemanagementapp.explorer.ExplorerItem.Type.FOLDER) {
+                itemMetaText.text = context.getString(
+                    R.string.search_file_meta_format, 
+                    item.type, 
+                    context.getString(R.string.explorer_item_count, item.rawItem.itemCount ?: 0)
+                )
+            } else {
+                itemMetaText.text = context.getString(
+                    R.string.search_file_meta_format, 
+                    item.type, 
+                    item.size ?: ""
+                )
+            }
             itemDateText.text = item.date
             ocrPreviewText.text = item.ocrText
             ocrPreviewText.visibility = if (item.ocrText.isNullOrBlank()) View.GONE else View.VISIBLE
 
-            aiBadgeIcon.visibility = View.GONE
+            aiBadgeIcon.visibility = if (item.rawItem.aiAnalyzed) View.VISIBLE else View.GONE
             favoriteBadgeIcon.visibility = if (item.isFavorite) View.VISIBLE else View.GONE
 
             tagContainer.removeAllViews()
-            val tags = item.tags
-            tagContainer.visibility = if (tags.isEmpty()) View.GONE else View.VISIBLE
-            tags.forEach { tag ->
+            val displayTags = item.tags.filter { !it.equals("AI analyzed", ignoreCase = true) }
+            tagContainer.visibility = if (displayTags.isEmpty()) View.GONE else View.VISIBLE
+            displayTags.forEachIndexed { index, tag ->
                 val tv = TextView(context).apply {
                     text = tag
                     textSize = 11f
-                    setPadding(16, 8, 16, 8)
+                    setTextColor(ContextCompat.getColor(context, R.color.explorer_tag_text))
+                    setBackgroundResource(R.drawable.explorer_tag_background)
+                    val pxHorizontal = (8 * context.resources.displayMetrics.density).toInt()
+                    val pxVertical = (3 * context.resources.displayMetrics.density).toInt()
+                    setPadding(pxHorizontal, pxVertical, pxHorizontal, pxVertical)
                     layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { marginEnd = 12 }
-                    
-                    if (tag.equals("AI analyzed", ignoreCase = true)) {
-                        setBackgroundResource(R.color.search_primary_soft)
-                        setTextColor(ContextCompat.getColor(context, R.color.search_primary))
-                        
-                        // Add sparkle icon
-                        val drawable = ContextCompat.getDrawable(context, R.drawable.sparkles)
-                        drawable?.setTint(ContextCompat.getColor(context, R.color.search_primary))
-                        drawable?.setBounds(0, 0, 30, 30) // roughly 10-12dp
-                        setCompoundDrawables(drawable, null, null, null)
-                        compoundDrawablePadding = 8
-                    } else {
-                        setBackgroundResource(R.drawable.explorer_tag_background)
-                        setTextColor(ContextCompat.getColor(context, R.color.search_text_secondary))
+                    ).apply {
+                        if (index > 0) {
+                            marginStart = (6 * context.resources.displayMetrics.density).toInt()
+                        }
+                        marginEnd = (6 * context.resources.displayMetrics.density).toInt()
                     }
                 }
                 tagContainer.addView(tv)
             }
 
+            itemView.setOnClickListener { onItemClick(item) }
             moreButton.setOnClickListener { onMoreClick(item) }
         }
     }

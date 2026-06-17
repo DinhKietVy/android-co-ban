@@ -18,6 +18,7 @@ data class RecentItem(
     val aiTags: List<String> = emptyList(),
     val aiAnalyzed: Boolean = false,
     val ocrSnippet: String? = null,
+    val analyzedImagePath: String? = null,
     val isFavorite: Boolean = false
 ) {
     enum class Kind { FILE, FOLDER }
@@ -38,6 +39,8 @@ data class RecentItem(
             isImagePreviewable = isImagePreviewable,
             tags = aiTags,
             aiAnalyzed = aiAnalyzed,
+            ocrSnippet = ocrSnippet,
+            analyzedImagePath = analyzedImagePath,
             isFavorite = isFavorite
         )
     }

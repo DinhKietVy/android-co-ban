@@ -91,6 +91,7 @@ class ExplorerAdapter(
         private val nameText: TextView = itemView.findViewById(R.id.itemNameText)
         private val favoriteBadge: ImageView = itemView.findViewById(R.id.favoriteBadgeIcon)
         private val metaText: TextView = itemView.findViewById(R.id.itemMetaText)
+        private val dateText: TextView? = itemView.findViewById(R.id.itemDateText)
         private val moreButton: ImageButton = itemView.findViewById(R.id.moreButton)
 
         fun bind(
@@ -106,7 +107,15 @@ class ExplorerAdapter(
             nameText.text = item.name
             favoriteBadge.visibility = if (item.isFavorite) View.VISIBLE else View.GONE
             val count = context.getString(R.string.explorer_item_count, item.itemCount ?: 0)
-            metaText.text = context.getString(R.string.explorer_file_meta, count, item.modified)
+            
+            if (dateText != null) {
+                metaText.text = count
+                dateText.text = item.modified
+                dateText.visibility = if (item.modified.isBlank()) View.GONE else View.VISIBLE
+            } else {
+                metaText.text = context.getString(R.string.explorer_file_meta, count, item.modified)
+            }
+            
             selectionCheckBox.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
             selectionCheckBox.isChecked = isSelected
             moreButton.visibility = if (isSelectionMode) View.GONE else View.VISIBLE

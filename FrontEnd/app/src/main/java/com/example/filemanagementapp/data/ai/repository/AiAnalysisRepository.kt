@@ -84,12 +84,29 @@ class AiAnalysisRepository(
             return Result.failure(Exception(payload.error))
         }
 
-        val previewImagePath = payload.image_base64
-            ?.takeIf { it.isNotBlank() }
-            ?.let { savePreviewImage(username, fileName, it) }
         val cleanTexts = payload.texts
             .map { it.trim() }
             .filter { it.isNotBlank() }
+            
+        val base64 = payload.image_base64
+        val previewImagePath = if (!base64.isNullOrBlank()) {
+            try {
+                val targetDir = File(context.cacheDir, "ai-preview")
+                if (!targetDir.exists()) {
+                    targetDir.mkdirs()
+                }
+                val safeName = fileName.substringBeforeLast('.', fileName)
+                    .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                val targetFile = File(targetDir, "${safeName}_${UUID.randomUUID()}.jpg")
+                targetFile.writeBytes(Base64.decode(base64, Base64.DEFAULT))
+                targetFile.absolutePath
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+
         return Result.success(
             AiAnalysisResult(
                 texts = cleanTexts,
@@ -99,30 +116,12 @@ class AiAnalysisRepository(
         )
     }
 
-    private fun savePreviewImage(
-        username: String,
-        fileName: String,
-        imageBase64: String
-    ): String {
-        val targetDir = File(context.filesDir, "ai-preview/$username").apply {
-            mkdirs()
-        }
-        val safeName = fileName.substringBeforeLast('.', fileName)
-            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-        val targetFile = File(targetDir, "${safeName}_${UUID.randomUUID()}.jpg")
-        targetFile.writeBytes(Base64.decode(imageBase64, Base64.DEFAULT))
-        return targetFile.absolutePath
-    }
+
 
     private fun extractTags(texts: List<String>): List<String> {
-        return texts.asSequence()
-            .flatMap { line -> line.split(Regex("\\s+")).asSequence() }
-            .map { token -> token.replace(Regex("[^\\p{L}\\p{N}]"), "") }
-            .filter { token -> token.length >= 3 && token.any(Char::isLetter) }
-            .map { token -> token.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } }
-            .distinct()
-            .take(4)
-            .toList()
+        // Return empty list because OCR texts should not be treated as detected objects.
+        // Detected objects should only be populated by an Object Detection model (e.g. YOLO).
+        return emptyList()
     }
 }
 

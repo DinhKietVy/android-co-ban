@@ -239,7 +239,7 @@ class ExplorerRepository(
         val explorerItems = buildList {
             folders.forEach { folder ->
                 val folderName = folder.name.orEmpty()
-                if (folderName.isNotBlank() && !folderName.equals("trash", ignoreCase = true) && !folderName.equals(".trash", ignoreCase = true)) {
+                if (folderName.isNotBlank() && !folderName.equals("trash", ignoreCase = true) && !folderName.equals(".trash", ignoreCase = true) && !folderName.equals(".AI", ignoreCase = true) && !folderName.equals("AI", ignoreCase = true)) {
                     add(
                         ExplorerItem(
                             id = "folder:${joinPath(normalizedFolder, folderName)}",
@@ -408,7 +408,7 @@ class ExplorerRepository(
     }
 
     private fun buildStorageSummary(totalUsedBytes: Long): String {
-        return "Storage: ${formatSize(totalUsedBytes)} used"
+        return "${formatSize(totalUsedBytes)} used"
     }
 }
 

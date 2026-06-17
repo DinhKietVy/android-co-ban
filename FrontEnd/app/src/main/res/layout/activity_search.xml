@@ -29,6 +29,16 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="12dp"
+                    android:src="@drawable/arrow_left"
+                    android:tint="@color/search_text_primary" />
+
                 <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="56dp"
@@ -216,5 +226,19 @@
             </LinearLayout>
         </ScrollView>
     </LinearLayout>
+
+    <!-- Scrim for File Action Bottom Sheet -->
+    <View
+        android:id="@+id/fileActionScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/scrim_66"
+        android:clickable="true"
+        android:focusable="true"
+        android:elevation="15dp"
+        android:visibility="gone" />
+
+    <!-- File Action Bottom Sheet -->
+    <include layout="@layout/bottom_sheet_file_actions" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
