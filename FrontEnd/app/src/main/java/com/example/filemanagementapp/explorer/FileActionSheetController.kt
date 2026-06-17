@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.filemanagementapp.R
 import com.example.filemanagementapp.data.explorer.repository.ExplorerRepository
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import coil.load
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -59,10 +60,12 @@ class FileActionSheetController(
 
     private val bottomSheet: LinearLayout = rootView.findViewById(R.id.fileActionBottomSheet)
     private val bottomSheetFileIcon: ImageView = rootView.findViewById(R.id.bsFileIcon)
+    private val bottomSheetFilePreviewImage: ImageView = rootView.findViewById(R.id.bsFilePreviewImage)
     private val bottomSheetFileName: TextView = rootView.findViewById(R.id.bsFileName)
     private val bottomSheetFileMeta: TextView = rootView.findViewById(R.id.bsFileMeta)
     private val bottomSheetTagsContainer: LinearLayout = rootView.findViewById(R.id.bsAiTagsContainer)
     private val actionFavoriteLabel: TextView = rootView.findViewById(R.id.actionFavoriteLabel)
+    private val scrim: View? = rootView.findViewById(R.id.fileActionScrim)
 
     private val actionOpen: View = rootView.findViewById(R.id.actionOpen)
     private val actionDownload: View = rootView.findViewById(R.id.actionDownload)
@@ -83,12 +86,22 @@ class FileActionSheetController(
             override fun onStateChanged(sheet: View, newState: Int) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
                     sheet.visibility = View.GONE
+                    scrim?.visibility = View.GONE
+                } else {
+                    scrim?.visibility = View.VISIBLE
                 }
             }
 
-            override fun onSlide(sheet: View, slideOffset: Float) = Unit
+            override fun onSlide(sheet: View, slideOffset: Float) {
+                if (slideOffset > 0) {
+                    scrim?.alpha = slideOffset
+                } else if (slideOffset <= 0 && bottomSheetBehavior.state != BottomSheetBehavior.STATE_HIDDEN) {
+                    scrim?.alpha = 1f + slideOffset // Fade out if sliding down, but offset is negative
+                }
+            }
         })
 
+        scrim?.setOnClickListener { hide() }
         rootView.findViewById<ImageButton>(R.id.bsCloseButton).setOnClickListener { hide() }
 
         actionOpen.setOnClickListener { dispatch { callbacks.onOpen(it) } }
@@ -100,16 +113,31 @@ class FileActionSheetController(
         actionAi.setOnClickListener { dispatch { callbacks.onAnalyzeAi(it) } }
     }
 
-    fun show(item: ExplorerItem, config: ActionConfig) {
+    fun show(item: ExplorerItem, config: ActionConfig = ActionConfig()) {
         selectedItem = item
+
         bottomSheetFileName.text = item.name
         bottomSheetFileMeta.text = buildMeta(item)
-        bottomSheetFileIcon.setImageResource(
-            when (item.type) {
-                ExplorerItem.Type.FOLDER -> R.drawable.folder
-                ExplorerItem.Type.FILE -> item.fallbackIconRes ?: R.drawable.file_text
+        
+        if (item.isImagePreviewable && !item.previewUrl.isNullOrEmpty()) {
+            bottomSheetFilePreviewImage.load(item.previewUrl) {
+                crossfade(true)
+                listener(
+                    onSuccess = { _, _ -> bottomSheetFileIcon.visibility = View.GONE },
+                    onError = { _, _ -> bottomSheetFileIcon.visibility = View.VISIBLE }
+                )
             }
-        )
+        } else {
+            bottomSheetFilePreviewImage.setImageDrawable(null)
+            bottomSheetFileIcon.visibility = View.VISIBLE
+            bottomSheetFileIcon.setImageResource(
+                when (item.type) {
+                    ExplorerItem.Type.FOLDER -> R.drawable.folder
+                    ExplorerItem.Type.FILE -> item.fallbackIconRes ?: R.drawable.file_text
+                }
+            )
+        }
+        
         actionFavoriteLabel.setText(
             if (item.isFavorite) R.string.preview_action_unfavorite else R.string.preview_action_favorite
         )
@@ -122,7 +150,11 @@ class FileActionSheetController(
         actionDelete.visibility = if (config.showDelete) View.VISIBLE else View.GONE
         actionAi.visibility = if (config.showAi) View.VISIBLE else View.GONE
 
-        renderTags(item.tags)
+        bottomSheetTagsContainer.removeAllViews()
+        bottomSheetTagsContainer.visibility = View.GONE
+
+        scrim?.alpha = 0f
+        scrim?.visibility = View.VISIBLE
         bottomSheet.visibility = View.VISIBLE
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
     }

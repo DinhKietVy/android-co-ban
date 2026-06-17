@@ -26,6 +26,7 @@ import com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository
 import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
 import com.example.filemanagementapp.main.MainNavigationViewModel
 import com.example.filemanagementapp.preview.FilePreviewActivity
+import com.example.filemanagementapp.download.ExplorerDownloadService
 import kotlinx.coroutines.launch
 
 import com.example.filemanagementapp.explorer.ExplorerItem
@@ -43,6 +44,7 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var recentTabButton: TextView
     private lateinit var favoritesTabButton: TextView
     private lateinit var emptyStateContainer: View
+    private lateinit var explorerRepository: com.example.filemanagementapp.data.explorer.repository.ExplorerRepository
     private lateinit var actionSheetController: FileActionSheetController
 
     override fun onCreateView(
@@ -93,14 +95,16 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
         recentTabButton.setOnClickListener { viewModel.setTab(RecentTab.RECENT) }
         favoritesTabButton.setOnClickListener { viewModel.setTab(RecentTab.FAVORITES) }
 
+        explorerRepository = com.example.filemanagementapp.data.explorer.repository.ExplorerRepository(
+            appContext = requireContext().applicationContext,
+            explorerApiService = ExplorerNetworkModule.explorerApiService,
+            gson = ExplorerNetworkModule.gson
+        )
+
         actionSheetController = FileActionSheetController(
             rootView = view,
             lifecycleOwner = viewLifecycleOwner,
-            explorerRepository = com.example.filemanagementapp.data.explorer.repository.ExplorerRepository(
-                appContext = requireContext().applicationContext,
-                explorerApiService = ExplorerNetworkModule.explorerApiService,
-                gson = ExplorerNetworkModule.gson
-            ),
+            explorerRepository = explorerRepository,
             username = username,
             currentFolderProvider = { "" },
             callbacks = this
@@ -198,10 +202,10 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
             FileActionSheetController.ActionConfig(
                 showOpen = true,
                 showDownload = item.kind == RecentItem.Kind.FILE,
-                showRename = false, // Not fully supported in recent list yet
-                showMove = false,
+                showRename = true,
+                showMove = true,
                 showFavorite = true,
-                showDelete = false,
+                showDelete = true,
                 showAi = item.kind == RecentItem.Kind.FILE
             )
         )
@@ -215,23 +219,87 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     override fun onDownload(item: ExplorerItem) {
-        Toast.makeText(requireContext(), getString(R.string.recent_download_wip), Toast.LENGTH_SHORT).show()
+        val downloadUrl = item.previewUrl ?: return
+        ExplorerDownloadService.start(
+            context = requireContext(),
+            fileName = item.name,
+            downloadUrl = downloadUrl
+        )
+        Toast.makeText(requireContext(), R.string.explorer_download_started, Toast.LENGTH_SHORT).show()
     }
 
     override fun onRename(item: ExplorerItem, newName: String) {
-        Toast.makeText(requireContext(), getString(R.string.recent_rename_wip), Toast.LENGTH_SHORT).show()
+        viewLifecycleOwner.lifecycleScope.launch {
+            explorerRepository.renameItem(username, item, newName).onSuccess { message ->
+                val appDatabase = AppDatabase.getInstance(requireContext())
+                appDatabase.directoryCacheDao()
+                    .deleteByFolder(username, item.path.substringBeforeLast('/', ""))
+                    
+                val parentFolder = item.path.substringBeforeLast('/', "")
+                val newPath = if (parentFolder.isEmpty()) newName else "$parentFolder/$newName"
+                val isFolder = item.type == ExplorerItem.Type.FOLDER
+                
+                val favoriteLocalRepository = com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository(appDatabase.favoriteItemDao())
+                favoriteLocalRepository.updatePath(username, item.path, newPath, isFolder)
+                
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                viewModel.load()
+            }.onFailure { throwable ->
+                Toast.makeText(requireContext(), throwable.message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onMove(item: ExplorerItem, targetPath: String) {
-        Toast.makeText(requireContext(), getString(R.string.recent_move_wip), Toast.LENGTH_SHORT).show()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val normalizedTarget = targetPath.trim().trim('/')
+            explorerRepository.moveItem(username, item, normalizedTarget).onSuccess { message ->
+                val appDatabase = AppDatabase.getInstance(requireContext())
+                appDatabase.directoryCacheDao()
+                    .deleteByFolder(username, item.path.substringBeforeLast('/', ""))
+                    
+                val itemName = item.name
+                val newPath = if (normalizedTarget.isEmpty()) itemName else "$normalizedTarget/$itemName"
+                val isFolder = item.type == ExplorerItem.Type.FOLDER
+                
+                val favoriteLocalRepository = com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository(appDatabase.favoriteItemDao())
+                favoriteLocalRepository.updatePath(username, item.path, newPath, isFolder)
+                    
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                viewModel.load()
+            }.onFailure { throwable ->
+                Toast.makeText(requireContext(), throwable.message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onFavorite(item: ExplorerItem) {
-        Toast.makeText(requireContext(), getString(R.string.recent_favorite_wip), Toast.LENGTH_SHORT).show()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val repo = com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository(
+                AppDatabase.getInstance(requireContext()).favoriteItemDao()
+            )
+            val isFavorite = repo.toggleFavorite(username, item)
+            Toast.makeText(
+                requireContext(),
+                if (isFavorite) R.string.msg_added_favorites else R.string.msg_removed_favorites,
+                Toast.LENGTH_SHORT
+            ).show()
+            viewModel.load()
+        }
     }
 
     override fun onDelete(item: ExplorerItem) {
-        Toast.makeText(requireContext(), getString(R.string.recent_delete_wip), Toast.LENGTH_SHORT).show()
+        viewLifecycleOwner.lifecycleScope.launch {
+            explorerRepository.createFolder(username = username, targetPath = "", folderName = "trash")
+            explorerRepository.moveItem(username, item, "trash").onSuccess {
+                AppDatabase.getInstance(requireContext()).favoriteItemDao()
+                    .deleteByPath(username, item.path)
+                Toast.makeText(requireContext(), R.string.msg_moved_to_trash, Toast.LENGTH_SHORT).show()
+                viewModel.load()
+            }.onFailure { throwable ->
+                Toast.makeText(requireContext(), throwable.message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onAnalyzeAi(item: ExplorerItem) {

@@ -23,7 +23,7 @@ class TrashViewModel(
 
     fun loadTrash() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = rawExplorerItems.isEmpty(), errorMessage = null) }
             // Ensure trash exists
             repository.createFolder(username = username, targetPath = "", folderName = "trash")
             
@@ -117,7 +117,8 @@ class TrashViewModel(
             itemCount = itemCount,
             aiAnalyzed = false,
             aiTags = emptyList(),
-            ocrPreview = null
+            ocrPreview = null,
+            previewUrl = previewUrl
         )
     }
 

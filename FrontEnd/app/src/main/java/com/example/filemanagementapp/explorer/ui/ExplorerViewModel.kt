@@ -126,6 +126,16 @@ class ExplorerViewModel(
                         username = username,
                         folderPath = _uiState.value.currentFolder
                     )
+                    
+                    val parentFolder = item.path.substringBeforeLast('/', "")
+                    val newPath = if (parentFolder.isEmpty()) sanitizedName else "$parentFolder/$sanitizedName"
+                    favoriteLocalRepository.updatePath(
+                        username = username,
+                        oldPath = item.path,
+                        newPath = newPath,
+                        isFolder = item.type == ExplorerItem.Type.FOLDER
+                    )
+                    
                     emitMessage(UiText.DynamicString(message))
                     refreshCurrentDirectory()
                 }
@@ -199,6 +209,16 @@ class ExplorerViewModel(
                         username = username,
                         folderPath = _uiState.value.currentFolder
                     )
+                    
+                    val itemName = item.name
+                    val newPath = if (normalizedTarget.isEmpty()) itemName else "$normalizedTarget/$itemName"
+                    favoriteLocalRepository.updatePath(
+                        username = username,
+                        oldPath = item.path,
+                        newPath = newPath,
+                        isFolder = item.type == ExplorerItem.Type.FOLDER
+                    )
+                    
                     emitMessage(UiText.DynamicString(message))
                     refreshCurrentDirectory()
                 }
@@ -220,7 +240,7 @@ class ExplorerViewModel(
                         path = item.path,
                         isFolder = item.type == ExplorerItem.Type.FOLDER
                     )
-                    emitMessage(UiText.DynamicString(message))
+                    emitMessage(UiText.StringResource(R.string.msg_moved_to_trash))
                     refreshCurrentDirectory()
                 }
                 .onFailure { throwable ->
@@ -416,7 +436,7 @@ class ExplorerViewModel(
                 )
             }
             if (deletedCount > 0) {
-                emitMessage(UiText.StringResource(R.string.msg_deleted_items, deletedCount))
+                emitMessage(UiText.StringResource(R.string.msg_moved_multiple_to_trash, deletedCount))
             } else {
                 emitMessage(UiText.StringResource(R.string.error_cannot_delete_selected))
             }

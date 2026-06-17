@@ -15,7 +15,7 @@ import com.example.filemanagementapp.R
 import com.google.android.material.imageview.ShapeableImageView
 
 class ExplorerAdapter(
-    private val onFolderClick: (ExplorerItem) -> Unit,
+    private val onItemClick: (ExplorerItem) -> Unit,
     private val onMoreClick: (ExplorerItem) -> Unit,
     private val onItemSelectionToggle: (ExplorerItem) -> Unit,
     private val onItemLongPress: (ExplorerItem) -> Unit
@@ -54,7 +54,7 @@ class ExplorerAdapter(
                 item = items[position],
                 isSelectionMode = isSelectionMode,
                 isSelected = items[position].path in selectedPaths,
-                onFolderClick = onFolderClick,
+                onItemClick = onItemClick,
                 onMoreClick = onMoreClick,
                 onItemSelectionToggle = onItemSelectionToggle,
                 onItemLongPress = onItemLongPress
@@ -64,6 +64,7 @@ class ExplorerAdapter(
                 item = items[position],
                 isSelectionMode = isSelectionMode,
                 isSelected = items[position].path in selectedPaths,
+                onItemClick = onItemClick,
                 onMoreClick = onMoreClick,
                 onItemSelectionToggle = onItemSelectionToggle,
                 onItemLongPress = onItemLongPress
@@ -96,7 +97,7 @@ class ExplorerAdapter(
             item: ExplorerItem,
             isSelectionMode: Boolean,
             isSelected: Boolean,
-            onFolderClick: (ExplorerItem) -> Unit,
+            onItemClick: (ExplorerItem) -> Unit,
             onMoreClick: (ExplorerItem) -> Unit,
             onItemSelectionToggle: (ExplorerItem) -> Unit,
             onItemLongPress: (ExplorerItem) -> Unit
@@ -114,7 +115,7 @@ class ExplorerAdapter(
                 if (isSelectionMode) {
                     onItemSelectionToggle(item)
                 } else {
-                    onFolderClick(item)
+                    onItemClick(item)
                 }
             }
             itemView.setOnLongClickListener {
@@ -142,6 +143,7 @@ class ExplorerAdapter(
             item: ExplorerItem,
             isSelectionMode: Boolean,
             isSelected: Boolean,
+            onItemClick: (ExplorerItem) -> Unit,
             onMoreClick: (ExplorerItem) -> Unit,
             onItemSelectionToggle: (ExplorerItem) -> Unit,
             onItemLongPress: (ExplorerItem) -> Unit
@@ -194,6 +196,8 @@ class ExplorerAdapter(
             itemView.setOnClickListener {
                 if (isSelectionMode) {
                     onItemSelectionToggle(item)
+                } else {
+                    onItemClick(item)
                 }
             }
             itemView.setOnLongClickListener {

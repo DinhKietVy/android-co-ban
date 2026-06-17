@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.filemanagementapp.R
 import com.google.android.material.imageview.ShapeableImageView
+import coil.load
 
 class TrashAdapter(
     private var items: List<TrashItemModel>,
@@ -69,9 +70,21 @@ class TrashAdapter(
             )
             selectButton.setOnClickListener { onToggleSelect(item.id) }
 
-            previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
-            fallbackIcon.visibility = View.VISIBLE
-            fallbackIcon.setImageResource(iconFor(item.type))
+            if (item.type == TrashItemModel.Type.IMAGE && !item.previewUrl.isNullOrEmpty()) {
+                previewImage.load(item.previewUrl) {
+                    crossfade(true)
+                    placeholder(R.drawable.explorer_file_preview_placeholder)
+                    error(R.drawable.explorer_file_preview_placeholder)
+                    listener(
+                        onSuccess = { _, _ -> fallbackIcon.visibility = View.GONE },
+                        onError = { _, _ -> fallbackIcon.visibility = View.VISIBLE }
+                    )
+                }
+            } else {
+                previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
+                fallbackIcon.visibility = View.VISIBLE
+                fallbackIcon.setImageResource(iconFor(item.type))
+            }
 
             itemNameText.text = item.name
             itemMetaText.text = if (item.type == TrashItemModel.Type.FOLDER) {

@@ -171,7 +171,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 aiAnalysisRepository = AiAnalysisRepository(
                     context = requireContext().applicationContext,
                     aiApiService = AiNetworkModule.aiApiService,
-                    okHttpClient = AiNetworkModule.okHttpClient,
+                    okHttpClient = ExplorerNetworkModule.okHttpClient,
                     gson = AiNetworkModule.gson
                 ),
                 aiAnalysisLocalRepository = AiAnalysisLocalRepository(
@@ -232,7 +232,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         breadcrumbRecyclerView.adapter = breadcrumbAdapter
 
         explorerAdapter = ExplorerAdapter(
-            onFolderClick = { item -> viewModel.loadDirectory(item.path) },
+            onItemClick = { item -> onOpen(item) },
             onMoreClick = { item -> 
                 actionSheetController.show(
                     item = item,

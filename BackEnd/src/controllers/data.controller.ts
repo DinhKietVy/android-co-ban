@@ -431,6 +431,27 @@ export const listDirectory = (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một thư mục' });
     }
 
+    // Hàm đệ quy tính tổng dung lượng của toàn bộ thư mục user
+    const getTotalSize = (dirPath: string): number => {
+      let totalSize = 0;
+      try {
+        const dirItems = fs.readdirSync(dirPath, { withFileTypes: true });
+        for (const dirItem of dirItems) {
+          const childPath = path.join(dirPath, dirItem.name);
+          if (dirItem.isDirectory()) {
+            totalSize += getTotalSize(childPath);
+          } else if (dirItem.isFile()) {
+            try {
+              totalSize += fs.statSync(childPath).size;
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
+      return totalSize;
+    };
+
+    const totalUsedBytes = getTotalSize(userRootPath);
+
     // Đọc danh sách các mục bên trong thư mục
     const items = fs.readdirSync(absoluteFolderPath, { withFileTypes: true });
 
@@ -443,8 +464,17 @@ export const listDirectory = (req: Request, res: Response) => {
         const stats = fs.statSync(itemPath);
 
         if (item.isDirectory()) {
+          // Tính số lượng mục con ngay bên trong thư mục này
+          let itemCount = 0;
+          try {
+            itemCount = fs.readdirSync(itemPath).length;
+          } catch (e) {
+            // Bỏ qua nếu không có quyền đọc
+          }
+
           folders.push({
             name: item.name,
+            itemCount: itemCount,
             createdAt: stats.birthtime,
             modifiedAt: stats.mtime
           });
@@ -466,6 +496,7 @@ export const listDirectory = (req: Request, res: Response) => {
       data: {
         username,
         currentFolder: folderPath,
+        totalUsedBytes,
         folders,
         files
       }
