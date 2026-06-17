@@ -274,7 +274,7 @@
     <string name="preview_action_move">Di chuyển tới…</string>
     <string name="preview_action_favorite">Thêm vào yêu thích</string>
     <string name="preview_action_unfavorite">Xóa khỏi yêu thích</string>
-    <string name="preview_action_ai">Phân tích lại bằng AI</string>
+    <string name="preview_action_ai">Phân tích bằng AI</string>
     <string name="preview_action_delete">Xóa</string>
     <string name="explorer_dialog_rename_title">Đổi tên mục</string>
     <string name="explorer_dialog_rename_hint">Tên mới</string>

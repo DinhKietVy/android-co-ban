@@ -107,6 +107,10 @@ class SearchViewModel(
         category: String,
         sort: Sort
     ): List<SearchItem> {
+        if (query.isBlank()) {
+            return emptyList()
+        }
+
         val filtered = items.filter { item ->
             val matchesQuery = query.isBlank() ||
                 item.name.contains(query, ignoreCase = true) ||
@@ -127,11 +131,18 @@ class SearchViewModel(
             matchesQuery && matchesCategory
         }
 
-        return when (sort) {
-            Sort.NAME -> filtered.sortedBy { it.name }
-            Sort.DATE -> filtered.sortedByDescending { it.date }
-            Sort.SIZE -> filtered.sortedByDescending { it.modifiedEpochMillis } // Sort by size might need byte parsing, we'll sort by size string length or epoch as fallback, wait, actually let's sort by size
+        val folders = filtered.filter { it.rawItem.type == com.example.filemanagementapp.explorer.ExplorerItem.Type.FOLDER }
+        val files = filtered.filter { it.rawItem.type == com.example.filemanagementapp.explorer.ExplorerItem.Type.FILE }
+        
+        fun sortItems(list: List<SearchItem>): List<SearchItem> {
+            return when (sort) {
+                Sort.NAME -> list.sortedBy { it.name.lowercase() }
+                Sort.DATE -> list.sortedByDescending { it.rawItem.modifiedEpochMillis ?: 0L }
+                Sort.SIZE -> list.sortedByDescending { it.rawItem.sizeBytes ?: 0L }
+            }
         }
+        
+        return sortItems(folders) + sortItems(files)
     }
 
     @Suppress("UNCHECKED_CAST")

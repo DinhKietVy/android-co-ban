@@ -474,7 +474,9 @@ class ExplorerViewModel(
                         modelSource = "predict-image"
                     )
                 )
-                val mergedTags = (item.tags + result.tags)
+                val fileExtensionTag = item.name.substringAfterLast('.', "").trim().uppercase()
+                val originalTags = if (fileExtensionTag.isNotBlank()) listOf(fileExtensionTag) else emptyList()
+                val mergedTags = (originalTags + result.tags)
                     .map { tag -> tag.trim() }
                     .filter { tag -> tag.isNotBlank() }
                     .distinct()
@@ -485,6 +487,7 @@ class ExplorerViewModel(
                                 aiAnalyzed = true,
                                 tags = mergedTags,
                                 ocrSnippet = result.texts.joinToString(separator = "\n"),
+                                analyzedImagePath = result.previewImagePath,
                                 isFavorite = item.isFavorite
                             )
                         } else {
@@ -497,6 +500,7 @@ class ExplorerViewModel(
                                 aiAnalyzed = true,
                                 tags = mergedTags,
                                 ocrSnippet = result.texts.joinToString(separator = "\n"),
+                                analyzedImagePath = result.previewImagePath,
                                 isFavorite = item.isFavorite
                             )
                         } else {
@@ -560,6 +564,7 @@ class ExplorerViewModel(
                     aiAnalyzed = analysis.status == AiAnalysisStatus.COMPLETED,
                     tags = mergedTags,
                     ocrSnippet = analysis.ocrText,
+                    analyzedImagePath = analysis.previewImagePath,
                     isFavorite = item.path in favoritePaths
                 )
             } else {

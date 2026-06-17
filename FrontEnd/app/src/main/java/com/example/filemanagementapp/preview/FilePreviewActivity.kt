@@ -64,6 +64,7 @@ class FilePreviewActivity : AppCompatActivity() {
     private lateinit var previewInfoSizeValue: TextView
     private lateinit var previewInfoUploadedValue: TextView
     private lateinit var previewInfoModifiedValue: TextView
+    private lateinit var showProcessedImageSwitch: androidx.appcompat.widget.SwitchCompat
 
     private lateinit var explorerRepository: ExplorerRepository
     private var explorerItem: ExplorerItem? = null
@@ -123,6 +124,7 @@ class FilePreviewActivity : AppCompatActivity() {
         previewInfoSizeValue = findViewById(R.id.previewInfoSizeValue)
         previewInfoUploadedValue = findViewById(R.id.previewInfoUploadedValue)
         previewInfoModifiedValue = findViewById(R.id.previewInfoModifiedValue)
+        showProcessedImageSwitch = findViewById(R.id.showProcessedImageSwitch)
     }
 
     private fun setupImagePreview() {
@@ -142,10 +144,7 @@ class FilePreviewActivity : AppCompatActivity() {
         previewInfoUploadedValue.text = modified
         previewInfoModifiedValue.text = modified
 
-        val resolvedPreviewSource = analyzedImagePath
-            ?.takeIf { it.isNotBlank() }
-            ?.let { Uri.fromFile(File(it)) }
-            ?: previewUrl?.let { Uri.parse(it) }
+        val originalPreviewSource = previewUrl?.let { Uri.parse(it) }
 
         val extension = fileName.substringAfterLast('.', "").lowercase()
         val isImage = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
@@ -158,15 +157,30 @@ class FilePreviewActivity : AppCompatActivity() {
         previewTextScroll.visibility = View.GONE
         previewUnsupported.visibility = View.GONE
 
-        if (isImage || (extension.isBlank() && resolvedPreviewSource != null)) {
+        showProcessedImageSwitch.isEnabled = (isImage || (extension.isBlank() && originalPreviewSource != null)) && !analyzedImagePath.isNullOrEmpty()
+
+        if (isImage || (extension.isBlank() && originalPreviewSource != null)) {
             previewImage.visibility = View.VISIBLE
-            if (resolvedPreviewSource == null) {
-                previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
-            } else {
-                previewImage.load(resolvedPreviewSource) {
-                    crossfade(true)
-                    placeholder(R.drawable.explorer_file_preview_placeholder)
-                    error(R.drawable.explorer_file_preview_placeholder)
+            
+            fun loadImage(sourceUri: Uri?) {
+                if (sourceUri == null) {
+                    previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
+                } else {
+                    previewImage.load(sourceUri) {
+                        crossfade(true)
+                        placeholder(R.drawable.explorer_file_preview_placeholder)
+                        error(R.drawable.explorer_file_preview_placeholder)
+                    }
+                }
+            }
+            
+            loadImage(originalPreviewSource)
+            
+            showProcessedImageSwitch.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked && !analyzedImagePath.isNullOrEmpty()) {
+                    loadImage(Uri.fromFile(java.io.File(analyzedImagePath)))
+                } else {
+                    loadImage(originalPreviewSource)
                 }
             }
         } else if (isVideo || isAudio) {
@@ -174,8 +188,8 @@ class FilePreviewActivity : AppCompatActivity() {
             val mediaController = android.widget.MediaController(this)
             mediaController.setAnchorView(previewVideo)
             previewVideo.setMediaController(mediaController)
-            if (resolvedPreviewSource != null) {
-                previewVideo.setVideoURI(resolvedPreviewSource)
+            if (originalPreviewSource != null) {
+                previewVideo.setVideoURI(originalPreviewSource)
                 previewVideo.setOnPreparedListener { it.start() }
             }
         } else if (isText) {

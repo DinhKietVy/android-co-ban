@@ -20,6 +20,7 @@ data class ExplorerItem(
     val tags: List<String> = emptyList(),
     val aiAnalyzed: Boolean = false,
     val ocrSnippet: String? = null,
+    val analyzedImagePath: String? = null,
     val isFavorite: Boolean = false
 ) : Serializable {
     enum class Type {

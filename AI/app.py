@@ -143,7 +143,7 @@ async def predict_image(username: str = Form(...), file: UploadFile = File(...))
     # Ensure user's AI directory exists in backend data using relative path
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     backend_data_dir = os.path.join(base_dir, "BackEnd", "data")
-    user_ai_dir = os.path.join(backend_data_dir, username, "AI")
+    user_ai_dir = os.path.join(backend_data_dir, username, ".AI")
     os.makedirs(user_ai_dir, exist_ok=True)
     
     output_path = os.path.join(user_ai_dir, f"fixed_{file.filename}")

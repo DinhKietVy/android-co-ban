@@ -278,7 +278,7 @@
     <string name="preview_action_move">Move to…</string>
     <string name="preview_action_favorite">Add to Favorites</string>
     <string name="preview_action_unfavorite">Remove from Favorites</string>
-    <string name="preview_action_ai">Re-analyze with AI</string>
+    <string name="preview_action_ai">Analyze with AI</string>
     <string name="preview_action_delete">Delete</string>
 
     <string name="preview_open_externally">Mở bằng ứng dụng khác</string>

@@ -130,6 +130,17 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         }
     }
     
+    private val searchActivityLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val folderPath = result.data?.getStringExtra(com.example.filemanagementapp.search.SearchActivity.EXTRA_RESULT_FOLDER_PATH)
+            if (folderPath != null) {
+                viewModel.loadDirectory(folderPath)
+            }
+        }
+    }
+    
     private val previewLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -261,7 +272,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             viewModel.loadRootDirectory()
         }
         headerSearchButton.setOnClickListener {
-            startActivity(SearchActivity.newIntent(requireContext()))
+            searchActivityLauncher.launch(SearchActivity.newIntent(requireContext(), username))
         }
         headerMoreButton.setOnClickListener {
             showOverflowMenu(it, viewModel.uiState.value)
@@ -502,9 +513,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 context = requireContext(),
                 item = item,
                 username = username,
-                analyzedImagePath = null,
-                ocrText = null,
-                aiTags = emptyList(),
+                analyzedImagePath = item.analyzedImagePath,
+                ocrText = item.ocrSnippet,
+                aiTags = item.tags,
                 showAiPanel = showAiPanel
             )
         )
