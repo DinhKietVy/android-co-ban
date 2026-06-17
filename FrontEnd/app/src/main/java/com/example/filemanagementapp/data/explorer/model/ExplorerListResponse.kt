@@ -10,12 +10,14 @@ data class ExplorerListResponse(
 data class ExplorerDirectoryPayload(
     val username: String? = null,
     val currentFolder: String? = null,
+    val totalUsedBytes: Long? = null,
     val folders: List<ExplorerFolderDto> = emptyList(),
     val files: List<ExplorerFileDto> = emptyList()
 )
 
 data class ExplorerFolderDto(
     val name: String? = null,
+    val itemCount: Int? = null,
     val createdAt: String? = null,
     val modifiedAt: String? = null
 )

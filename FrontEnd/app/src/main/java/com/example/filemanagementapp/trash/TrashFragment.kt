@@ -164,8 +164,13 @@ class TrashFragment : Fragment() {
                 }
             }
         }
-        
-        viewModel.loadTrash()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::viewModel.isInitialized) {
+            viewModel.loadTrash()
+        }
     }
 
     private fun showSortMenu(anchor: View) {

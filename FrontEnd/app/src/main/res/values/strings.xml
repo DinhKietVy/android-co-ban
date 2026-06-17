@@ -57,6 +57,8 @@
     <string name="error_cannot_move_selected">Cannot move selected items</string>
     <string name="error_cannot_delete_selected">Cannot delete selected items</string>
     <string name="msg_moved_items">Moved %1$d items</string>
+    <string name="msg_moved_to_trash">Moved to trash successfully</string>
+    <string name="msg_moved_multiple_to_trash">Moved %1$d items to trash</string>
     <string name="msg_deleted_items">Deleted %1$d items</string>
     <string name="error_ai_only_file">AI analysis is only supported for files</string>
     <string name="error_ai_no_file_path">File path not found for AI analysis</string>

@@ -91,13 +91,11 @@ class FilePreviewActivity : AppCompatActivity() {
         bindViews()
         setupImagePreview()
         setupActions()
-        showPanel(
-            if (intent.getBooleanExtra(EXTRA_SHOW_AI_PANEL, false)) {
-                Panel.AI_ANALYSIS
-            } else {
-                Panel.FILE_INFO
-            }
-        )
+        if (intent.getBooleanExtra(EXTRA_SHOW_AI_PANEL, false)) {
+            showPanel(Panel.AI_ANALYSIS)
+        } else {
+            hidePanel()
+        }
     }
 
     private fun bindViews() {

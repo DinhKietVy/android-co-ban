@@ -246,6 +246,7 @@ class ExplorerRepository(
                             name = folderName,
                             path = joinPath(normalizedFolder, folderName),
                             type = ExplorerItem.Type.FOLDER,
+                            itemCount = folder.itemCount,
                             modified = formatDate(folder.modifiedAt),
                             modifiedEpochMillis = parseEpochMillis(folder.modifiedAt)
                         )
@@ -278,8 +279,7 @@ class ExplorerRepository(
         return ExplorerDirectoryData(
             currentFolder = normalizedFolder,
             storageSummary = buildStorageSummary(
-                totalFileBytes = explorerItems.sumOf { it.sizeBytes ?: 0L },
-                totalItems = explorerItems.size
+                totalUsedBytes = totalUsedBytes ?: 0L
             ),
             breadcrumbs = buildBreadcrumbs(normalizedFolder),
             items = explorerItems
@@ -407,9 +407,8 @@ class ExplorerRepository(
         return listOf(extension.uppercase())
     }
 
-    private fun buildStorageSummary(totalFileBytes: Long, totalItems: Int): String {
-        val sizeText = formatSize(totalFileBytes)
-        return "$sizeText across $totalItems items"
+    private fun buildStorageSummary(totalUsedBytes: Long): String {
+        return "Storage: ${formatSize(totalUsedBytes)} used"
     }
 }
 

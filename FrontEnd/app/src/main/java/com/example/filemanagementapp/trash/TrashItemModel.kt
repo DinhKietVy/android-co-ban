@@ -10,7 +10,8 @@ data class TrashItemModel(
     val itemCount: Int? = null,
     val aiAnalyzed: Boolean = false,
     val aiTags: List<String> = emptyList(),
-    val ocrPreview: String? = null
+    val ocrPreview: String? = null,
+    val previewUrl: String? = null
 ) {
     enum class Type {
         FOLDER,

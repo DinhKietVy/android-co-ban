@@ -44,6 +44,13 @@
                 android:layout_gravity="center"
                 android:src="@drawable/file_text"
                 android:tint="@color/explorer_primary" />
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/bsFilePreviewImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium" />
         </FrameLayout>
 
         <LinearLayout
@@ -113,7 +120,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingTop="8dp"
-            android:paddingBottom="12dp">
+            android:paddingBottom="32dp">
 
             <!-- Open -->
             <LinearLayout
