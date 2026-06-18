@@ -73,9 +73,15 @@ class TrashFragment : Fragment() {
             gson = ExplorerNetworkModule.gson
         )
         
+        val appDatabase = com.example.filemanagementapp.data.local.AppDatabase.getInstance(requireContext().applicationContext)
+        val aiAnalysisLocalRepository = com.example.filemanagementapp.data.local.ai.AiAnalysisLocalRepository(
+            appDatabase.aiAnalysisCacheDao(),
+            ExplorerNetworkModule.gson
+        )
+        
         viewModel = ViewModelProvider(
             this,
-            TrashViewModel.Factory(username, explorerRepository)
+            TrashViewModel.Factory(username, explorerRepository, aiAnalysisLocalRepository)
         )[TrashViewModel::class.java]
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.trashRecyclerView)
@@ -101,18 +107,14 @@ class TrashFragment : Fragment() {
         recyclerView.adapter = adapter
 
         view.findViewById<View>(R.id.restoreSelectedButton).setOnClickListener {
-            val count = selectedIds.size
             viewModel.restoreItems(selectedIds.toSet())
             selectedIds.clear()
             renderSelectionState()
-            Toast.makeText(requireContext(), getString(R.string.trash_bulk_restored, count), Toast.LENGTH_SHORT).show()
         }
         view.findViewById<View>(R.id.deleteSelectedButton).setOnClickListener {
-            val count = selectedIds.size
             viewModel.deleteItemsForever(selectedIds.toSet())
             selectedIds.clear()
             renderSelectionState()
-            Toast.makeText(requireContext(), getString(R.string.trash_bulk_deleted, count), Toast.LENGTH_SHORT).show()
         }
         view.findViewById<View>(R.id.closeSelectionButton)?.setOnClickListener {
             selectedIds.clear()
@@ -158,9 +160,16 @@ class TrashFragment : Fragment() {
         })
 
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    renderState(state)
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.uiState.collect { state ->
+                        renderState(state)
+                    }
+                }
+                launch {
+                    viewModel.uiEvent.collect { event ->
+                        Toast.makeText(requireContext(), event, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }

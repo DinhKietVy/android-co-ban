@@ -129,11 +129,20 @@ class ExplorerViewModel(
                     
                     val parentFolder = item.path.substringBeforeLast('/', "")
                     val newPath = if (parentFolder.isEmpty()) sanitizedName else "$parentFolder/$sanitizedName"
+                    val isFolder = item.type == ExplorerItem.Type.FOLDER
+                    
                     favoriteLocalRepository.updatePath(
                         username = username,
                         oldPath = item.path,
                         newPath = newPath,
-                        isFolder = item.type == ExplorerItem.Type.FOLDER
+                        isFolder = isFolder
+                    )
+                    
+                    aiAnalysisLocalRepository.updatePath(
+                        username = username,
+                        oldPath = item.path,
+                        newPath = newPath,
+                        isFolder = isFolder
                     )
                     
                     emitMessage(UiText.DynamicString(message))
@@ -560,17 +569,49 @@ class ExplorerViewModel(
                     .map { tag -> tag.trim() }
                     .filter { tag -> tag.isNotBlank() }
                     .distinct()
+                    
+                var finalSizeBytes = item.sizeBytes
+                var finalSizeStr = item.size
+                if (analysis.previewImagePath != null) {
+                    val file = java.io.File(analysis.previewImagePath)
+                    if (file.exists()) {
+                        finalSizeBytes = (finalSizeBytes ?: 0L) + file.length()
+                        finalSizeStr = formatSize(finalSizeBytes)
+                    }
+                }
+
                 item.copy(
                     aiAnalyzed = analysis.status == AiAnalysisStatus.COMPLETED,
                     tags = mergedTags,
                     ocrSnippet = analysis.ocrText,
                     analyzedImagePath = analysis.previewImagePath,
-                    isFavorite = item.path in favoritePaths
+                    isFavorite = item.path in favoritePaths,
+                    sizeBytes = finalSizeBytes,
+                    size = finalSizeStr
                 )
             } else {
                 item.copy(isFavorite = item.path in favoritePaths)
             }
         }
+    }
+
+    private fun formatSize(sizeInBytes: Long): String {
+        if (sizeInBytes < 1024) return "$sizeInBytes B"
+
+        val units = arrayOf("KB", "MB", "GB", "TB")
+        var value = sizeInBytes.toDouble()
+        var unitIndex = -1
+        while (value >= 1024 && unitIndex < units.lastIndex) {
+            value /= 1024
+            unitIndex++
+        }
+
+        val formatted = if (value >= 10 || value % 1.0 == 0.0) {
+            value.toInt().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", value)
+        }
+        return "$formatted ${units[unitIndex]}"
     }
 
     private fun applyDirectoryState(

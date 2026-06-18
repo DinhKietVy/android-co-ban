@@ -139,7 +139,12 @@ class FileActionSheetController(
         }
         
         actionFavoriteLabel.setText(
-            if (item.isFavorite) R.string.preview_action_unfavorite else R.string.preview_action_favorite
+            if (item.isFavorite) R.string.preview_action_unfavorite else R.string.action_favorite
+        )
+        
+        val actionAiLabel: TextView = rootView.findViewById(R.id.actionAiLabel)
+        actionAiLabel.setText(
+            if (item.aiAnalyzed) R.string.action_reanalyze_ai else R.string.action_analyze_ai
         )
 
         actionOpen.visibility = if (config.showOpen) View.VISIBLE else View.GONE
@@ -184,15 +189,22 @@ class FileActionSheetController(
         val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
         
         inputLayout.hint = context.getString(R.string.explorer_dialog_rename_hint)
-        input.setText(item.name)
-        input.setSelection(item.name.length)
+        val isFile = item.type == ExplorerItem.Type.FILE
+        val nameWithoutExt = if (isFile) item.name.substringBeforeLast('.', item.name) else item.name
+        val extension = if (isFile && item.name.contains('.')) "." + item.name.substringAfterLast('.', "") else ""
+        
+        input.setText(nameWithoutExt)
+        input.setSelection(nameWithoutExt.length)
 
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.explorer_dialog_rename_title)
             .setView(view)
             .setNegativeButton(R.string.explorer_dialog_cancel, null)
             .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
-                callbacks.onRename(item, input.text?.toString().orEmpty())
+                val newNameInput = input.text?.toString().orEmpty()
+                if (newNameInput.isBlank()) return@setPositiveButton
+                val newName = newNameInput + extension
+                callbacks.onRename(item, newName)
             }
             .show()
     }

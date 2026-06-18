@@ -95,12 +95,12 @@ class ProfileFragment : Fragment() {
                     }
                     
                     if (state.storage != null) {
-                        view.findViewById<TextView>(R.id.tvStorageTotal).text = getString(R.string.profile_storage_format, state.storage.usedGb)
+                        view.findViewById<TextView>(R.id.tvStorageTotal).text = state.storage.usedFormatted
                         
-                        view.findViewById<View>(R.id.storageItemImages).findViewById<TextView>(R.id.tvStorageSize).text = getString(R.string.profile_storage_format, state.storage.imagesGb)
-                        view.findViewById<View>(R.id.storageItemDocuments).findViewById<TextView>(R.id.tvStorageSize).text = getString(R.string.profile_storage_format, state.storage.documentsGb)
-                        view.findViewById<View>(R.id.storageItemVideos).findViewById<TextView>(R.id.tvStorageSize).text = getString(R.string.profile_storage_format, state.storage.videosGb)
-                        view.findViewById<View>(R.id.storageItemOther).findViewById<TextView>(R.id.tvStorageSize).text = getString(R.string.profile_storage_format, state.storage.otherGb)
+                        view.findViewById<View>(R.id.storageItemImages).findViewById<TextView>(R.id.tvStorageSize).text = state.storage.imagesFormatted
+                        view.findViewById<View>(R.id.storageItemDocuments).findViewById<TextView>(R.id.tvStorageSize).text = state.storage.documentsFormatted
+                        view.findViewById<View>(R.id.storageItemVideos).findViewById<TextView>(R.id.tvStorageSize).text = state.storage.videosFormatted
+                        view.findViewById<View>(R.id.storageItemOther).findViewById<TextView>(R.id.tvStorageSize).text = state.storage.otherFormatted
                     }
 
                     val aiSettings = state.aiSettings

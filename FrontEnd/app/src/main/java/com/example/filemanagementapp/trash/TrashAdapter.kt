@@ -12,6 +12,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.filemanagementapp.R
 import com.google.android.material.imageview.ShapeableImageView
 import coil.load
+import coil.clear
+import coil.dispose
 
 class TrashAdapter(
     private var items: List<TrashItemModel>,
@@ -81,6 +83,7 @@ class TrashAdapter(
                     )
                 }
             } else {
+                previewImage.dispose()
                 previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
                 fallbackIcon.visibility = View.VISIBLE
                 fallbackIcon.setImageResource(iconFor(item.type))

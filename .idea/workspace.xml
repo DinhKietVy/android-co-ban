@@ -5,10 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c799f538-d6f4-4cd4-b0fe-d1c238691f5b" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/data/explorer/repository/ExplorerRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/data/explorer/repository/ExplorerRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/explorer/ExplorerFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/explorer/ExplorerFragment.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/search/SearchActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/search/SearchActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_search.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_search.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/preview/FilePreviewActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/java/com/example/filemanagementapp/preview/FilePreviewActivity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_file_preview.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/layout/activity_file_preview.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/values-vi/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/values-vi/strings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FrontEnd/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/FrontEnd/app/src/main/res/values/strings.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -83,6 +84,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
+    "copilot.chat.legacySessionMetadata.migrated": "true",
     "git-widget-placeholder": "android",
     "kotlin-language-version-configured": "true",
     "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
