@@ -266,6 +266,7 @@
     <string name="preview_info_modified">Modified</string>
     <string name="preview_badge_ai">AI Analyzed</string>
     <string name="preview_badge_ocr">OCR Ready</string>
+    <string name="preview_copy_success">Text copied to clipboard</string>
     <string name="preview_badge_detected">Objects Detected</string>
     <string name="preview_extracted_text">Extracted Text</string>
     <string name="preview_detected_objects">Detected Objects</string>
@@ -279,6 +280,7 @@
     <string name="preview_action_favorite">Add to Favorites</string>
     <string name="preview_action_unfavorite">Remove from Favorites</string>
     <string name="preview_action_ai">Analyze with AI</string>
+    <string name="preview_action_reanalyze_ai">Re-analyze with AI</string>
     <string name="preview_action_delete">Delete</string>
 
     <string name="preview_open_externally">Mở bằng ứng dụng khác</string>
@@ -448,6 +450,7 @@
     <string name="action_favorite">Favorite</string>
     <string name="action_delete">Delete</string>
     <string name="action_analyze_ai">Analyze with AI</string>
+    <string name="action_reanalyze_ai">Re-analyze with AI</string>
     <string name="action_ai_badge">AI</string>
 
     <!-- Explorer module - additional -->

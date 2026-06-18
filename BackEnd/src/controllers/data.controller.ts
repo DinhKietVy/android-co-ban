@@ -175,33 +175,72 @@ export const moveFile = (req: Request, res: Response) => {
       return res.status(404).json({ error: 'File nguồn không tồn tại' });
     }
 
-    // Kiểm tra đường dẫn thư mục đích
-    const absoluteTargetFolderPath = path.resolve(userRootPath, targetFolderPath);
-    if (!absoluteTargetFolderPath.startsWith(userRootPath)) {
-      return res.status(403).json({ error: 'Đường dẫn thư mục đích không hợp lệ' });
+    let absoluteTargetFolderPath = path.resolve(userRootPath, targetFolderPath);
+    let fileName = path.basename(absoluteSourcePath);
+    let newFilePath = '';
+    let metaFilePath = '';
+
+    if (targetFolderPath === "RESTORE" && sourceFilePath.startsWith("trash")) {
+      // Khôi phục từ thùng rác
+      metaFilePath = absoluteSourcePath + '.meta.json';
+      if (fs.existsSync(metaFilePath)) {
+        const meta = JSON.parse(fs.readFileSync(metaFilePath, 'utf8'));
+        const originalPathMeta = meta.originalPath;
+        absoluteTargetFolderPath = path.resolve(userRootPath, path.dirname(originalPathMeta));
+        fileName = path.basename(originalPathMeta);
+      } else {
+        // Fallback về thư mục gốc nếu không có metadata
+        absoluteTargetFolderPath = userRootPath;
+        fileName = fileName.replace(/^\d{13}_/, '');
+      }
+
+      if (!fs.existsSync(absoluteTargetFolderPath)) {
+        fs.mkdirSync(absoluteTargetFolderPath, { recursive: true });
+      }
+      newFilePath = path.join(absoluteTargetFolderPath, fileName);
+
+      // Chống trùng lặp khi khôi phục
+      let counter = 1;
+      const ext = path.extname(fileName);
+      const base = path.basename(fileName, ext);
+      while (fs.existsSync(newFilePath)) {
+        newFilePath = path.join(absoluteTargetFolderPath, `${base} (${counter})${ext}`);
+        counter++;
+      }
+    } else {
+      // Di chuyển thông thường hoặc vào trash
+      if (!absoluteTargetFolderPath.startsWith(userRootPath)) {
+        return res.status(403).json({ error: 'Đường dẫn thư mục đích không hợp lệ' });
+      }
+
+      if (!fs.existsSync(absoluteTargetFolderPath) || !fs.statSync(absoluteTargetFolderPath).isDirectory()) {
+        return res.status(404).json({ error: 'Thư mục đích không tồn tại' });
+      }
+
+      if (targetFolderPath === "trash") {
+        fileName = `${Date.now()}_${fileName}`;
+      }
+      newFilePath = path.join(absoluteTargetFolderPath, fileName);
+
+      if (fs.existsSync(newFilePath)) {
+        return res.status(400).json({ error: 'Đã có file cùng tên tại thư mục đích' });
+      }
     }
 
-    if (!fs.existsSync(absoluteTargetFolderPath) || !fs.statSync(absoluteTargetFolderPath).isDirectory()) {
-      return res.status(404).json({ error: 'Thư mục đích không tồn tại' });
-    }
-
-    // Đường dẫn file mới
-    const fileName = path.basename(absoluteSourcePath);
-    const newFilePath = path.join(absoluteTargetFolderPath, fileName);
-
-    // Kiểm tra trùng lặp tại thư mục đích
-    if (fs.existsSync(newFilePath)) {
-      return res.status(400).json({ error: 'Đã có file cùng tên tại thư mục đích' });
-    }
-
-    // Di chuyển file
     fs.renameSync(absoluteSourcePath, newFilePath);
 
+    // Xử lý metadata
+    if (targetFolderPath === "trash") {
+      fs.writeFileSync(newFilePath + '.meta.json', JSON.stringify({ originalPath: sourceFilePath, deletedAt: Date.now() }));
+    } else if (targetFolderPath === "RESTORE" && metaFilePath && fs.existsSync(metaFilePath)) {
+      fs.unlinkSync(metaFilePath);
+    }
+
     return res.status(200).json({
-      message: 'Di chuyển file thành công',
+      message: targetFolderPath === "RESTORE" ? 'Khôi phục file thành công' : 'Di chuyển file thành công',
       data: {
         username,
-        fileName,
+        fileName: path.basename(newFilePath),
         from: sourceFilePath,
         to: targetFolderPath
       }
@@ -212,7 +251,6 @@ export const moveFile = (req: Request, res: Response) => {
   }
 };
 
-// API di chuyển thư mục
 export const moveFolder = (req: Request, res: Response) => {
   try {
     const { username, sourceFolderPath, targetFolderPath } = req.body;
@@ -238,40 +276,76 @@ export const moveFolder = (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Thư mục nguồn không tồn tại' });
     }
 
-    // Kiểm tra đường dẫn thư mục đích
-    const absoluteTargetFolderPath = path.resolve(userRootPath, targetFolderPath);
-    if (!absoluteTargetFolderPath.startsWith(userRootPath)) {
-      return res.status(403).json({ error: 'Đường dẫn thư mục đích không hợp lệ' });
-    }
+    let absoluteTargetFolderPath = path.resolve(userRootPath, targetFolderPath);
+    let folderName = path.basename(absoluteSourcePath);
+    let newFolderPath = '';
+    let metaFilePath = '';
 
-    if (!fs.existsSync(absoluteTargetFolderPath) || !fs.statSync(absoluteTargetFolderPath).isDirectory()) {
-      return res.status(404).json({ error: 'Thư mục đích không tồn tại' });
-    }
+    if (targetFolderPath === "RESTORE" && sourceFolderPath.startsWith("trash")) {
+      // Khôi phục từ thùng rác
+      metaFilePath = absoluteSourcePath + '.meta.json';
+      if (fs.existsSync(metaFilePath)) {
+        const meta = JSON.parse(fs.readFileSync(metaFilePath, 'utf8'));
+        const originalPathMeta = meta.originalPath;
+        absoluteTargetFolderPath = path.resolve(userRootPath, path.dirname(originalPathMeta));
+        folderName = path.basename(originalPathMeta);
+      } else {
+        absoluteTargetFolderPath = userRootPath;
+        folderName = folderName.replace(/^\d{13}_/, '');
+      }
 
-    // Đảm bảo không di chuyển thư mục cha vào trong thư mục con của chính nó (vd: di chuyển A vào A/B)
-    // Cần cẩn thận nếu targetFolderPath bằng sourceFolderPath hoặc bắt đầu bằng sourceFolderPath + separator
-    if (absoluteTargetFolderPath === absoluteSourcePath || absoluteTargetFolderPath.startsWith(absoluteSourcePath + path.sep)) {
-      return res.status(400).json({ error: 'Không thể di chuyển thư mục vào bên trong chính nó hoặc các thư mục con của nó' });
-    }
+      if (!fs.existsSync(absoluteTargetFolderPath)) {
+        fs.mkdirSync(absoluteTargetFolderPath, { recursive: true });
+      }
+      newFolderPath = path.join(absoluteTargetFolderPath, folderName);
 
-    // Đường dẫn thư mục mới
-    const folderName = path.basename(absoluteSourcePath);
-    const newFolderPath = path.join(absoluteTargetFolderPath, folderName);
+      // Chống trùng lặp khi khôi phục
+      let counter = 1;
+      const base = folderName;
+      while (fs.existsSync(newFolderPath)) {
+        newFolderPath = path.join(absoluteTargetFolderPath, `${base} (${counter})`);
+        counter++;
+      }
+    } else {
+      // Kiểm tra đường dẫn thư mục đích
+      if (!absoluteTargetFolderPath.startsWith(userRootPath)) {
+        return res.status(403).json({ error: 'Đường dẫn thư mục đích không hợp lệ' });
+      }
 
-    // Kiểm tra trùng lặp tại thư mục đích
-    if (fs.existsSync(newFolderPath)) {
-      return res.status(400).json({ error: 'Đã có thư mục hoặc file cùng tên tại vị trí đích' });
+      if (!fs.existsSync(absoluteTargetFolderPath) || !fs.statSync(absoluteTargetFolderPath).isDirectory()) {
+        return res.status(404).json({ error: 'Thư mục đích không tồn tại' });
+      }
+
+      // Đảm bảo không di chuyển thư mục cha vào trong thư mục con
+      if (absoluteTargetFolderPath === absoluteSourcePath || absoluteTargetFolderPath.startsWith(absoluteSourcePath + path.sep)) {
+        return res.status(400).json({ error: 'Không thể di chuyển thư mục vào bên trong chính nó hoặc các thư mục con của nó' });
+      }
+
+      if (targetFolderPath === "trash") {
+        folderName = `${Date.now()}_${folderName}`;
+      }
+      newFolderPath = path.join(absoluteTargetFolderPath, folderName);
+
+      if (fs.existsSync(newFolderPath)) {
+        return res.status(400).json({ error: 'Đã có thư mục hoặc file cùng tên tại vị trí đích' });
+      }
     }
 
     // Di chuyển thư mục
-    // renameSync hoạt động tốt cho cả di chuyển file và folder trên cùng một ổ đĩa
     fs.renameSync(absoluteSourcePath, newFolderPath);
 
+    // Xử lý metadata
+    if (targetFolderPath === "trash") {
+      fs.writeFileSync(newFolderPath + '.meta.json', JSON.stringify({ originalPath: sourceFolderPath, deletedAt: Date.now() }));
+    } else if (targetFolderPath === "RESTORE" && metaFilePath && fs.existsSync(metaFilePath)) {
+      fs.unlinkSync(metaFilePath);
+    }
+
     return res.status(200).json({
-      message: 'Di chuyển thư mục thành công',
+      message: targetFolderPath === "RESTORE" ? 'Khôi phục thư mục thành công' : 'Di chuyển thư mục thành công',
       data: {
         username,
-        folderName,
+        folderName: path.basename(newFolderPath),
         from: sourceFolderPath,
         to: targetFolderPath
       }
@@ -439,7 +513,10 @@ export const listDirectory = (req: Request, res: Response) => {
         for (const dirItem of dirItems) {
           const childPath = path.join(dirPath, dirItem.name);
           if (dirItem.isDirectory()) {
-            totalSize += getTotalSize(childPath);
+            const lowerName = dirItem.name.toLowerCase();
+            if (lowerName !== 'ai' && lowerName !== '.ai') {
+              totalSize += getTotalSize(childPath);
+            }
           } else if (dirItem.isFile()) {
             try {
               totalSize += fs.statSync(childPath).size;
@@ -459,15 +536,34 @@ export const listDirectory = (req: Request, res: Response) => {
     const files: any[] = [];
 
     for (const item of items) {
+      if (item.name.endsWith('.meta.json')) {
+        continue;
+      }
+      
       const itemPath = path.join(absoluteFolderPath, item.name);
       try {
         const stats = fs.statSync(itemPath);
+        let itemModifiedAt = stats.mtime;
+
+        if (folderPath === 'trash') {
+          const metaPath = itemPath + '.meta.json';
+          if (fs.existsSync(metaPath)) {
+            try {
+              const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+              if (meta.deletedAt) {
+                itemModifiedAt = new Date(meta.deletedAt);
+              }
+            } catch(e) {}
+          }
+        }
 
         if (item.isDirectory()) {
           // Tính số lượng mục con ngay bên trong thư mục này
           let itemCount = 0;
           try {
-            itemCount = fs.readdirSync(itemPath).length;
+            // Lọc bỏ file .meta.json khi đếm số lượng mục con
+            const childItems = fs.readdirSync(itemPath);
+            itemCount = childItems.filter(child => !child.endsWith('.meta.json')).length;
           } catch (e) {
             // Bỏ qua nếu không có quyền đọc
           }
@@ -476,14 +572,14 @@ export const listDirectory = (req: Request, res: Response) => {
             name: item.name,
             itemCount: itemCount,
             createdAt: stats.birthtime,
-            modifiedAt: stats.mtime
+            modifiedAt: itemModifiedAt
           });
         } else if (item.isFile()) {
           files.push({
             name: item.name,
             size: stats.size, // Kích thước tính bằng byte
             createdAt: stats.birthtime,
-            modifiedAt: stats.mtime
+            modifiedAt: itemModifiedAt
           });
         }
       } catch (err) {

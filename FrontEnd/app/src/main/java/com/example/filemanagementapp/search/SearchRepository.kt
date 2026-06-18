@@ -18,7 +18,7 @@ class SearchRepository(
         val allItems = cachedDirectories.flatMap { it.items }
             .associateBy { it.path }
             .values
-            .filter { !it.path.startsWith("trash", ignoreCase = true) && !it.path.startsWith(".trash", ignoreCase = true) }
+            .filter { isItemVisible(it.path) }
             .toList()
 
         val analysisMap = aiAnalysisLocalRepository.getAnalysisByPaths(
@@ -54,12 +54,22 @@ class SearchRepository(
                 mergedTags
             }
 
+            var finalSizeBytes = item.sizeBytes
+            var finalSizeStr = item.size
+            if (analysis?.previewImagePath != null) {
+                val file = java.io.File(analysis.previewImagePath)
+                if (file.exists()) {
+                    finalSizeBytes = (finalSizeBytes ?: 0L) + file.length()
+                    finalSizeStr = formatSize(finalSizeBytes)
+                }
+            }
+
             SearchItem(
                 id = item.id,
                 name = item.name,
                 path = item.path,
                 type = if (isFolder) "Folder" else resolveFileTypeString(item.name),
-                size = item.size,
+                size = finalSizeStr,
                 date = item.modified,
                 modifiedEpochMillis = item.modifiedEpochMillis,
                 category = if (isFolder) SearchItem.Category.FOLDER else resolveCategory(item.name),
@@ -70,10 +80,31 @@ class SearchRepository(
                     aiAnalyzed = analysis?.status == com.example.filemanagementapp.data.local.ai.AiAnalysisStatus.COMPLETED,
                     isFavorite = isFavorite,
                     tags = finalTags,
-                    analyzedImagePath = analysis?.previewImagePath
+                    analyzedImagePath = analysis?.previewImagePath,
+                    sizeBytes = finalSizeBytes,
+                    size = finalSizeStr
                 )
             )
         }
+    }
+
+    private fun formatSize(sizeInBytes: Long): String {
+        if (sizeInBytes < 1024) return "$sizeInBytes B"
+
+        val units = arrayOf("KB", "MB", "GB", "TB")
+        var value = sizeInBytes.toDouble()
+        var unitIndex = -1
+        while (value >= 1024 && unitIndex < units.lastIndex) {
+            value /= 1024
+            unitIndex++
+        }
+
+        val formatted = if (value >= 10 || value % 1.0 == 0.0) {
+            value.toInt().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", value)
+        }
+        return "$formatted ${units[unitIndex]}"
     }
 
     private fun resolveFileTypeString(fileName: String): String {
@@ -96,5 +127,13 @@ class SearchRepository(
             normalizedName.endsWith(".mp3") || normalizedName.endsWith(".wav") || normalizedName.endsWith(".m4a") -> SearchItem.Category.AUDIO
             else -> SearchItem.Category.DOCUMENT
         }
+    }
+
+    private fun isItemVisible(path: String): Boolean {
+        val lowerPath = path.lowercase()
+        if (lowerPath.startsWith("trash") || lowerPath.contains("/trash/")) return false
+        if (lowerPath.startsWith("ai/") || lowerPath == "ai" || lowerPath.contains("/ai/")) return false
+        if (path.startsWith(".") || path.contains("/.")) return false
+        return true
     }
 }

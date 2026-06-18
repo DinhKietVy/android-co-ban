@@ -136,7 +136,19 @@ class FilePreviewActivity : AppCompatActivity() {
         titleText.text = fileName.ifBlank { getString(R.string.preview_file_name) }
         previewInfoNameValue.text = fileName.ifBlank { getString(R.string.preview_file_name) }
         
-        val type = explorerItem?.type?.name ?: fileName.substringAfterLast('.', "Unknown").uppercase()
+        val fileExtension = fileName.substringAfterLast('.', "").uppercase()
+        val type = if (fileExtension.isNotBlank()) {
+            when (fileExtension) {
+                "JPG", "JPEG", "PNG", "GIF", "WEBP", "BMP" -> "$fileExtension Image"
+                "MP4", "MKV", "WEBM", "AVI" -> "$fileExtension Video"
+                "MP3", "WAV", "OGG", "M4A" -> "$fileExtension Audio"
+                "PDF", "DOC", "DOCX", "TXT", "MD", "CSV" -> "$fileExtension Document"
+                "ZIP", "RAR", "7Z", "TAR", "GZ" -> "$fileExtension Archive"
+                else -> "$fileExtension File"
+            }
+        } else {
+            "Unknown File"
+        }
         previewInfoTypeValue.text = type
         
         previewInfoSizeValue.text = explorerItem?.size ?: getString(R.string.preview_file_size)
@@ -256,6 +268,16 @@ class FilePreviewActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.moreButton).setOnClickListener { anchor ->
             showOverflowMenu(anchor)
         }
+        
+        findViewById<View>(R.id.copyButton).setOnClickListener {
+            val ocrText = intent.getStringExtra(EXTRA_OCR_TEXT).orEmpty()
+            if (ocrText.isNotBlank()) {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("Extracted Text", ocrText)
+                clipboard.setPrimaryClip(clip)
+                android.widget.Toast.makeText(this, R.string.preview_copy_success, android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun togglePanel(panel: Panel) {
@@ -319,6 +341,15 @@ class FilePreviewActivity : AppCompatActivity() {
             elevation = 12f
         }
 
+        val item = explorerItem
+        if (item != null) {
+            val menuFavoriteLabel = popupView.findViewById<android.widget.TextView>(R.id.menuFavoriteLabel)
+            menuFavoriteLabel.setText(if (item.isFavorite) R.string.preview_action_unfavorite else R.string.preview_action_favorite)
+            
+            val menuAiLabel = popupView.findViewById<android.widget.TextView>(R.id.menuAiLabel)
+            menuAiLabel.setText(if (item.aiAnalyzed) R.string.preview_action_reanalyze_ai else R.string.preview_action_ai)
+        }
+
         popupView.findViewById<View>(R.id.menuDownload).setOnClickListener {
             popupWindow.dismiss()
             handleActionClick("download")
@@ -359,11 +390,42 @@ class FilePreviewActivity : AppCompatActivity() {
                 android.widget.Toast.makeText(this, R.string.explorer_download_started, android.widget.Toast.LENGTH_SHORT).show()
             }
             "share" -> {
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, item.previewUrl)
+                lifecycleScope.launch {
+                    try {
+                        val localFile = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), item.name)
+                        val fileToShare = if (localFile.exists()) {
+                            localFile
+                        } else {
+                            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                val request = okhttp3.Request.Builder().url(item.previewUrl!!).build()
+                                val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
+                                val bytes = response.body?.bytes() ?: throw Exception("Failed to download")
+                                val cacheFile = java.io.File(cacheDir, item.name)
+                                cacheFile.writeBytes(bytes)
+                                cacheFile
+                            }
+                        }
+                        
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            this@FilePreviewActivity,
+                            "${application.packageName}.fileprovider",
+                            fileToShare
+                        )
+                        val mimeType = java.net.URLConnection.guessContentTypeFromName(item.name) ?: "*/*"
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = mimeType
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(Intent.createChooser(shareIntent, getString(R.string.preview_action_share)))
+                    } catch (e: Exception) {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, item.previewUrl)
+                        }
+                        startActivity(Intent.createChooser(shareIntent, getString(R.string.preview_action_share)))
+                    }
                 }
-                startActivity(Intent.createChooser(shareIntent, getString(R.string.preview_action_share)))
             }
             "rename" -> showRenameDialog(item)
             "move" -> showMoveDialog(item)
@@ -380,23 +442,42 @@ class FilePreviewActivity : AppCompatActivity() {
     }
 
     private fun showRenameDialog(item: ExplorerItem) {
-        val input = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_TEXT
-            setText(item.name)
-            setSelection(item.name.length)
-            hint = getString(R.string.explorer_dialog_rename_hint)
-            setPadding(64, 50, 64, 0)
-        }
+        val view = layoutInflater.inflate(R.layout.dialog_input, null)
+        val inputLayout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+        
+        inputLayout.hint = getString(R.string.explorer_dialog_rename_hint)
+        val isFile = item.type == ExplorerItem.Type.FILE
+        val nameWithoutExt = if (isFile) item.name.substringBeforeLast('.', item.name) else item.name
+        val extension = if (isFile && item.name.contains('.')) "." + item.name.substringAfterLast('.', "") else ""
+        
+        input.setText(nameWithoutExt)
+        input.setSelection(nameWithoutExt.length)
 
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.explorer_dialog_rename_title)
-            .setView(input)
+            .setView(view)
             .setNegativeButton(R.string.explorer_dialog_cancel, null)
             .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
-                val newName = input.text?.toString().orEmpty()
+                val newNameInput = input.text?.toString().orEmpty()
+                if (newNameInput.isBlank()) return@setPositiveButton
+                val newName = newNameInput + extension
                 lifecycleScope.launch {
                     explorerRepository.renameItem(username, item, newName)
                         .onSuccess { 
+                            val appDatabase = com.example.filemanagementapp.data.local.AppDatabase.getInstance(this@FilePreviewActivity)
+                            val parentFolder = item.path.substringBeforeLast('/', "")
+                            appDatabase.directoryCacheDao().deleteByFolder(username, parentFolder)
+                            
+                            val newPath = if (parentFolder.isEmpty()) newName else "$parentFolder/$newName"
+                            val isFolder = item.type == ExplorerItem.Type.FOLDER
+                            
+                            val favoriteLocalRepository = com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository(appDatabase.favoriteItemDao())
+                            favoriteLocalRepository.updatePath(username, item.path, newPath, isFolder)
+                            
+                            val aiAnalysisLocalRepository = com.example.filemanagementapp.data.local.ai.AiAnalysisLocalRepository(appDatabase.aiAnalysisCacheDao(), com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.gson)
+                            aiAnalysisLocalRepository.updatePath(username, item.path, newPath, isFolder)
+                            
                             setResult(RESULT_OK)
                             finish()
                         }
@@ -552,6 +633,8 @@ class FilePreviewActivity : AppCompatActivity() {
             aiTags: List<String>,
             showAiPanel: Boolean = false
         ): Intent {
+            val extension = item.name.substringAfterLast('.', "").trim().uppercase()
+            val filteredAiTags = aiTags.filter { it.isNotBlank() && !it.equals(extension, ignoreCase = true) }
             return Intent(context, FilePreviewActivity::class.java).apply {
                 putExtra(EXTRA_EXPLORER_ITEM, item)
                 putExtra(EXTRA_USERNAME, username)
@@ -559,7 +642,7 @@ class FilePreviewActivity : AppCompatActivity() {
                 putExtra(EXTRA_PREVIEW_URL, item.previewUrl)
                 putExtra(EXTRA_ANALYZED_IMAGE_PATH, analyzedImagePath)
                 putExtra(EXTRA_OCR_TEXT, ocrText)
-                putStringArrayListExtra(EXTRA_AI_TAGS, ArrayList(aiTags))
+                putStringArrayListExtra(EXTRA_AI_TAGS, ArrayList(filteredAiTags))
                 putExtra(EXTRA_SHOW_AI_PANEL, showAiPanel)
             }
         }

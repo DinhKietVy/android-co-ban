@@ -37,6 +37,7 @@ class RecentRepository(
 
     suspend fun loadFavorites(username: String): List<RecentItem> = withContext(Dispatchers.IO) {
         val favorites = favoriteLocalRepository.getAllFavorites(username)
+            .filter { isItemVisible(it.path) }
         if (favorites.isEmpty()) {
             return@withContext emptyList()
         }
@@ -76,7 +77,16 @@ class RecentRepository(
             .flatMap { it.items }
             .associateBy { it.path }
             .values
+            .filter { isItemVisible(it.path) }
             .toList()
+    }
+
+    private fun isItemVisible(path: String): Boolean {
+        val lowerPath = path.lowercase()
+        if (lowerPath.startsWith("trash") || lowerPath.contains("/trash/")) return false
+        if (lowerPath.startsWith("ai/") || lowerPath == "ai" || lowerPath.contains("/ai/")) return false
+        if (path.startsWith(".") || path.contains("/.")) return false
+        return true
     }
 
     private suspend fun loadAnalysisMap(
@@ -113,6 +123,17 @@ class RecentRepository(
             ?.filter { it.isNotBlank() }
             ?.distinct()
             .orEmpty()
+            
+        var finalSizeBytes = item.sizeBytes
+        var finalSizeStr = item.size
+        if (analysis?.previewImagePath != null) {
+            val file = java.io.File(analysis.previewImagePath)
+            if (file.exists()) {
+                finalSizeBytes = (finalSizeBytes ?: 0L) + file.length()
+                finalSizeStr = formatSize(finalSizeBytes)
+            }
+        }
+
         return RecentItem(
             id = item.id,
             name = item.name,
@@ -122,7 +143,7 @@ class RecentRepository(
             lastModified = item.modified,
             modifiedEpochMillis = item.modifiedEpochMillis,
             fileType = if (isFolder) null else resolveFileType(item.name),
-            size = item.size,
+            size = finalSizeStr,
             itemCount = item.itemCount,
             previewUrl = item.previewUrl,
             isImagePreviewable = item.isImagePreviewable,
@@ -135,6 +156,25 @@ class RecentRepository(
             analyzedImagePath = analysis?.previewImagePath,
             isFavorite = isFavorite
         )
+    }
+
+    private fun formatSize(sizeInBytes: Long): String {
+        if (sizeInBytes < 1024) return "$sizeInBytes B"
+
+        val units = arrayOf("KB", "MB", "GB", "TB")
+        var value = sizeInBytes.toDouble()
+        var unitIndex = -1
+        while (value >= 1024 && unitIndex < units.lastIndex) {
+            value /= 1024
+            unitIndex++
+        }
+
+        val formatted = if (value >= 10 || value % 1.0 == 0.0) {
+            value.toInt().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", value)
+        }
+        return "$formatted ${units[unitIndex]}"
     }
 
     private fun buildFallbackFavorite(

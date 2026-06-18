@@ -39,7 +39,7 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var viewModel: RecentViewModel
     private val navigationViewModel: MainNavigationViewModel by activityViewModels()
     private lateinit var adapter: RecentAdapter
-    private lateinit var quickAccessContainer: HorizontalScrollView
+    private lateinit var quickAccessSection: LinearLayout
     private lateinit var quickAccessRow: LinearLayout
     private lateinit var recentTabButton: TextView
     private lateinit var favoritesTabButton: TextView
@@ -78,7 +78,7 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
         )[RecentViewModel::class.java]
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.recentRecyclerView)
-        quickAccessContainer = view.findViewById(R.id.quickAccessContainer)
+        quickAccessSection = view.findViewById(R.id.quickAccessSection)
         quickAccessRow = view.findViewById(R.id.quickAccessRow)
         recentTabButton = view.findViewById(R.id.recentTabButton)
         favoritesTabButton = view.findViewById(R.id.favoritesTabButton)
@@ -128,7 +128,7 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
 
     private fun render(state: RecentUiState) {
         renderTabState(state.activeTab)
-        quickAccessContainer.isVisible = state.activeTab == RecentTab.RECENT && state.quickAccess.isNotEmpty()
+        quickAccessSection.isVisible = state.activeTab == RecentTab.RECENT && state.quickAccess.isNotEmpty()
         renderQuickAccess(state.quickAccess)
         adapter.submitItems(state.listItems)
         emptyStateContainer.isVisible = state.listItems.isEmpty()
@@ -241,6 +241,9 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
                 
                 val favoriteLocalRepository = com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository(appDatabase.favoriteItemDao())
                 favoriteLocalRepository.updatePath(username, item.path, newPath, isFolder)
+                
+                val aiAnalysisLocalRepository = com.example.filemanagementapp.data.local.ai.AiAnalysisLocalRepository(appDatabase.aiAnalysisCacheDao(), com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.gson)
+                aiAnalysisLocalRepository.updatePath(username, item.path, newPath, isFolder)
                 
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                 viewModel.load()

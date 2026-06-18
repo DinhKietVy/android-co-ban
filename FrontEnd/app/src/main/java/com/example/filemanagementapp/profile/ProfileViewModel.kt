@@ -28,12 +28,12 @@ data class UserProfile(
 )
 
 data class StorageUsage(
-    val totalGb: Double,
-    val usedGb: Double,
-    val imagesGb: Double,
-    val documentsGb: Double,
-    val videosGb: Double,
-    val otherGb: Double
+    val totalFormatted: String,
+    val usedFormatted: String,
+    val imagesFormatted: String,
+    val documentsFormatted: String,
+    val videosFormatted: String,
+    val otherFormatted: String
 )
 
 data class ProfileUiState(
@@ -57,6 +57,12 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     
     private val _uiState = MutableStateFlow(ProfileUiState(isLoading = true))
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+
+    private val appDatabase = com.example.filemanagementapp.data.local.AppDatabase.getInstance(application.applicationContext)
+    private val aiAnalysisLocalRepository = com.example.filemanagementapp.data.local.ai.AiAnalysisLocalRepository(
+        appDatabase.aiAnalysisCacheDao(), 
+        ExplorerNetworkModule.gson
+    )
 
     init {
         fetchProfileData()
@@ -88,11 +94,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
                 
-                var aggregatedStorage = aggregateLocalStorage(emptyList())
+                var aggregatedStorage = aggregateLocalStorage("", emptyList())
                 if (loginUser != null) {
                     val filesResult = explorerRepository.listDirectory(loginUser.username, "")
                     if (filesResult.isSuccess) {
-                        aggregatedStorage = aggregateLocalStorage(filesResult.getOrNull()?.items ?: emptyList())
+                        aggregatedStorage = aggregateLocalStorage(loginUser.username, filesResult.getOrNull()?.items ?: emptyList())
                     }
                 }
                 
@@ -110,15 +116,32 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     
-    private fun aggregateLocalStorage(items: List<ExplorerItem>): StorageUsage {
+    private suspend fun aggregateLocalStorage(username: String, items: List<ExplorerItem>): StorageUsage {
         var imagesBytes = 0L
         var docsBytes = 0L
         var videosBytes = 0L
         var otherBytes = 0L
 
+        val analysisMap = if (username.isNotBlank() && items.isNotEmpty()) {
+            aiAnalysisLocalRepository.getAnalysisByPaths(
+                username = username,
+                filePaths = items.filter { it.type == ExplorerItem.Type.FILE }.map { it.path }
+            )
+        } else {
+            emptyMap()
+        }
+
         for (item in items) {
             if (item.type == ExplorerItem.Type.FILE) {
-                val size = item.sizeBytes ?: 0L
+                var size = item.sizeBytes ?: 0L
+                val analysis = analysisMap[item.path]
+                if (analysis?.previewImagePath != null) {
+                    val file = java.io.File(analysis.previewImagePath)
+                    if (file.exists()) {
+                        size += file.length()
+                    }
+                }
+
                 val name = item.name.lowercase()
                 when {
                     name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") ||
@@ -136,18 +159,34 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
 
         val totalUsedBytes = imagesBytes + docsBytes + videosBytes + otherBytes
-        
-        // Convert Bytes to GB
-        val bytesToGb = 1024.0 * 1024.0 * 1024.0
 
         return StorageUsage(
-            totalGb = 0.0, // Not used anymore as limit was removed
-            usedGb = Math.round((totalUsedBytes / bytesToGb) * 100) / 100.0,
-            imagesGb = Math.round((imagesBytes / bytesToGb) * 100) / 100.0,
-            documentsGb = Math.round((docsBytes / bytesToGb) * 100) / 100.0,
-            videosGb = Math.round((videosBytes / bytesToGb) * 100) / 100.0,
-            otherGb = Math.round((otherBytes / bytesToGb) * 100) / 100.0
+            totalFormatted = formatSize(0L), // Not used anymore as limit was removed
+            usedFormatted = formatSize(totalUsedBytes),
+            imagesFormatted = formatSize(imagesBytes),
+            documentsFormatted = formatSize(docsBytes),
+            videosFormatted = formatSize(videosBytes),
+            otherFormatted = formatSize(otherBytes)
         )
+    }
+
+    private fun formatSize(sizeInBytes: Long): String {
+        if (sizeInBytes < 1024) return "$sizeInBytes B"
+
+        val units = arrayOf("KB", "MB", "GB", "TB")
+        var value = sizeInBytes.toDouble()
+        var unitIndex = -1
+        while (value >= 1024 && unitIndex < units.lastIndex) {
+            value /= 1024
+            unitIndex++
+        }
+
+        val formatted = if (value >= 10 || value % 1.0 == 0.0) {
+            value.toInt().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", value)
+        }
+        return "$formatted ${units[unitIndex]}"
     }
 
     fun deleteAccount() {

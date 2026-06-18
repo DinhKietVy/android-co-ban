@@ -262,6 +262,7 @@
     <string name="preview_info_modified">Đã sửa đổi</string>
     <string name="preview_badge_ai">Đã phân tích AI</string>
     <string name="preview_badge_ocr">Sẵn sàng OCR</string>
+    <string name="preview_copy_success">Đã copy văn bản</string>
     <string name="preview_badge_detected">Đã nhận diện vật thể</string>
     <string name="preview_extracted_text">Văn bản trích xuất</string>
     <string name="preview_detected_objects">Vật thể nhận diện</string>
@@ -275,6 +276,7 @@
     <string name="preview_action_favorite">Thêm vào yêu thích</string>
     <string name="preview_action_unfavorite">Xóa khỏi yêu thích</string>
     <string name="preview_action_ai">Phân tích bằng AI</string>
+    <string name="preview_action_reanalyze_ai">Phân tích lại với AI</string>
     <string name="preview_action_delete">Xóa</string>
     <string name="explorer_dialog_rename_title">Đổi tên mục</string>
     <string name="explorer_dialog_rename_hint">Tên mới</string>
@@ -437,7 +439,8 @@
     <string name="action_move">Di chuyển</string>
     <string name="action_favorite">Yêu thích</string>
     <string name="action_delete">Xóa</string>
-    <string name="action_analyze_ai">Phân tích bằng AI</string>
+    <string name="action_analyze_ai">Phân tích với AI</string>
+    <string name="action_reanalyze_ai">Phân tích lại với AI</string>
     <string name="action_ai_badge">AI</string>
 
     <!-- Explorer - bổ sung -->
