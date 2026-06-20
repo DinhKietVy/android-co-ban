@@ -106,10 +106,10 @@ class PreviewRenderHelper(
                     previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
                     previewLoadingIndicator.visibility = View.GONE
                 } else {
+                    previewImage.setImageDrawable(null)
                     previewImage.load(sourceUri) {
-                        crossfade(true)
+                        size(coil.size.Size.ORIGINAL)
                         setHeader("ngrok-skip-browser-warning", "69420")
-                        placeholder(R.drawable.explorer_file_preview_placeholder)
                         error(R.drawable.explorer_file_preview_placeholder)
                         listener(
                             onSuccess = { _, _ -> previewLoadingIndicator.visibility = View.GONE },

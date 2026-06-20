@@ -288,10 +288,10 @@
     <string name="preview_action_reanalyze_ai">Re-analyze with AI</string>
     <string name="preview_action_delete">Delete</string>
 
-    <string name="preview_open_externally">Mở bằng ứng dụng khác</string>
-    <string name="preview_unsupported_file">Không thể xem trước định dạng này</string>
-    <string name="preview_loading_text">Đang tải nội dung...</string>
-    <string name="preview_error_loading_text">Lỗi tải nội dung</string>
+    <string name="preview_open_externally">Open with external app</string>
+    <string name="preview_unsupported_file">Cannot preview this format</string>
+    <string name="preview_loading_text">Loading content...</string>
+    <string name="preview_error_loading_text">Error loading content</string>
 
     <string name="explorer_dialog_rename_title">Rename item</string>
     <string name="explorer_dialog_rename_hint">New name</string>
@@ -464,13 +464,13 @@
 
     <!-- Forgot Password module - additional -->
     <string name="forgot_email_emoji">📬</string>
-    <string name="explorer_upload_notification_title">Đang tải lên...</string>
+    <string name="explorer_upload_notification_title">Uploading...</string>
     <string name="explorer_upload_notification_progress">%1$d%% • %2$s / %3$s</string>
-    <string name="explorer_upload_notification_running">Đang chuẩn bị tải lên %1$s</string>
-    <string name="explorer_upload_notification_done">Tải lên hoàn tất</string>
-    <string name="explorer_upload_notification_done_message">Đã tải xong file %1$s</string>
-    <string name="explorer_upload_notification_failed">Tải lên thất bại</string>
-    <string name="explorer_upload_notification_failed_message">Không thể tải file %1$s</string>
-    <string name="explorer_upload_channel_name">Tiến trình tải lên</string>
-    <string name="explorer_upload_channel_description">Hiển thị thông báo tiến trình tải file lên</string>
+    <string name="explorer_upload_notification_running">Preparing to upload %1$s</string>
+    <string name="explorer_upload_notification_done">Upload complete</string>
+    <string name="explorer_upload_notification_done_message">Finished uploading %1$s</string>
+    <string name="explorer_upload_notification_failed">Upload failed</string>
+    <string name="explorer_upload_notification_failed_message">Cannot upload %1$s</string>
+    <string name="explorer_upload_channel_name">Upload progress</string>
+    <string name="explorer_upload_channel_description">Shows file upload progress notifications</string>
 </resources>

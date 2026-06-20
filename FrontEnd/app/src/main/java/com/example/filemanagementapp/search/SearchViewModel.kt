@@ -112,10 +112,17 @@ class SearchViewModel(
         }
 
         val filtered = items.filter { item ->
-            val matchesQuery = query.isBlank() ||
-                item.name.contains(query, ignoreCase = true) ||
-                (item.ocrText?.contains(query, ignoreCase = true) == true) ||
-                item.tags.any { it.contains(query, ignoreCase = true) }
+            val matchesQuery = if (query.isBlank()) {
+                true
+            } else {
+                when (category) {
+                    "ocr" -> item.ocrText?.contains(query, ignoreCase = true) == true
+                    "ai-objects" -> item.aiTags.any { it.contains(query, ignoreCase = true) }
+                    else -> item.name.contains(query, ignoreCase = true) ||
+                            (item.ocrText?.contains(query, ignoreCase = true) == true) ||
+                            item.tags.any { it.contains(query, ignoreCase = true) }
+                }
+            }
 
             val matchesCategory = when (category) {
                 "all" -> true
