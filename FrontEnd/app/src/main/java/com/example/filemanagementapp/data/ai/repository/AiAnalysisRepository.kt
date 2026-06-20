@@ -88,6 +88,11 @@ class AiAnalysisRepository(
             .map { it.trim() }
             .filter { it.isNotBlank() }
             
+        val cleanTags = payload.tags
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+
         val base64 = payload.image_base64
         val previewImagePath = if (!base64.isNullOrBlank()) {
             try {
@@ -111,17 +116,9 @@ class AiAnalysisRepository(
             AiAnalysisResult(
                 texts = cleanTexts,
                 previewImagePath = previewImagePath,
-                tags = extractTags(cleanTexts)
+                tags = cleanTags
             )
         )
-    }
-
-
-
-    private fun extractTags(texts: List<String>): List<String> {
-        // Return empty list because OCR texts should not be treated as detected objects.
-        // Detected objects should only be populated by an Object Detection model (e.g. YOLO).
-        return emptyList()
     }
 }
 
