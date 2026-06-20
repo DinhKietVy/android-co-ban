@@ -11,15 +11,19 @@ import com.example.filemanagementapp.data.local.explorer.DirectoryCacheEntity
 import com.example.filemanagementapp.data.local.favorite.FavoriteItemDao
 import com.example.filemanagementapp.data.local.favorite.FavoriteItemEntity
 
+import com.example.filemanagementapp.data.local.recent.RecentOpenDao
+import com.example.filemanagementapp.data.local.recent.RecentOpenEntity
+
 @Database(
-    entities = [AiAnalysisCacheEntity::class, FavoriteItemEntity::class, DirectoryCacheEntity::class],
-    version = 3,
+    entities = [AiAnalysisCacheEntity::class, FavoriteItemEntity::class, DirectoryCacheEntity::class, RecentOpenEntity::class],
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun aiAnalysisCacheDao(): AiAnalysisCacheDao
     abstract fun favoriteItemDao(): FavoriteItemDao
     abstract fun directoryCacheDao(): DirectoryCacheDao
+    abstract fun recentOpenDao(): RecentOpenDao
 
     companion object {
         @Volatile

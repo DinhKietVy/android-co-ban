@@ -13,6 +13,7 @@ data class SearchItem(
     val category: Category,
     val ocrText: String? = null,
     val tags: List<String> = emptyList(),
+    val aiTags: List<String> = emptyList(),
     val isFavorite: Boolean = false,
     val rawItem: ExplorerItem
 ) {

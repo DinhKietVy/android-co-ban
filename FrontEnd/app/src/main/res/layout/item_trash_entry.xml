@@ -53,16 +53,34 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/itemNameText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/trash_text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            tools:text="Receipt_Amazon_2026.jpg" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/itemNameText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/trash_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="Receipt_Amazon_2026.jpg" />
+
+            <ImageView
+                android:id="@+id/aiBadgeIcon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="6dp"
+                android:src="@drawable/sparkles"
+                app:tint="@color/explorer_primary"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/itemMetaText"
@@ -81,23 +99,6 @@
             android:orientation="horizontal"
             tools:visibility="visible" />
 
-        <TextView
-            android:id="@+id/ocrPreviewText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:background="@drawable/explorer_tag_background"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:paddingStart="8dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="4dp"
-            android:textColor="@color/trash_text_secondary"
-            android:textSize="11sp"
-            android:visibility="gone"
-            tools:text="Amazon.com Order #123-4567890-123..."
-            tools:visibility="visible" />
 
         <TextView
             android:id="@+id/deletedDateText"

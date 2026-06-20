@@ -5,7 +5,8 @@ data class LoginUser(
     val username: String,
     val displayName: String? = null,
     val email: String? = null,
-    val provider: AuthProvider
+    val provider: AuthProvider,
+    val avatarUrl: String? = null
 )
 
 enum class AuthProvider {

@@ -14,10 +14,13 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
+import com.example.filemanagementapp.data.local.recent.RecentOpenLocalRepository
+
 class RecentRepository(
     private val directoryCacheLocalRepository: DirectoryCacheLocalRepository,
     private val favoriteLocalRepository: FavoriteLocalRepository,
-    private val aiAnalysisLocalRepository: AiAnalysisLocalRepository
+    private val aiAnalysisLocalRepository: AiAnalysisLocalRepository,
+    private val recentOpenLocalRepository: RecentOpenLocalRepository
 ) {
     suspend fun loadRecent(username: String): List<RecentItem> = withContext(Dispatchers.IO) {
         val items = collectCachedItems(username)
@@ -32,6 +35,33 @@ class RecentRepository(
                 analysis = analysisMap[item.path],
                 isFavorite = item.path in favoritePaths
             )
+        }
+    }
+
+    suspend fun loadRecentOpens(username: String): List<RecentItem> = withContext(Dispatchers.IO) {
+        val recentOpens = recentOpenLocalRepository.getRecentOpens(username, 4)
+        if (recentOpens.isEmpty()) return@withContext emptyList()
+
+        val cachedByPath = collectCachedItems(username).associateBy { it.path }
+        val analysisMap = aiAnalysisLocalRepository.getAnalysisByPaths(
+            username = username,
+            filePaths = recentOpens.map { it.path }
+        )
+        val favoritePaths = favoriteLocalRepository.getFavoritePaths(
+            username = username,
+            paths = recentOpens.map { it.path }
+        )
+
+        recentOpens.mapNotNull { openEntity ->
+            val cachedItem = cachedByPath[openEntity.path]
+            if (cachedItem != null) {
+                buildRecentItem(
+                    item = cachedItem,
+                    section = RecentItem.Section.TODAY, // Doesn't matter for quick access
+                    analysis = analysisMap[openEntity.path],
+                    isFavorite = openEntity.path in favoritePaths
+                )
+            } else null
         }
     }
 

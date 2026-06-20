@@ -227,6 +227,43 @@
         </ScrollView>
     </LinearLayout>
 
+    <FrameLayout
+        android:id="@+id/aiLoadingOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/scrim_66"
+        android:clickable="true"
+        android:focusable="true"
+        android:elevation="14dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <com.airbnb.lottie.LottieAnimationView
+                android:id="@+id/aiLoadingAnimation"
+                android:layout_width="168dp"
+                android:layout_height="168dp"
+                app:lottie_autoPlay="true"
+                app:lottie_fileName="ai_loading.json"
+                app:lottie_loop="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/explorer_ai_loading"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </FrameLayout>
+
     <!-- Scrim for File Action Bottom Sheet -->
     <View
         android:id="@+id/fileActionScrim"

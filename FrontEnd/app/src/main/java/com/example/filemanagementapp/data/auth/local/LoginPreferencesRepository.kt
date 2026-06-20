@@ -21,7 +21,8 @@ private val Context.loginDataStore by preferencesDataStore(
 
 data class SavedLoginPreferences(
     val rememberedUsername: String = "",
-    val isRememberMeChecked: Boolean = false
+    val isRememberMeChecked: Boolean = false,
+    val avatarUrl: String? = null
 )
 
 class LoginPreferencesRepository(
@@ -30,6 +31,7 @@ class LoginPreferencesRepository(
     private object Keys {
         val rememberedUsername = stringPreferencesKey("remembered_username")
         val rememberMeChecked = booleanPreferencesKey("remember_me_checked")
+        val avatarUrl = stringPreferencesKey("avatar_url")
     }
 
     val preferencesFlow: Flow<SavedLoginPreferences> =
@@ -43,13 +45,19 @@ class LoginPreferencesRepository(
             }
             .map(::toSavedPreferences)
 
-    suspend fun saveRememberedLogin(username: String, rememberMe: Boolean) {
+    suspend fun saveRememberedLogin(username: String, rememberMe: Boolean, avatarUrl: String? = null) {
         context.loginDataStore.edit { preferences ->
             if (rememberMe) {
                 preferences[Keys.rememberedUsername] = username
                 preferences[Keys.rememberMeChecked] = true
             } else {
-                clearSavedLogin(preferences)
+                preferences.remove(Keys.rememberedUsername)
+                preferences[Keys.rememberMeChecked] = false
+            }
+            if (avatarUrl != null) {
+                preferences[Keys.avatarUrl] = avatarUrl
+            } else {
+                preferences.remove(Keys.avatarUrl)
             }
         }
     }
@@ -61,12 +69,14 @@ class LoginPreferencesRepository(
     private fun toSavedPreferences(preferences: Preferences): SavedLoginPreferences {
         return SavedLoginPreferences(
             rememberedUsername = preferences[Keys.rememberedUsername].orEmpty(),
-            isRememberMeChecked = preferences[Keys.rememberMeChecked] ?: false
+            isRememberMeChecked = preferences[Keys.rememberMeChecked] ?: false,
+            avatarUrl = preferences[Keys.avatarUrl]
         )
     }
 
     private fun clearSavedLogin(preferences: MutablePreferences) {
         preferences.remove(Keys.rememberedUsername)
         preferences[Keys.rememberMeChecked] = false
+        preferences.remove(Keys.avatarUrl)
     }
 }

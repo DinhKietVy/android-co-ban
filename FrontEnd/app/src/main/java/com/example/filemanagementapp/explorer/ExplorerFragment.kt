@@ -67,6 +67,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var viewModel: ExplorerViewModel
     private val navigationViewModel: MainNavigationViewModel by activityViewModels()
     private lateinit var explorerRepository: ExplorerRepository
+    private lateinit var recentOpenLocalRepository: com.example.filemanagementapp.data.local.recent.RecentOpenLocalRepository
     private lateinit var actionSheetController: FileActionSheetController
     private lateinit var breadcrumbAdapter: ExplorerBreadcrumbAdapter
     private lateinit var explorerAdapter: ExplorerAdapter
@@ -91,6 +92,12 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var downloadProgressPercentText: TextView
     private lateinit var downloadProgressFileName: TextView
     private lateinit var downloadProgressMetaText: TextView
+    private lateinit var progressContainer: LinearLayout
+    private lateinit var uploadProgressCard: View
+    private lateinit var uploadProgressRing: com.google.android.material.progressindicator.CircularProgressIndicator
+    private lateinit var uploadProgressPercentText: TextView
+    private lateinit var uploadProgressFileName: TextView
+    private lateinit var uploadProgressMetaText: TextView
     private lateinit var selectionActionCard: View
     private lateinit var selectionSummaryText: TextView
     private lateinit var moveSelectedButton: View
@@ -107,7 +114,13 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             }
-            viewModel.uploadFile(it)
+            com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
+                context = requireContext(),
+                fileUri = it,
+                targetPath = viewModel.uiState.value.currentFolder,
+                username = username
+            )
+            Toast.makeText(requireContext(), R.string.msg_uploading_file, Toast.LENGTH_SHORT).show()
         }
     }
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -174,6 +187,8 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             gson = ExplorerNetworkModule.gson
         )
         val appDatabase = AppDatabase.getInstance(requireContext())
+        recentOpenLocalRepository = com.example.filemanagementapp.data.local.recent.RecentOpenLocalRepository(appDatabase.recentOpenDao())
+        
         viewModel = ViewModelProvider(
             this,
             ExplorerViewModel.Factory(
@@ -221,6 +236,12 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         downloadProgressPercentText = view.findViewById(R.id.downloadProgressPercentText)
         downloadProgressFileName = view.findViewById(R.id.downloadProgressFileName)
         downloadProgressMetaText = view.findViewById(R.id.downloadProgressMetaText)
+        progressContainer = view.findViewById(R.id.progressContainer)
+        uploadProgressCard = view.findViewById(R.id.uploadProgressCard)
+        uploadProgressRing = view.findViewById(R.id.uploadProgressRing)
+        uploadProgressPercentText = view.findViewById(R.id.uploadProgressPercentText)
+        uploadProgressFileName = view.findViewById(R.id.uploadProgressFileName)
+        uploadProgressMetaText = view.findViewById(R.id.uploadProgressMetaText)
         selectionActionCard = view.findViewById(R.id.selectionActionCard)
         selectionSummaryText = view.findViewById(R.id.selectionSummaryText)
         moveSelectedButton = view.findViewById(R.id.moveSelectedButton)
@@ -254,7 +275,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                         showMove = true,
                         showFavorite = true,
                         showDelete = true,
-                        showAi = item.type == ExplorerItem.Type.FILE
+                        showAi = item.isImagePreviewable
                     )
                 )
             },
@@ -342,13 +363,63 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ExplorerDownloadProgressStore.progress.collect { progress ->
                     currentDownloadProgress = progress
-                    renderDownloadProgressCard(
-                        progress = progress,
-                        hasSelectionCard = viewModel.uiState.value.isSelectionMode &&
-                            viewModel.uiState.value.selectedPaths.isNotEmpty()
-                    )
+                    updateProgressContainer()
                 }
             }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                com.example.filemanagementapp.explorer.network.ExplorerUploadProgressStore.progress.collect { progress ->
+                    renderUploadProgressCard(progress)
+                    updateProgressContainer()
+                    
+                    if (progress != null && progress.status != com.example.filemanagementapp.explorer.network.UploadStatus.RUNNING) {
+                        if (progress.status == com.example.filemanagementapp.explorer.network.UploadStatus.SUCCESS) {
+                            viewModel.onUploadCompleted(progress.fileName)
+                        } else if (progress.status == com.example.filemanagementapp.explorer.network.UploadStatus.FAILED) {
+                            Toast.makeText(requireContext(), progress.errorMessage ?: "Upload Failed", Toast.LENGTH_SHORT).show()
+                        }
+                        
+                        kotlinx.coroutines.delay(2000)
+                        com.example.filemanagementapp.explorer.network.ExplorerUploadProgressStore.clear()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateProgressContainer() {
+        val hasSelectionCard = viewModel.uiState.value.isSelectionMode && viewModel.uiState.value.selectedPaths.isNotEmpty()
+        val layoutParams = progressContainer.layoutParams as ViewGroup.MarginLayoutParams
+        layoutParams.bottomMargin = if (hasSelectionCard) 112.dp() else 24.dp()
+        progressContainer.layoutParams = layoutParams
+
+        renderDownloadProgressCard(currentDownloadProgress)
+    }
+
+    private fun renderUploadProgressCard(progress: com.example.filemanagementapp.explorer.network.ExplorerUploadProgress?) {
+        if (progress == null) {
+            uploadProgressCard.visibility = View.GONE
+            return
+        }
+
+        uploadProgressCard.visibility = View.VISIBLE
+        uploadProgressRing.max = 100
+        uploadProgressRing.progress = progress.progressPercent
+        uploadProgressPercentText.text = getString(
+            R.string.explorer_download_progress_percent,
+            progress.progressPercent
+        )
+        uploadProgressFileName.text = progress.fileName
+        uploadProgressMetaText.text = if (progress.totalBytes != null && progress.totalBytes > 0L) {
+            getString(
+                R.string.explorer_download_progress_meta,
+                Formatter.formatShortFileSize(requireContext(), progress.uploadedBytes),
+                Formatter.formatShortFileSize(requireContext(), progress.totalBytes)
+            )
+        } else {
+            getString(R.string.explorer_download_preparing)
         }
     }
 
@@ -382,10 +453,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         createFab.visibility = if (state.isSelectionMode) View.GONE else View.VISIBLE
         selectionActionCard.visibility =
             if (state.isSelectionMode && state.selectedPaths.isNotEmpty()) View.VISIBLE else View.GONE
-        renderDownloadProgressCard(
-            progress = currentDownloadProgress,
-            hasSelectionCard = selectionActionCard.visibility == View.VISIBLE
-        )
+        updateProgressContainer()
         selectionSummaryText.text = getString(
             R.string.explorer_selected_count,
             state.selectedPaths.size
@@ -414,6 +482,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     override fun onOpen(item: ExplorerItem) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            recentOpenLocalRepository.recordOpen(username, item.path)
+        }
         when (item.type) {
             ExplorerItem.Type.FOLDER -> viewModel.loadDirectory(item.path)
             ExplorerItem.Type.FILE -> openFilePreview(item, showAiPanel = false)
@@ -473,8 +544,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     private fun renderDownloadProgressCard(
-        progress: ExplorerDownloadProgress?,
-        hasSelectionCard: Boolean
+        progress: ExplorerDownloadProgress?
     ) {
         if (progress == null) {
             downloadProgressCard.visibility = View.GONE
@@ -482,9 +552,6 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         }
 
         downloadProgressCard.visibility = View.VISIBLE
-        val layoutParams = downloadProgressCard.layoutParams as ViewGroup.MarginLayoutParams
-        layoutParams.bottomMargin = if (hasSelectionCard) 112.dp() else 24.dp()
-        downloadProgressCard.layoutParams = layoutParams
 
         downloadProgressRing.max = 100
         downloadProgressRing.progress = progress.progressPercent

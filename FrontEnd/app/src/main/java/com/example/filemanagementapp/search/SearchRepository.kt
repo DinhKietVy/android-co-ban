@@ -75,6 +75,7 @@ class SearchRepository(
                 category = if (isFolder) SearchItem.Category.FOLDER else resolveCategory(item.name),
                 ocrText = analysis?.ocrText?.lineSequence()?.firstOrNull { it.isNotBlank() }?.trim(),
                 tags = finalTags,
+                aiTags = aiTags,
                 isFavorite = isFavorite,
                 rawItem = item.copy(
                     aiAnalyzed = analysis?.status == com.example.filemanagementapp.data.local.ai.AiAnalysisStatus.COMPLETED,

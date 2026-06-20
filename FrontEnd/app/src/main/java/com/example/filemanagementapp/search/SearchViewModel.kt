@@ -124,7 +124,7 @@ class SearchViewModel(
                 "pdf" -> item.category == SearchItem.Category.PDF
                 "videos" -> item.category == SearchItem.Category.VIDEO
                 "ocr" -> !item.ocrText.isNullOrBlank()
-                "ai-objects" -> item.tags.any { !it.equals("AI analyzed", ignoreCase = true) }
+                "ai-objects" -> item.aiTags.isNotEmpty()
                 "favorites" -> item.isFavorite
                 else -> true
             }

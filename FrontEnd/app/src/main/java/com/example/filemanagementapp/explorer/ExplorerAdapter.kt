@@ -161,10 +161,12 @@ class ExplorerAdapter(
                 fallbackIcon.visibility = View.GONE
                 previewImage.load(item.previewUrl) {
                     crossfade(true)
+                    setHeader("ngrok-skip-browser-warning", "69420")
                     placeholder(R.drawable.explorer_file_preview_placeholder)
                     error(R.drawable.explorer_file_preview_placeholder)
                 }
             } else {
+                previewImage.load(null) // Clear any pending coil request
                 previewImage.setImageResource(R.drawable.explorer_file_preview_placeholder)
                 fallbackIcon.visibility = View.VISIBLE
                 fallbackIcon.setImageResource(item.fallbackIconRes ?: R.drawable.file_text)

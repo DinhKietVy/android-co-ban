@@ -210,6 +210,21 @@ class SplashActivity : AppCompatActivity() {
         navigationJob = lifecycleScope.launch {
             delay(SPLASH_DURATION_MS)
             val savedPreferences = loginPreferencesRepository.preferencesFlow.first()
+            
+            if (!savedPreferences.isRememberMeChecked) {
+                authRepository.clearLocalSession()
+                val destinationIntent = Intent(this@SplashActivity, LoginActivity::class.java).apply {
+                    if (savedPreferences.rememberedUsername.isNotBlank()) {
+                        putExtra(
+                            LoginActivity.EXTRA_PREFILLED_USERNAME,
+                            savedPreferences.rememberedUsername
+                        )
+                    }
+                }
+                navigateTo(destinationIntent)
+                return@launch
+            }
+
             val destinationIntent = authRepository.autoLogin()
                 .map { user ->
                     Intent(this@SplashActivity, MainActivity::class.java).apply {

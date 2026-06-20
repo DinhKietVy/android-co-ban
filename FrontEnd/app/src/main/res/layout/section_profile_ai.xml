@@ -5,5 +5,6 @@
         <include layout="@layout/include_profile_toggle_row" android:id="@+id/rowProfileAiOcr" android:layout_width="match_parent" android:layout_height="wrap_content"/>
         <include layout="@layout/include_profile_toggle_row" android:id="@+id/rowProfileAiObject" android:layout_width="match_parent" android:layout_height="wrap_content"/>
         <include layout="@layout/include_profile_toggle_row" android:id="@+id/rowProfileAiMetadata" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileAiExtensions" android:layout_width="match_parent" android:layout_height="wrap_content"/>
     </LinearLayout>
 </LinearLayout>

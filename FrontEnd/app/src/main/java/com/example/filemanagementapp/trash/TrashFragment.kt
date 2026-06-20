@@ -184,9 +184,10 @@ class TrashFragment : Fragment() {
 
     private fun showSortMenu(anchor: View) {
         val popupView = layoutInflater.inflate(R.layout.popup_trash_sort, null)
+        val widthPx = (260 * resources.displayMetrics.density).toInt()
         val popupWindow = android.widget.PopupWindow(
             popupView,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            widthPx,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
             true
         )
@@ -269,9 +270,10 @@ class TrashFragment : Fragment() {
 
     private fun showTopMoreMenu(anchor: View) {
         val popupView = layoutInflater.inflate(R.layout.popup_trash_more, null)
+        val widthPx = (220 * resources.displayMetrics.density).toInt()
         val popupWindow = android.widget.PopupWindow(
             popupView,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            widthPx,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
             true
         )
