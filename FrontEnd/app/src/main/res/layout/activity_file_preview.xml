@@ -72,7 +72,7 @@
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:minHeight="240dp"
                     app:cardElevation="1dp"
                     app:strokeColor="@color/preview_border"
@@ -80,7 +80,7 @@
 
                     <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:minHeight="240dp">
 
                         <ImageView
@@ -90,7 +90,7 @@
                             android:layout_gravity="center"
                             android:adjustViewBounds="true"
                             android:contentDescription="@string/preview_file_name"
-                            android:scaleType="centerCrop"
+                            android:scaleType="fitCenter"
                             tools:src="@drawable/file_text" />
 
                         <VideoView

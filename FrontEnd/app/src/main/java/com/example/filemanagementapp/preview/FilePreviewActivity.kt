@@ -357,7 +357,12 @@ class FilePreviewActivity : AppCompatActivity() {
             showAiPanel: Boolean = false
         ): Intent {
             val extension = item.name.substringAfterLast('.', "").trim().uppercase()
-            val filteredAiTags = aiTags.filter { it.isNotBlank() && !it.equals(extension, ignoreCase = true) }
+            val filteredAiTags = aiTags.filter { 
+                it.isNotBlank() && 
+                !it.equals(extension, ignoreCase = true) &&
+                !it.equals("AI analyzed", ignoreCase = true) &&
+                !it.equals("Đã phân tích bởi AI", ignoreCase = true)
+            }
             return Intent(context, FilePreviewActivity::class.java).apply {
                 putExtra(EXTRA_EXPLORER_ITEM, item)
                 putExtra(EXTRA_USERNAME, username)

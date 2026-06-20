@@ -453,5 +453,19 @@
     <string name="explorer_dot_separator">•</string>
 
     <!-- Quên mật khẩu - bổ sung -->
-    <string name="forgot_email_emoji">📬</string>
+    <!-- Các string bổ sung -->
+    <string name="preview_open_externally">Mở bằng ứng dụng khác</string>
+    <string name="preview_unsupported_file">Không thể xem trước định dạng này</string>
+    <string name="preview_loading_text">Đang tải nội dung...</string>
+    <string name="preview_error_loading_text">Lỗi tải nội dung</string>
+
+    <string name="explorer_upload_notification_title">Đang tải lên...</string>
+    <string name="explorer_upload_notification_progress">%1$d%% • %2$s / %3$s</string>
+    <string name="explorer_upload_notification_running">Đang chuẩn bị tải lên %1$s</string>
+    <string name="explorer_upload_notification_done">Tải lên hoàn tất</string>
+    <string name="explorer_upload_notification_done_message">Đã tải xong file %1$s</string>
+    <string name="explorer_upload_notification_failed">Tải lên thất bại</string>
+    <string name="explorer_upload_notification_failed_message">Không thể tải file %1$s</string>
+    <string name="explorer_upload_channel_name">Tiến trình tải lên</string>
+    <string name="explorer_upload_channel_description">Hiển thị thông báo tiến trình tải file lên</string>
 </resources>
