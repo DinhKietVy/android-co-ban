@@ -53,43 +53,62 @@ app = FastAPI(lifespan=lifespan)
 
 @app.post("/predict-image")
 async def predict_image(username: str = Form(...), file: UploadFile = File(...)):
-    global ocr
+    global ocr, yolo_model
 
     if ocr is None:
         return {"error": "OCR chưa khởi tạo"}
+    if yolo_model is None:
+        return {"error": "YOLO chưa khởi tạo"}
 
     # ========================
-    # 1. Save file
+    # 1. Save file and read to memory
     # ========================
+    contents = await file.read()
     temp_path = f"temp_{file.filename}"
     with open(temp_path, "wb") as f:
-        f.write(await file.read())
+        f.write(contents)
+        
+    nparr = np.frombuffer(contents, np.uint8)
+    img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     # ========================
-    # 2. OCR
+    # 2. YOLO (Object Detection)
     # ========================
-    results = ocr.predict(input=temp_path)
+    yolo_results = yolo_model.predict(source=img_bgr, conf=0.25, save=False, show=False)
+    
+    # Extract object tags
+    detected_classes = []
+    for box in yolo_results[0].boxes:
+        cls_id = int(box.cls[0].item())
+        cls_name = yolo_model.names[cls_id]
+        detected_classes.append(cls_name)
+    detected_classes = list(set(detected_classes)) # Remove duplicates
+    
+    # Get image with YOLO boxes drawn
+    res_img_bgr = yolo_results[0].plot()
+
+    # ========================
+    # 3. OCR (Text Recognition)
+    # ========================
+    ocr_results = ocr.predict(input=temp_path)
 
     json_path = f"result_{file.filename}.json"
-    for res in results:
+    for res in ocr_results:
         res.save_to_json(json_path)
 
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     # ========================
-    # 3. Vẽ box và text lên ảnh
+    # 4. Vẽ box và text OCR lên ảnh YOLO
     # ========================
-    image = cv2.imread(temp_path)
-    
-    # Chuyển ảnh sang RGB để dùng với Pillow
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image_rgb = cv2.cvtColor(res_img_bgr, cv2.COLOR_BGR2RGB)
     pil_img = Image.fromarray(image_rgb)
     draw = ImageDraw.Draw(pil_img)
 
     font_path = r"C:\Windows\Fonts\times.ttf"
 
-    for text, poly in zip(data["rec_texts"], data["rec_polys"]):
+    for text, poly in zip(data.get("rec_texts", []), data.get("rec_polys", [])):
         # Tính kích thước box để thiết lập cỡ chữ
         h1 = np.linalg.norm(np.array(poly[0]) - np.array(poly[3]))
         h2 = np.linalg.norm(np.array(poly[1]) - np.array(poly[2]))
@@ -140,7 +159,6 @@ async def predict_image(username: str = Form(...), file: UploadFile = File(...))
     # ========================
     # Save + return
     # ========================
-    # Ensure user's AI directory exists in backend data using relative path
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     backend_data_dir = os.path.join(base_dir, "BackEnd", "data")
     user_ai_dir = os.path.join(backend_data_dir, username, ".AI")
@@ -154,7 +172,8 @@ async def predict_image(username: str = Form(...), file: UploadFile = File(...))
     image_base64 = base64.b64encode(buffer).decode('utf-8')
 
     return {
-        "texts": data["rec_texts"],
+        "texts": data.get("rec_texts", []),
+        "tags": detected_classes,
         "image_base64": image_base64
     }
 
