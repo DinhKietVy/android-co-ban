@@ -58,8 +58,9 @@
                     android:background="@drawable/profile_avatar_background">
 
                     <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
+                        android:id="@+id/ivProfileAvatar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
                         android:layout_gravity="center"
                         android:contentDescription="@string/profile_avatar"
                         android:src="@drawable/user"

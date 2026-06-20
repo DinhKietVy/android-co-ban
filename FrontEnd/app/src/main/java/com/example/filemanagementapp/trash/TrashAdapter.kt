@@ -50,10 +50,10 @@ class TrashAdapter(
         private val fallbackIcon: ImageView = itemView.findViewById(R.id.fileFallbackIcon)
         private val itemNameText: TextView = itemView.findViewById(R.id.itemNameText)
         private val itemMetaText: TextView = itemView.findViewById(R.id.itemMetaText)
+        private val aiBadgeIcon: ImageView = itemView.findViewById(R.id.aiBadgeIcon)
         private val tagContainer: LinearLayout = itemView.findViewById(R.id.tagContainer)
         private val deletedDateText: TextView = itemView.findViewById(R.id.deletedDateText)
         private val removeInText: TextView = itemView.findViewById(R.id.removeInText)
-        private val ocrPreviewText: TextView = itemView.findViewById(R.id.ocrPreviewText)
         private val moreButton: ImageButton = itemView.findViewById(R.id.moreButton)
 
         fun bind(item: TrashItemModel) {
@@ -90,6 +90,8 @@ class TrashAdapter(
             }
 
             itemNameText.text = item.name
+            aiBadgeIcon.visibility = if (item.aiAnalyzed) View.VISIBLE else View.GONE
+            
             itemMetaText.text = if (item.type == TrashItemModel.Type.FOLDER) {
                 context.getString(R.string.trash_type_folder)
             } else {
@@ -100,50 +102,11 @@ class TrashAdapter(
                 )
             }
 
-            renderTags(item)
-
-            if (!item.ocrPreview.isNullOrBlank()) {
-                ocrPreviewText.visibility = View.VISIBLE
-                ocrPreviewText.text = item.ocrPreview
-            } else {
-                ocrPreviewText.visibility = View.GONE
-            }
+            tagContainer.visibility = View.GONE
 
             deletedDateText.text = context.getString(R.string.trash_deleted, item.deletedDate)
             removeInText.text = context.getString(R.string.trash_remove_in, item.daysUntilRemoval)
             moreButton.setOnClickListener { onMoreClick(item, it) }
-        }
-
-        private fun renderTags(item: TrashItemModel) {
-            val context = itemView.context
-            tagContainer.removeAllViews()
-            val tags = buildList {
-                if (item.aiAnalyzed) add(context.getString(R.string.recent_ai_analyzed))
-                addAll(item.aiTags.take(2))
-            }
-            if (tags.isEmpty()) {
-                tagContainer.visibility = View.GONE
-                return
-            }
-            tagContainer.visibility = View.VISIBLE
-            tags.forEachIndexed { index, tag ->
-                val tagView = TextView(context).apply {
-                    text = tag
-                    textSize = 11f
-                    setTextColor(ContextCompat.getColor(context, R.color.explorer_tag_text))
-                    setBackgroundResource(R.drawable.explorer_tag_background)
-                    setPadding(8.dp(), 3.dp(), 8.dp(), 3.dp())
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        if (index > 0) {
-                            marginStart = 6.dp()
-                        }
-                    }
-                }
-                tagContainer.addView(tagView)
-            }
         }
 
         private fun iconFor(type: TrashItemModel.Type): Int {

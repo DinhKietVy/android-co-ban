@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
@@ -43,10 +44,13 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
     private lateinit var recentSearchChipRow: LinearLayout
     private lateinit var searchEditText: EditText
     private lateinit var emptyStateContainer: View
+    private lateinit var aiLoadingOverlay: View
+    private lateinit var aiLoadingAnimation: com.airbnb.lottie.LottieAnimationView
     
     private lateinit var viewModel: SearchViewModel
     private lateinit var actionSheetController: FileActionSheetController
     private lateinit var explorerRepository: ExplorerRepository
+    private lateinit var recentOpenLocalRepository: com.example.filemanagementapp.data.local.recent.RecentOpenLocalRepository
     
     private var username: String = ""
 
@@ -81,6 +85,8 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         recentSearchChipRow = findViewById(R.id.recentSearchChipRow)
         searchEditText = findViewById(R.id.searchEditText)
         emptyStateContainer = findViewById(R.id.emptyStateContainer)
+        aiLoadingOverlay = findViewById(R.id.aiLoadingOverlay)
+        aiLoadingAnimation = findViewById(R.id.aiLoadingAnimation)
     }
 
     private fun setupRecycler() {
@@ -102,6 +108,8 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         val favoriteLocal = FavoriteLocalRepository(appDatabase.favoriteItemDao())
         val searchHistory = SearchHistoryPreferencesRepository(appContext)
         val searchRepo = SearchRepository(directoryCache, aiAnalysis, favoriteLocal)
+        
+        recentOpenLocalRepository = com.example.filemanagementapp.data.local.recent.RecentOpenLocalRepository(appDatabase.recentOpenDao())
         
         explorerRepository = com.example.filemanagementapp.data.explorer.repository.ExplorerRepository(
             appContext = applicationContext,
@@ -212,17 +220,17 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
 
     private fun renderCategoryChips(selectedCategory: String) {
         val categories = listOf(
-            CATEGORY_ALL to getString(R.string.search_category_all),
-            CATEGORY_IMAGES to getString(R.string.search_category_images),
-            CATEGORY_DOCUMENTS to getString(R.string.search_category_documents),
-            CATEGORY_PDF to getString(R.string.search_category_pdf),
-            CATEGORY_VIDEOS to getString(R.string.search_category_videos),
-            CATEGORY_OCR to getString(R.string.search_category_ocr),
-            CATEGORY_AI_OBJECTS to getString(R.string.search_category_ai_objects),
-            CATEGORY_FAVORITES to getString(R.string.search_category_favorites)
+            Triple(CATEGORY_ALL, getString(R.string.search_category_all), null),
+            Triple(CATEGORY_IMAGES, getString(R.string.search_category_images), R.drawable.image_icon),
+            Triple(CATEGORY_DOCUMENTS, getString(R.string.search_category_documents), R.drawable.file_text),
+            Triple(CATEGORY_PDF, getString(R.string.search_category_pdf), R.drawable.file_text),
+            Triple(CATEGORY_VIDEOS, getString(R.string.search_category_videos), R.drawable.film),
+            Triple(CATEGORY_OCR, getString(R.string.search_category_ocr), R.drawable.scan),
+            Triple(CATEGORY_AI_OBJECTS, getString(R.string.search_category_ai_objects), R.drawable.sparkles),
+            Triple(CATEGORY_FAVORITES, getString(R.string.search_category_favorites), R.drawable.star)
         )
         categoryChipRow.removeAllViews()
-        categories.forEach { (id, label) ->
+        categories.forEach { (id, label, iconRes) ->
             val chip = layoutInflater.inflate(
                 android.R.layout.simple_list_item_1,
                 categoryChipRow,
@@ -230,7 +238,17 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
             ) as TextView
             chip.text = label
             chip.textSize = 14f
-            chip.setPadding(28, 18, 28, 18)
+            chip.setPadding(32, 18, 32, 18)
+            chip.compoundDrawablePadding = 16
+            
+            if (iconRes != null) {
+                val drawable = ContextCompat.getDrawable(this, iconRes)
+                // Optionally resize the drawable if needed, but intrinsic bounds should be fine
+                chip.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
+            } else {
+                chip.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null)
+            }
+            
             chip.setOnClickListener {
                 viewModel.selectCategory(id)
             }
@@ -239,7 +257,7 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                marginEnd = 8
+                marginEnd = 16 // converted to dp? The existing one used 8 (px?), actually LinearLayout params margin is in px if directly assigned integer, but wait...
             }
             categoryChipRow.addView(chip)
         }
@@ -317,23 +335,40 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         actionSheetController.show(
             item.rawItem,
             FileActionSheetController.ActionConfig(
+                showDownload = item.rawItem.type == ExplorerItem.Type.FILE,
                 showRename = false,
-                showMove = false
+                showMove = false,
+                showAi = item.rawItem.isImagePreviewable
             )
         )
     }
 
     private fun styleChip(chip: TextView, selected: Boolean) {
-        chip.background = getDrawable(R.drawable.explorer_tag_background)
+        val bgDrawable = android.graphics.drawable.GradientDrawable()
+        bgDrawable.shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+        bgDrawable.cornerRadius = 999f * resources.displayMetrics.density
+        
+        if (selected) {
+            bgDrawable.setColor(getColor(R.color.search_primary_soft))
+            bgDrawable.setStroke(0, android.graphics.Color.TRANSPARENT)
+        } else {
+            bgDrawable.setColor(getColor(R.color.search_surface))
+            bgDrawable.setStroke((1 * resources.displayMetrics.density).toInt(), android.graphics.Color.parseColor("#E0E0E0"))
+        }
+        
+        chip.background = bgDrawable
         chip.setTextColor(getColor(if (selected) R.color.search_primary else R.color.search_text_primary))
-        chip.backgroundTintList = getColorStateList(
-            if (selected) R.color.search_primary_soft else R.color.search_surface
+        chip.compoundDrawableTintList = getColorStateList(
+            if (selected) R.color.search_primary else R.color.search_text_primary
         )
     }
 
     // --- FileActionSheetController.Callbacks ---
 
     override fun onOpen(item: ExplorerItem) {
+        lifecycleScope.launch {
+            recentOpenLocalRepository.recordOpen(username, item.path)
+        }
         if (item.type == ExplorerItem.Type.FOLDER) {
             val resultIntent = android.content.Intent().apply {
                 putExtra(EXTRA_RESULT_FOLDER_PATH, item.path)
@@ -356,7 +391,17 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
     }
 
     override fun onDownload(item: ExplorerItem) {
-        Toast.makeText(this, getString(R.string.search_downloading, item.name), Toast.LENGTH_SHORT).show()
+        val downloadUrl = item.previewUrl
+        if (downloadUrl.isNullOrBlank()) {
+            Toast.makeText(this, R.string.explorer_download_start_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        com.example.filemanagementapp.download.ExplorerDownloadService.start(
+            context = this,
+            fileName = item.name,
+            downloadUrl = downloadUrl
+        )
+        Toast.makeText(this, R.string.explorer_download_started, Toast.LENGTH_SHORT).show()
     }
 
     override fun onRename(item: ExplorerItem, newName: String) {
@@ -383,7 +428,56 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
     }
 
     override fun onAnalyzeAi(item: ExplorerItem) {
+        if (item.type != ExplorerItem.Type.FILE) {
+            Toast.makeText(this, R.string.error_ai_only_file, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val previewUrl = item.previewUrl
+        if (previewUrl.isNullOrBlank()) {
+            Toast.makeText(this, R.string.error_ai_no_file_path, Toast.LENGTH_SHORT).show()
+            return
+        }
+        
         Toast.makeText(this, getString(R.string.search_ai_scheduled, item.name), Toast.LENGTH_SHORT).show()
+        
+        lifecycleScope.launch {
+            aiLoadingOverlay.visibility = android.view.View.VISIBLE
+            aiLoadingAnimation.playAnimation()
+
+            val aiRepo = com.example.filemanagementapp.data.ai.repository.AiAnalysisRepository(
+                applicationContext,
+                com.example.filemanagementapp.data.ai.network.AiNetworkModule.aiApiService,
+                com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.okHttpClient,
+                com.example.filemanagementapp.data.ai.network.AiNetworkModule.gson
+            )
+            val appDb = com.example.filemanagementapp.data.local.AppDatabase.getInstance(this@SearchActivity)
+            val aiLocal = com.example.filemanagementapp.data.local.ai.AiAnalysisLocalRepository(
+                appDb.aiAnalysisCacheDao(),
+                com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.gson
+            )
+            
+            aiRepo.analyzeImageFile(username, item.name, previewUrl).onSuccess { result ->
+                aiLocal.upsertAnalysis(
+                    com.example.filemanagementapp.data.local.ai.AiAnalysisCache(
+                        username = username,
+                        filePath = item.path,
+                        status = com.example.filemanagementapp.data.local.ai.AiAnalysisStatus.COMPLETED,
+                        tags = result.tags,
+                        ocrText = result.texts.joinToString("\n"),
+                        previewImagePath = result.previewImagePath,
+                        analysisType = "ocr",
+                        modelSource = "predict-image"
+                    )
+                )
+                viewModel.loadFiles()
+                aiLoadingOverlay.visibility = android.view.View.GONE
+                aiLoadingAnimation.cancelAnimation()
+            }.onFailure { throwable ->
+                aiLoadingOverlay.visibility = android.view.View.GONE
+                aiLoadingAnimation.cancelAnimation()
+                Toast.makeText(this@SearchActivity, throwable.message ?: "Analysis failed", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     companion object {

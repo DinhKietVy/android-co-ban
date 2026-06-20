@@ -45,4 +45,22 @@ object ExplorerNetworkModule {
     val explorerApiService: ExplorerApiService by lazy {
         retrofit.create(ExplorerApiService::class.java)
     }
+
+    val uploadOkHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .cookieJar(com.example.filemanagementapp.data.auth.network.SessionCookieJar)
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(120, TimeUnit.SECONDS)
+            .build()
+    }
+
+    val uploadApiService: ExplorerApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.API_BASE_URL)
+            .client(uploadOkHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(ExplorerApiService::class.java)
+    }
 }

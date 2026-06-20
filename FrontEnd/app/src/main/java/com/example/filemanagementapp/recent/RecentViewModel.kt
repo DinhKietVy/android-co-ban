@@ -19,16 +19,20 @@ class RecentViewModel(
 
     private var recentItems: List<RecentItem> = emptyList()
     private var favoriteItems: List<RecentItem> = emptyList()
+    private var quickAccessItems: List<RecentItem> = emptyList()
 
     fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             recentItems = repository.loadRecent(username)
             favoriteItems = repository.loadFavorites(username)
+            val recentOpens = repository.loadRecentOpens(username)
+            quickAccessItems = recentOpens.ifEmpty { buildFallbackQuickAccess() }
+            
             _uiState.update { state ->
                 state.copy(
                     isLoading = false,
-                    quickAccess = buildQuickAccess(),
+                    quickAccess = quickAccessItems,
                     listItems = buildListItems(state.activeTab, state.query)
                 )
             }
@@ -53,7 +57,7 @@ class RecentViewModel(
         }
     }
 
-    private fun buildQuickAccess(): List<RecentItem> {
+    private fun buildFallbackQuickAccess(): List<RecentItem> {
         return recentItems
             .filter { it.kind == RecentItem.Kind.FILE || it.kind == RecentItem.Kind.FOLDER }
             .sortedByDescending { it.modifiedEpochMillis ?: Long.MIN_VALUE }

@@ -25,6 +25,7 @@ import com.example.filemanagementapp.profile.language.LanguageActivity
 import com.example.filemanagementapp.profile.password.ChangePasswordActivity
 import com.example.filemanagementapp.profile.theme.ThemeActivity
 import kotlinx.coroutines.launch
+import coil.load
 
 class ProfileFragment : Fragment() {
     
@@ -45,6 +46,11 @@ class ProfileFragment : Fragment() {
         setupClickListeners(view)
         setupLogout(view)
         observeViewModel(view)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.refresh()
     }
 
     private fun setupClickListeners(view: View) {
@@ -92,6 +98,22 @@ class ProfileFragment : Fragment() {
                         view.findViewById<TextView>(R.id.tvProfileEmail).text = state.profile.email
                         view.findViewById<TextView>(R.id.tvProfileUsername).text = state.profile.username
                         view.findViewById<TextView>(R.id.tvProfilePro).visibility = if (state.profile.isPro) View.VISIBLE else View.GONE
+                        val avatarView = view.findViewById<ImageView>(R.id.ivProfileAvatar)
+                        if (!state.profile.avatarUrl.isNullOrEmpty()) {
+                            avatarView.imageTintList = null
+                            val padding = (2 * resources.displayMetrics.density).toInt()
+                            avatarView.setPadding(padding, padding, padding, padding)
+                            avatarView.load(state.profile.avatarUrl) {
+                                transformations(coil.transform.CircleCropTransformation())
+                                crossfade(true)
+                                error(R.drawable.user)
+                            }
+                        } else {
+                            avatarView.setImageResource(R.drawable.user)
+                            val padding = (14 * resources.displayMetrics.density).toInt()
+                            avatarView.setPadding(padding, padding, padding, padding)
+                            avatarView.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.profile_primary)
+                        }
                     }
                     
                     if (state.storage != null) {
@@ -125,6 +147,31 @@ class ProfileFragment : Fragment() {
                         performLogout()
                     }
 
+                    view.findViewById<View>(R.id.rowProfileAiExtensions).setOnClickListener {
+                        val input = android.widget.EditText(requireContext())
+                        input.setText(aiSettings.aiTargetExtensions)
+                        input.hint = getString(R.string.profile_ai_extensions_desc)
+                        
+                        val margin = (20 * resources.displayMetrics.density).toInt()
+                        val container = android.widget.FrameLayout(requireContext())
+                        val params = android.widget.FrameLayout.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+                        params.setMargins(margin, 0, margin, 0)
+                        input.layoutParams = params
+                        container.addView(input)
+
+                        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle(getString(R.string.profile_ai_extensions_title))
+                            .setView(container)
+                            .setPositiveButton(android.R.string.ok) { _, _ ->
+                                viewModel.updateAiTargetExtensions(input.text.toString().trim())
+                            }
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show()
+                    }
+
                     if (state.errorMessage != null) {
                         Toast.makeText(requireContext(), state.errorMessage.asString(requireContext()), Toast.LENGTH_SHORT).show()
                     }
@@ -146,6 +193,7 @@ class ProfileFragment : Fragment() {
         bindToggleRow(view, R.id.rowProfileAiOcr, R.drawable.scan, R.string.profile_auto_ocr)
         bindToggleRow(view, R.id.rowProfileAiObject, R.drawable.sparkles, R.string.profile_auto_object)
         bindToggleRow(view, R.id.rowProfileAiMetadata, R.drawable.tag, R.string.profile_ai_metadata, noBorder = true)
+        bindRow(view, R.id.rowProfileAiExtensions, R.drawable.file_text, R.string.profile_ai_extensions, noBorder = true)
 
         bindRow(view, R.id.rowProfileHelp, R.drawable.help_circle, R.string.profile_help)
         bindRow(view, R.id.rowProfileAbout, R.drawable.info, R.string.profile_about)

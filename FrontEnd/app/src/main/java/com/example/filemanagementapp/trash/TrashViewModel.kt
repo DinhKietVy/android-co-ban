@@ -37,12 +37,22 @@ class TrashViewModel(
                     val items = directory.items
                     rawExplorerItems = items
                     
-                    val analysisMap = aiAnalysisLocalRepository.getAnalysisByPaths(
-                        username = username,
-                        filePaths = items.filter { it.type == ExplorerItem.Type.FILE }.map { it.path }
-                    )
+                    val allAnalyses = aiAnalysisLocalRepository.getAllForUser(username)
                     
-                    val mappedItems = items.map { it.toTrashItemModel(analysisMap[it.path]) }
+                    val mappedItems = items.map { item ->
+                        val cleanName = if (item.name.matches(Regex("^\\d{13}_.*"))) {
+                            item.name.substringAfter('_')
+                        } else {
+                            item.name
+                        }
+                        
+                        val analysis = allAnalyses.find { 
+                            val analysisName = it.filePath.substringAfterLast('/')
+                            analysisName == cleanName
+                        }
+
+                        item.toTrashItemModel(cleanName, analysis)
+                    }
                     _uiState.update { 
                         it.copy(
                             isLoading = false, 
@@ -127,7 +137,7 @@ class TrashViewModel(
         return "$formatted ${units[unitIndex]}"
     }
 
-    private fun ExplorerItem.toTrashItemModel(analysis: com.example.filemanagementapp.data.local.ai.AiAnalysisCache?): TrashItemModel {
+    private fun ExplorerItem.toTrashItemModel(cleanName: String, analysis: com.example.filemanagementapp.data.local.ai.AiAnalysisCache?): TrashItemModel {
         val millis = modifiedEpochMillis ?: 0L
         val daysPassed = (System.currentTimeMillis() - millis) / (1000 * 60 * 60 * 24)
         val daysLeft = maxOf(0, 30 - daysPassed).toInt()
@@ -135,7 +145,7 @@ class TrashViewModel(
         val trashType = when(type) {
             ExplorerItem.Type.FOLDER -> TrashItemModel.Type.FOLDER
             ExplorerItem.Type.FILE -> {
-                val ext = name.substringAfterLast('.', "").lowercase()
+                val ext = cleanName.substringAfterLast('.', "").lowercase()
                 when(ext) {
                     "jpg", "jpeg", "png", "gif", "webp" -> TrashItemModel.Type.IMAGE
                     "mp4", "avi", "mov", "mkv" -> TrashItemModel.Type.VIDEO
@@ -158,15 +168,15 @@ class TrashViewModel(
         
         return TrashItemModel(
             id = id,
-            name = name,
+            name = cleanName,
             type = trashType,
             deletedDate = modified,
             daysUntilRemoval = daysLeft,
             size = finalSizeStr,
             itemCount = itemCount,
-            aiAnalyzed = false,
-            aiTags = emptyList(),
-            ocrPreview = null,
+            aiAnalyzed = analysis?.status == com.example.filemanagementapp.data.local.ai.AiAnalysisStatus.COMPLETED,
+            aiTags = analysis?.tags ?: emptyList(),
+            ocrPreview = analysis?.ocrText,
             previewUrl = previewUrl
         )
     }

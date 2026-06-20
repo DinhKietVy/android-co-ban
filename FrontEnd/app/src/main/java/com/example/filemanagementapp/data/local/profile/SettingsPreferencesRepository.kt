@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -22,7 +23,8 @@ private val Context.settingsDataStore by preferencesDataStore(
 data class AiFeaturesSettings(
     val autoOcrEnabled: Boolean = false,
     val autoObjectEnabled: Boolean = false,
-    val aiMetadataEnabled: Boolean = false
+    val aiMetadataEnabled: Boolean = false,
+    val aiTargetExtensions: String = "jpg, jpeg, png, webp"
 )
 
 class SettingsPreferencesRepository(private val context: Context) {
@@ -31,6 +33,7 @@ class SettingsPreferencesRepository(private val context: Context) {
         val autoOcrEnabled = booleanPreferencesKey("auto_ocr_enabled")
         val autoObjectEnabled = booleanPreferencesKey("auto_object_enabled")
         val aiMetadataEnabled = booleanPreferencesKey("ai_metadata_enabled")
+        val aiTargetExtensions = stringPreferencesKey("ai_target_extensions")
         val themeMode = intPreferencesKey("theme_mode")
     }
 
@@ -46,7 +49,8 @@ class SettingsPreferencesRepository(private val context: Context) {
             AiFeaturesSettings(
                 autoOcrEnabled = preferences[Keys.autoOcrEnabled] ?: false,
                 autoObjectEnabled = preferences[Keys.autoObjectEnabled] ?: false,
-                aiMetadataEnabled = preferences[Keys.aiMetadataEnabled] ?: false
+                aiMetadataEnabled = preferences[Keys.aiMetadataEnabled] ?: false,
+                aiTargetExtensions = preferences[Keys.aiTargetExtensions] ?: "jpg, jpeg, png, webp"
             )
         }
 
@@ -77,6 +81,12 @@ class SettingsPreferencesRepository(private val context: Context) {
     suspend fun updateAiMetadata(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.aiMetadataEnabled] = enabled
+        }
+    }
+
+    suspend fun updateAiTargetExtensions(extensions: String) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.aiTargetExtensions] = extensions
         }
     }
 

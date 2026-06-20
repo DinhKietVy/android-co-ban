@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -54,6 +55,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     )
     
     private val settingsRepository = SettingsPreferencesRepository(application.applicationContext)
+    private val loginPreferencesRepository = com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository(application.applicationContext)
     
     private val _uiState = MutableStateFlow(ProfileUiState(isLoading = true))
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -69,6 +71,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         observeSettings()
     }
 
+    fun refresh() {
+        fetchProfileData()
+    }
+
     private fun observeSettings() {
         viewModelScope.launch {
             settingsRepository.aiSettingsFlow.collect { settings ->
@@ -82,6 +88,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             
             val profileResult = authRepository.autoLogin()
+            val savedPreferences = loginPreferencesRepository.preferencesFlow.first()
+            val avatarUrl = savedPreferences.avatarUrl
             
             if (profileResult.isSuccess) {
                 val loginUser = profileResult.getOrNull()
@@ -90,16 +98,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                         fullName = it.displayName ?: getApplication<Application>().getString(R.string.profile_default_name),
                         email = it.email ?: "",
                         username = it.username,
-                        isPro = false
+                        isPro = false,
+                        avatarUrl = avatarUrl
                     )
                 }
                 
                 var aggregatedStorage = aggregateLocalStorage("", emptyList())
                 if (loginUser != null) {
-                    val filesResult = explorerRepository.listDirectory(loginUser.username, "")
-                    if (filesResult.isSuccess) {
-                        aggregatedStorage = aggregateLocalStorage(loginUser.username, filesResult.getOrNull()?.items ?: emptyList())
-                    }
+                    val allFiles = fetchAllFiles(loginUser.username, "")
+                    aggregatedStorage = aggregateLocalStorage(loginUser.username, allFiles)
                 }
                 
                 _uiState.value = _uiState.value.copy(
@@ -116,6 +123,23 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     
+    private suspend fun fetchAllFiles(username: String, path: String): List<ExplorerItem> {
+        val result = explorerRepository.listDirectory(username, path)
+        if (result.isSuccess) {
+            val data = result.getOrNull() ?: return emptyList()
+            val files = mutableListOf<ExplorerItem>()
+            for (item in data.items) {
+                if (item.type == ExplorerItem.Type.FILE) {
+                    files.add(item)
+                } else if (item.type == ExplorerItem.Type.FOLDER) {
+                    files.addAll(fetchAllFiles(username, item.path))
+                }
+            }
+            return files
+        }
+        return emptyList()
+    }
+
     private suspend fun aggregateLocalStorage(username: String, items: List<ExplorerItem>): StorageUsage {
         var imagesBytes = 0L
         var docsBytes = 0L
@@ -215,5 +239,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateAiMetadata(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.updateAiMetadata(enabled) }
+    }
+
+    fun updateAiTargetExtensions(extensions: String) {
+        viewModelScope.launch { settingsRepository.updateAiTargetExtensions(extensions) }
     }
 }

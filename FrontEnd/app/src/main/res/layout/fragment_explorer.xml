@@ -274,83 +274,166 @@
         </LinearLayout>
     </FrameLayout>
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/downloadProgressCard"
+    <LinearLayout
+        android:id="@+id/progressContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
         android:layout_marginStart="16dp"
         android:layout_marginBottom="24dp"
-        android:visibility="gone"
-        app:cardBackgroundColor="@android:color/white"
-        app:cardCornerRadius="22dp"
-        app:cardElevation="10dp"
-        app:strokeColor="@color/explorer_border"
-        app:strokeWidth="1dp">
+        android:orientation="vertical">
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/uploadProgressCard"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingTop="14dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="14dp">
-
-            <FrameLayout
-                android:layout_width="52dp"
-                android:layout_height="52dp">
-
-                <com.google.android.material.progressindicator.CircularProgressIndicator
-                    android:id="@+id/downloadProgressRing"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:indeterminate="false"
-                    app:indicatorColor="@color/explorer_primary"
-                    app:indicatorSize="52dp"
-                    app:trackColor="@color/explorer_secondary_bg"
-                    app:trackThickness="5dp" />
-
-                <TextView
-                    android:id="@+id/downloadProgressPercentText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:textColor="@color/explorer_text_primary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    tools:text="42%" />
-            </FrameLayout>
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="10dp"
+            app:strokeColor="@color/explorer_border"
+            app:strokeWidth="1dp">
 
             <LinearLayout
-                android:layout_width="200dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:orientation="vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingTop="14dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="14dp">
 
-                <TextView
-                    android:id="@+id/downloadProgressFileName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/explorer_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    tools:text="Invoice_2026.pdf" />
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
 
-                <TextView
-                    android:id="@+id/downloadProgressMetaText"
-                    android:layout_width="match_parent"
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/uploadProgressRing"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:indeterminate="false"
+                        app:indicatorColor="@color/explorer_primary"
+                        app:indicatorSize="52dp"
+                        app:trackColor="@color/explorer_secondary_bg"
+                        app:trackThickness="5dp" />
+
+                    <TextView
+                        android:id="@+id/uploadProgressPercentText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:textColor="@color/explorer_text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="42%" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="200dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="@color/explorer_text_secondary"
-                    android:textSize="13sp"
-                    tools:text="1.2 MB / 4.8 MB" />
+                    android:layout_marginStart="14dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/uploadProgressFileName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/explorer_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="Invoice_2026.pdf" />
+
+                    <TextView
+                        android:id="@+id/uploadProgressMetaText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/explorer_text_secondary"
+                        android:textSize="13sp"
+                        tools:text="1.2 MB / 4.8 MB" />
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/downloadProgressCard"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="10dp"
+            app:strokeColor="@color/explorer_border"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingTop="14dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="14dp">
+
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/downloadProgressRing"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:indeterminate="false"
+                        app:indicatorColor="@color/explorer_primary"
+                        app:indicatorSize="52dp"
+                        app:trackColor="@color/explorer_secondary_bg"
+                        app:trackThickness="5dp" />
+
+                    <TextView
+                        android:id="@+id/downloadProgressPercentText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:textColor="@color/explorer_text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="42%" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/downloadProgressFileName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/explorer_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="Invoice_2026.pdf" />
+
+                    <TextView
+                        android:id="@+id/downloadProgressMetaText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/explorer_text_secondary"
+                        android:textSize="13sp"
+                        tools:text="1.2 MB / 4.8 MB" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/createFab"

@@ -281,6 +281,7 @@ class ExplorerRepository(
             storageSummary = buildStorageSummary(
                 totalUsedBytes = totalUsedBytes ?: 0L
             ),
+            totalUsedBytes = totalUsedBytes ?: 0L,
             breadcrumbs = buildBreadcrumbs(normalizedFolder),
             items = explorerItems
         )
@@ -415,6 +416,7 @@ class ExplorerRepository(
 data class ExplorerDirectoryData(
     val currentFolder: String,
     val storageSummary: String,
+    val totalUsedBytes: Long = 0L,
     val breadcrumbs: List<ExplorerBreadcrumbItem>,
     val items: List<ExplorerItem>
 )

@@ -52,6 +52,10 @@
             android:name=".download.ExplorerDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".explorer.network.ExplorerUploadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
         <activity
             android:name=".profile.edit.EditProfileActivity"
             android:exported="false" />

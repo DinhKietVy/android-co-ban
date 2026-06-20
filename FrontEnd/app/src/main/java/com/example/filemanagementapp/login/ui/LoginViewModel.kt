@@ -137,7 +137,10 @@ class LoginViewModel(
             result.onSuccess { user ->
                 authRepository.syncGoogleUser(user)
                     .onSuccess { syncedUser ->
-                        persistRememberMe(syncedUser.email ?: syncedUser.username)
+                        persistRememberMe(
+                            username = syncedUser.email ?: syncedUser.username,
+                            avatarUrl = user.avatarUrl // We use the original user's avatarUrl because syncedUser comes from backend and might not have it
+                        )
                         _events.emit(LoginEvent.NavigateToMain(syncedUser))
                     }
                     .onFailure { throwable ->
@@ -181,15 +184,13 @@ class LoginViewModel(
         }
     }
 
-    private suspend fun persistRememberMe(username: String) {
-        if (_uiState.value.isRememberMeChecked) {
-            loginPreferencesRepository.saveRememberedLogin(
-                username = username,
-                rememberMe = true
-            )
-        } else {
-            loginPreferencesRepository.clearRememberedLogin()
-        }
+    private suspend fun persistRememberMe(username: String, avatarUrl: String? = null) {
+        val rememberMe = _uiState.value.isRememberMeChecked
+        loginPreferencesRepository.saveRememberedLogin(
+            username = username,
+            rememberMe = rememberMe,
+            avatarUrl = avatarUrl
+        )
     }
 
     class Factory(

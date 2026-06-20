@@ -10,6 +10,14 @@ interface AiAnalysisCacheDao {
         """
         SELECT * FROM ai_analysis_cache
         WHERE username = :username
+        """
+    )
+    suspend fun getAllForUser(username: String): List<AiAnalysisCacheEntity>
+
+    @Query(
+        """
+        SELECT * FROM ai_analysis_cache
+        WHERE username = :username
         AND file_path IN (:filePaths)
         """
     )

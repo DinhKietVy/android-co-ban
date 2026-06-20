@@ -223,6 +223,9 @@
     <string name="profile_auto_ocr">Auto OCR Analysis</string>
     <string name="profile_auto_object">Auto Object Detection</string>
     <string name="profile_ai_metadata">AI Metadata Suggestions</string>
+    <string name="profile_ai_extensions">Applied File Types</string>
+    <string name="profile_ai_extensions_title">AI Target Extensions</string>
+    <string name="profile_ai_extensions_desc">Comma-separated file extensions (e.g. jpg, png, pdf)</string>
     <string name="profile_help">Help Center</string>
     <string name="profile_about">About App</string>
     <string name="profile_terms">Terms &amp; Privacy Policy</string>
@@ -256,6 +259,8 @@
     <string name="explorer_empty_subtitle">Create or upload files to get started</string>
     <string name="recent_empty_title">No Recent Files</string>
     <string name="recent_empty_subtitle">Files you open will appear here</string>
+    <string name="favorite_empty_title">No Favorites Files</string>
+    <string name="favorite_empty_subtitle">Files you favorite will appear here</string>
     <string name="search_empty_title">No Results Found</string>
     <string name="search_empty_subtitle">Try adjusting your search query</string>
 
@@ -459,4 +464,13 @@
 
     <!-- Forgot Password module - additional -->
     <string name="forgot_email_emoji">📬</string>
+    <string name="explorer_upload_notification_title">Đang tải lên...</string>
+    <string name="explorer_upload_notification_progress">%1$d%% • %2$s / %3$s</string>
+    <string name="explorer_upload_notification_running">Đang chuẩn bị tải lên %1$s</string>
+    <string name="explorer_upload_notification_done">Tải lên hoàn tất</string>
+    <string name="explorer_upload_notification_done_message">Đã tải xong file %1$s</string>
+    <string name="explorer_upload_notification_failed">Tải lên thất bại</string>
+    <string name="explorer_upload_notification_failed_message">Không thể tải file %1$s</string>
+    <string name="explorer_upload_channel_name">Tiến trình tải lên</string>
+    <string name="explorer_upload_channel_description">Hiển thị thông báo tiến trình tải file lên</string>
 </resources>

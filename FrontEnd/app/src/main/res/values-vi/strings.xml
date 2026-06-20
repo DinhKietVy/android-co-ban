@@ -221,6 +221,9 @@
     <string name="profile_auto_ocr">Tự động phân tích OCR</string>
     <string name="profile_auto_object">Tự động nhận diện vật thể</string>
     <string name="profile_ai_metadata">Gợi ý Metadata bằng AI</string>
+    <string name="profile_ai_extensions">Loại file áp dụng AI</string>
+    <string name="profile_ai_extensions_title">Đuôi file áp dụng AI</string>
+    <string name="profile_ai_extensions_desc">Các đuôi file cách nhau bởi dấu phẩy (VD: jpg, png, pdf)</string>
     <string name="profile_help">Trung tâm trợ giúp</string>
     <string name="profile_about">Về ứng dụng</string>
     <string name="profile_terms">Điều khoản &amp; Chính sách bảo mật</string>
@@ -252,6 +255,8 @@
     <string name="explorer_empty_subtitle">Tạo hoặc tải file lên để bắt đầu</string>
     <string name="recent_empty_title">Chưa có file gần đây</string>
     <string name="recent_empty_subtitle">Các file bạn mở sẽ xuất hiện ở đây</string>
+    <string name="favorite_empty_title">Chưa có file yêu thích</string>
+    <string name="favorite_empty_subtitle">Các file bạn yêu thích sẽ xuất hiện ở đây</string>
     <string name="search_empty_title">Không tìm thấy kết quả</string>
     <string name="search_empty_subtitle">Hãy thử thay đổi từ khóa tìm kiếm</string>
 

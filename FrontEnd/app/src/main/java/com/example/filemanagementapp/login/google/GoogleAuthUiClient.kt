@@ -34,11 +34,21 @@ class GoogleAuthUiClient(
             )
 
         return runCatching {
-            val result = credentialManager.getCredential(
-                context = context,
-                request = buildRequest(serverClientId)
-            )
-            val googleIdTokenCredential = extractGoogleIdTokenCredential(result)
+            var result: GetCredentialResponse? = null
+            try {
+                result = credentialManager.getCredential(
+                    context = context,
+                    request = buildRequest(serverClientId)
+                )
+            } catch (e: NoCredentialException) {
+                // Known issue: first invocation might fail if state is unclear. Retry once.
+                result = credentialManager.getCredential(
+                    context = context,
+                    request = buildRequest(serverClientId)
+                )
+            }
+            
+            val googleIdTokenCredential = extractGoogleIdTokenCredential(result!!)
             val authCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
             val authResult = firebaseAuth.signInWithCredential(authCredential).await()
             val firebaseUser = authResult.user
@@ -49,7 +59,8 @@ class GoogleAuthUiClient(
                 username = firebaseUser.displayName ?: firebaseUser.email ?: "google_user",
                 displayName = firebaseUser.displayName,
                 email = firebaseUser.email,
-                provider = AuthProvider.GOOGLE
+                provider = AuthProvider.GOOGLE,
+                avatarUrl = firebaseUser.photoUrl?.toString()
             )
         }.recoverCatching { throwable ->
             throw Exception(toReadableError(throwable))

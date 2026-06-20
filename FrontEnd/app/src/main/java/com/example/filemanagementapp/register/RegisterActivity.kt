@@ -124,6 +124,10 @@ class RegisterActivity : AppCompatActivity() {
         }
 
         googleRegisterButton.setOnClickListener {
+            if (!termsCheckbox.isChecked) {
+                Toast.makeText(this, R.string.error_terms_required, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             registerWithGoogle()
         }
 
@@ -170,8 +174,8 @@ class RegisterActivity : AppCompatActivity() {
         passwordEditText.isEnabled = !isAnyLoading
         confirmPasswordEditText.isEnabled = !isAnyLoading
         termsCheckbox.isEnabled = !isAnyLoading
-        createAccountButton.isEnabled = state.isTermsAccepted && !isAnyLoading
-        googleRegisterButton.isEnabled = state.isTermsAccepted && !isAnyLoading
+        createAccountButton.isEnabled = !isAnyLoading
+        googleRegisterButton.isEnabled = !isAnyLoading
 
         createAccountButton.text = if (state.isRegisterLoading) {
             getString(R.string.register_loading)

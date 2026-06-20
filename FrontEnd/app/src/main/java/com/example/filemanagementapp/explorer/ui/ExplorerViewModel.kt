@@ -179,23 +179,20 @@ class ExplorerViewModel(
         }
     }
 
-    fun uploadFile(fileUri: Uri) {
+    fun onUploadCompleted(uploadedFileName: String) {
         viewModelScope.launch {
-            emitMessage(UiText.StringResource(R.string.msg_uploading_file))
-            repository.uploadFile(
+            directoryCacheLocalRepository.invalidateDirectory(
                 username = username,
-                targetPath = _uiState.value.currentFolder,
-                fileUri = fileUri
-            ).onSuccess { (message, uploadedFileName) ->
-                directoryCacheLocalRepository.invalidateDirectory(
-                    username = username,
-                    folderPath = _uiState.value.currentFolder
-                )
-                emitMessage(UiText.DynamicString(message))
-                refreshCurrentDirectory()
+                folderPath = _uiState.value.currentFolder
+            )
+            refreshCurrentDirectory()
 
-                val settings = settingsPreferencesRepository.aiSettingsFlow.first()
-                if (settings.autoOcrEnabled || settings.autoObjectEnabled) {
+            val settings = settingsPreferencesRepository.aiSettingsFlow.first()
+            if (settings.autoOcrEnabled || settings.autoObjectEnabled) {
+                val targetExtensions = settings.aiTargetExtensions.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+                val uploadedExt = uploadedFileName.substringAfterLast('.', "").lowercase()
+                
+                if (targetExtensions.isEmpty() || targetExtensions.contains(uploadedExt)) {
                     repository.listDirectory(username, _uiState.value.currentFolder).onSuccess { directory ->
                         val uploadedItem = directory.items.find { it.name == uploadedFileName }
                         if (uploadedItem != null && uploadedItem.type == ExplorerItem.Type.FILE) {
@@ -203,8 +200,6 @@ class ExplorerViewModel(
                         }
                     }
                 }
-            }.onFailure { throwable ->
-                emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
             }
         }
     }
@@ -221,11 +216,20 @@ class ExplorerViewModel(
                     
                     val itemName = item.name
                     val newPath = if (normalizedTarget.isEmpty()) itemName else "$normalizedTarget/$itemName"
+                    val isFolder = item.type == ExplorerItem.Type.FOLDER
+                    
                     favoriteLocalRepository.updatePath(
                         username = username,
                         oldPath = item.path,
                         newPath = newPath,
-                        isFolder = item.type == ExplorerItem.Type.FOLDER
+                        isFolder = isFolder
+                    )
+                    
+                    aiAnalysisLocalRepository.updatePath(
+                        username = username,
+                        oldPath = item.path,
+                        newPath = newPath,
+                        isFolder = isFolder
                     )
                     
                     emitMessage(UiText.DynamicString(message))
@@ -614,7 +618,7 @@ class ExplorerViewModel(
         return "$formatted ${units[unitIndex]}"
     }
 
-    private fun applyDirectoryState(
+    private suspend fun applyDirectoryState(
         directory: com.example.filemanagementapp.data.explorer.repository.ExplorerDirectoryData,
         mergedItems: List<ExplorerItem>,
         isRefresh: Boolean,
@@ -631,12 +635,42 @@ class ExplorerViewModel(
                 isRefreshing = false,
                 isShowingCachedData = isShowingCachedData,
                 currentFolder = directory.currentFolder,
-                storageSummary = directory.storageSummary,
                 breadcrumbs = directory.breadcrumbs,
                 items = applySorting(mergedItems, state.sortOption),
                 selectedPaths = updatedSelection,
-                errorMessage = null
+                isSelectionMode = updatedSelection.isNotEmpty()
             )
+        }
+        
+        viewModelScope.launch {
+            val allFiles = fetchAllFiles(username, "")
+            val analysisMap = if (username.isNotBlank() && allFiles.isNotEmpty()) {
+                aiAnalysisLocalRepository.getAnalysisByPaths(
+                    username = username,
+                    filePaths = allFiles.filter { it.type == ExplorerItem.Type.FILE }.map { it.path }
+                )
+            } else {
+                emptyMap()
+            }
+
+            var totalUsedBytes = 0L
+            for (item in allFiles) {
+                if (item.type == ExplorerItem.Type.FILE) {
+                    var size = item.sizeBytes ?: 0L
+                    val analysis = analysisMap[item.path]
+                    if (analysis?.previewImagePath != null) {
+                        val file = java.io.File(analysis.previewImagePath)
+                        if (file.exists()) {
+                            size += file.length()
+                        }
+                    }
+                    totalUsedBytes += size
+                }
+            }
+            
+            _uiState.update { state ->
+                state.copy(storageSummary = formatSize(totalUsedBytes) + " used")
+            }
         }
 
         if (isRefresh && isShowingCachedData) {
@@ -693,5 +727,21 @@ class ExplorerViewModel(
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
+    }
+    private suspend fun fetchAllFiles(username: String, path: String): List<ExplorerItem> {
+        val result = repository.listDirectory(username, path)
+        if (result.isSuccess) {
+            val data = result.getOrNull() ?: return emptyList()
+            val files = mutableListOf<ExplorerItem>()
+            for (item in data.items) {
+                if (item.type == ExplorerItem.Type.FILE) {
+                    files.add(item)
+                } else if (item.type == ExplorerItem.Type.FOLDER) {
+                    files.addAll(fetchAllFiles(username, item.path))
+                }
+            }
+            return files
+        }
+        return emptyList()
     }
 }

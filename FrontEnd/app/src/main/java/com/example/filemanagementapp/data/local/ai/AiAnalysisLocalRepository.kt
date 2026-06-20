@@ -23,6 +23,10 @@ class AiAnalysisLocalRepository(
             }
     }
 
+    suspend fun getAllForUser(username: String): List<AiAnalysisCache> = withContext(Dispatchers.IO) {
+        aiAnalysisCacheDao.getAllForUser(username).map { it.toDomainModel() }
+    }
+
     suspend fun upsertAnalysis(record: AiAnalysisCache) = withContext(Dispatchers.IO) {
         aiAnalysisCacheDao.upsert(record.toEntity())
     }
