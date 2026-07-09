@@ -130,9 +130,42 @@ class FilePreviewActivity : AppCompatActivity() {
             aiTags = aiTags
         )
 
-        previewRenderHelper.setup { view ->
-            explorerItem?.let { previewActionHandler.openExternally(it, previewRenderHelper.previewLoadingIndicator) }
-        }
+        val appDatabase = com.example.filemanagementapp.data.local.AppDatabase.getInstance(applicationContext)
+        val aiAnalysisLocalRepository = com.example.filemanagementapp.data.local.ai.AiAnalysisLocalRepository(
+            appDatabase.aiAnalysisCacheDao(),
+            ExplorerNetworkModule.gson
+        )
+
+        previewRenderHelper.setup(
+            onOpenExternally = { view ->
+                explorerItem?.let { previewActionHandler.openExternally(it, previewRenderHelper.previewLoadingIndicator) }
+            },
+            onAiDataChanged = { newOcrText, newTags ->
+                explorerItem?.let { item ->
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val path = item.path
+                        val existing = aiAnalysisLocalRepository.getAnalysisByPaths(username, listOf(path))[path]
+                        if (existing != null) {
+                            val updated = existing.copy(
+                                ocrText = newOcrText,
+                                tags = newTags
+                            )
+                            aiAnalysisLocalRepository.upsertAnalysis(updated)
+                        } else {
+                            val newRecord = com.example.filemanagementapp.data.local.ai.AiAnalysisCache(
+                                username = username,
+                                filePath = path,
+                                status = com.example.filemanagementapp.data.local.ai.AiAnalysisStatus.COMPLETED,
+                                tags = newTags,
+                                ocrText = newOcrText,
+                                previewImagePath = analyzedImagePath
+                            )
+                            aiAnalysisLocalRepository.upsertAnalysis(newRecord)
+                        }
+                    }
+                }
+            }
+        )
 
         setupActions()
         if (intent.getBooleanExtra(EXTRA_SHOW_AI_PANEL, false)) {
