@@ -25,8 +25,8 @@ class PreviewRenderHelper(
     private val previewUrl: String?,
     private val analyzedImagePath: String?,
     private val fileName: String,
-    private val ocrText: String,
-    private val aiTags: List<String>
+    private var ocrText: String,
+    private var aiTags: List<String>
 ) {
     private val titleText: TextView = activity.findViewById(R.id.titleText)
     private val previewInfoNameValue: TextView = activity.findViewById(R.id.previewInfoNameValue)
@@ -47,13 +47,16 @@ class PreviewRenderHelper(
     private val openExternallyButton: com.google.android.material.button.MaterialButton = activity.findViewById(R.id.openExternallyButton)
     private val showProcessedImageSwitch: androidx.appcompat.widget.SwitchCompat = activity.findViewById(R.id.showProcessedImageSwitch)
     private val objectTagsTitle: TextView = activity.findViewById(R.id.objectTagsTitle)
-    private val objectTagsContainer: LinearLayout = activity.findViewById(R.id.objectTagsContainer)
+    private val objectTagsContainerLayout: LinearLayout = activity.findViewById(R.id.objectTagsContainerLayout)
+    private val objectTagsChipGroup: com.google.android.material.chip.ChipGroup = activity.findViewById(R.id.objectTagsChipGroup)
+    private val addTagButton: com.google.android.material.button.MaterialButton = activity.findViewById(R.id.addTagButton)
     private val ocrTextView: TextView = activity.findViewById(R.id.ocrTextView)
+    private val editOcrButton: com.google.android.material.button.MaterialButton = activity.findViewById(R.id.editOcrButton)
 
     var pdfRenderer: android.graphics.pdf.PdfRenderer? = null
     var pdfFileDescriptor: android.os.ParcelFileDescriptor? = null
 
-    fun setup(onOpenExternally: (View) -> Unit) {
+    fun setup(onOpenExternally: (View) -> Unit, onAiDataChanged: (String, List<String>) -> Unit = { _, _ -> }) {
         titleText.text = fileName.ifBlank { activity.getString(R.string.preview_file_name) }
         previewInfoNameValue.text = fileName.ifBlank { activity.getString(R.string.preview_file_name) }
         
@@ -290,28 +293,60 @@ class PreviewRenderHelper(
             activity.getString(R.string.preview_ai_empty)
         }
         
-        objectTagsContainer.removeAllViews()
-        if (aiTags.isEmpty()) {
-            objectTagsTitle.visibility = View.GONE
-            objectTagsContainer.visibility = View.GONE
-        } else {
-            objectTagsTitle.visibility = View.VISIBLE
-            objectTagsContainer.visibility = View.VISIBLE
+        editOcrButton.setOnClickListener {
+            val input = android.widget.EditText(activity)
+            input.setText(ocrText)
+            
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
+                .setTitle("Edit Extracted Text")
+                .setView(input)
+                .setPositiveButton("Save") { _, _ ->
+                    ocrText = input.text.toString()
+                    ocrTextView.text = ocrText.ifBlank { activity.getString(R.string.preview_ai_empty) }
+                    onAiDataChanged(ocrText, aiTags)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
-        aiTags.forEach { tag ->
-            val chip = activity.layoutInflater.inflate(android.R.layout.simple_list_item_1, objectTagsContainer, false) as TextView
-            chip.text = tag
-            chip.setTextColor(activity.getColor(R.color.preview_text_primary))
-            chip.textSize = 13f
-            chip.background = activity.getDrawable(R.drawable.explorer_tag_background)
-            chip.setPadding(16, 12, 16, 12)
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.bottomMargin = 8
-            chip.layoutParams = params
-            objectTagsContainer.addView(chip)
+
+        fun renderTags() {
+            objectTagsChipGroup.removeAllViews()
+            objectTagsTitle.visibility = View.VISIBLE
+            objectTagsContainerLayout.visibility = View.VISIBLE
+            aiTags.forEach { tag ->
+                val chip = com.google.android.material.chip.Chip(activity)
+                chip.text = tag
+                chip.isCloseIconVisible = true
+                chip.setOnCloseIconClickListener {
+                    val mutableTags = aiTags.toMutableList()
+                    mutableTags.remove(tag)
+                    aiTags = mutableTags
+                    renderTags()
+                    onAiDataChanged(ocrText, aiTags)
+                }
+                objectTagsChipGroup.addView(chip)
+            }
+        }
+
+        renderTags()
+
+        addTagButton.setOnClickListener {
+            val input = android.widget.EditText(activity)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
+                .setTitle("Add Tag")
+                .setView(input)
+                .setPositiveButton("Add") { _, _ ->
+                    val newTag = input.text.toString().trim()
+                    if (newTag.isNotBlank() && !aiTags.contains(newTag)) {
+                        val mutableTags = aiTags.toMutableList()
+                        mutableTags.add(newTag)
+                        aiTags = mutableTags
+                        renderTags()
+                        onAiDataChanged(ocrText, aiTags)
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
     }
 

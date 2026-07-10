@@ -72,7 +72,7 @@
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:minHeight="240dp"
                     app:cardElevation="1dp"
                     app:strokeColor="@color/preview_border"
@@ -80,7 +80,7 @@
 
                     <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:minHeight="240dp">
 
                         <ImageView
@@ -96,7 +96,7 @@
                         <VideoView
                             android:id="@+id/previewVideo"
                             android:layout_width="match_parent"
-                            android:layout_height="240dp"
+                            android:layout_height="match_parent"
                             android:layout_gravity="center"
                             android:visibility="gone" />
 
@@ -328,6 +328,21 @@
                                 android:textStyle="bold" />
 
                             <com.google.android.material.button.MaterialButton
+                                android:id="@+id/editOcrButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:layout_marginEnd="8dp"
+                                android:backgroundTint="@color/preview_surface"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:text="Edit"
+                                android:textAllCaps="false"
+                                android:textColor="@color/preview_primary"
+                                android:textSize="12sp"
+                                app:icon="@drawable/edit_3"
+                                app:iconTint="@color/preview_primary" />
+
+                            <com.google.android.material.button.MaterialButton
                                 android:id="@+id/copyButton"
                                 android:layout_width="wrap_content"
                                 android:layout_height="36dp"
@@ -366,11 +381,32 @@
                         android:textStyle="bold" />
 
                     <LinearLayout
-                        android:id="@+id/objectTagsContainer"
+                        android:id="@+id/objectTagsContainerLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:orientation="vertical" />
+                        android:orientation="vertical">
+
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/objectTagsChipGroup"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/addTagButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginTop="8dp"
+                            android:backgroundTint="@color/preview_surface"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="Add Tag"
+                            android:textAllCaps="false"
+                            android:textColor="@color/preview_primary"
+                            android:textSize="12sp"
+                            app:icon="@drawable/plus"
+                            app:iconTint="@color/preview_primary" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </ScrollView>
