@@ -110,6 +110,27 @@ class ExplorerRepository(
         }
     }
 
+    suspend fun updateFileContent(
+        username: String,
+        filePath: String,
+        content: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.updateFileContent(
+                com.example.filemanagementapp.data.explorer.model.ExplorerUpdateFileRequest(
+                    username = username,
+                    filePath = filePath,
+                    content = content
+                )
+            )
+            response.toMutationResult()
+        } catch (ioException: IOException) {
+            Result.failure(Exception("Khong the ket noi toi server."))
+        } catch (exception: Exception) {
+            Result.failure(Exception(exception.message ?: "Khong the cap nhat file"))
+        }
+    }
+
     suspend fun uploadFile(
         username: String,
         targetPath: String,

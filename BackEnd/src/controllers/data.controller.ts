@@ -98,6 +98,46 @@ export const uploadData = (req: Request, res: Response) => {
   });
 };
 
+// API cập nhật nội dung file (Ghi đè)
+export const updateFileContent = (req: Request, res: Response) => {
+  try {
+    const { username, filePath, content } = req.body;
+
+    if (!username || !filePath || content === undefined) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath, content)' });
+    }
+
+    const userRootPath = path.resolve(__dirname, '../../data', username);
+    const absoluteFilePath = path.resolve(userRootPath, filePath);
+
+    if (!absoluteFilePath.startsWith(userRootPath)) {
+      return res.status(400).json({ error: 'Đường dẫn không hợp lệ' });
+    }
+
+    if (!fs.existsSync(absoluteFilePath)) {
+      return res.status(404).json({ error: 'Không tìm thấy file để cập nhật' });
+    }
+
+    const stats = fs.statSync(absoluteFilePath);
+    if (!stats.isFile()) {
+      return res.status(400).json({ error: 'Đường dẫn phải trỏ tới một file' });
+    }
+
+    fs.writeFileSync(absoluteFilePath, content, 'utf8');
+
+    return res.status(200).json({
+      message: 'Cập nhật nội dung file thành công',
+      data: {
+        filePath: filePath,
+        size: Buffer.byteLength(content, 'utf8')
+      }
+    });
+  } catch (error: any) {
+    console.error('Error updating file content:', error);
+    return res.status(500).json({ error: 'Lỗi server khi cập nhật file', detail: error.message });
+  }
+};
+
 // API tạo folder
 export const createFolder = (req: Request, res: Response) => {
   try {

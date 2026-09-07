@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadData, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles } from '../controllers/data.controller';
+import { uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles } from '../controllers/data.controller';
 import { authenticateToken } from '../middleware/auth';
 
 
@@ -53,6 +53,9 @@ const router = Router();
  *         description: Lỗi hệ thống server
  */
 router.post('/upload', authenticateToken,  uploadData);
+
+// API để ghi đè nội dung chữ vào file cũ
+router.put('/file-content', authenticateToken, updateFileContent);
 
 /**
  * @swagger

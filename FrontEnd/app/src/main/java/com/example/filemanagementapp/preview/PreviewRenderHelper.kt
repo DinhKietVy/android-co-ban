@@ -6,10 +6,13 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
+import android.widget.EditText
 import android.widget.TextView
-import android.widget.VideoView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.MediaItem
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
 import coil.load
 import com.example.filemanagementapp.R
 import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
@@ -36,9 +39,11 @@ class PreviewRenderHelper(
     private val previewInfoModifiedValue: TextView = activity.findViewById(R.id.previewInfoModifiedValue)
     
     private val previewImage: ImageView = activity.findViewById(R.id.previewImage)
-    val previewVideo: VideoView = activity.findViewById(R.id.previewVideo)
+    val previewVideo: androidx.media3.ui.PlayerView = activity.findViewById(R.id.previewVideo)
+    var exoPlayer: ExoPlayer? = null
     private val previewTextScroll: ScrollView = activity.findViewById(R.id.previewTextScroll)
-    private val previewText: TextView = activity.findViewById(R.id.previewText)
+    private val previewText: EditText = activity.findViewById(R.id.previewText)
+    private val editFab: com.google.android.material.floatingactionbutton.FloatingActionButton = activity.findViewById(R.id.editFab)
     private val previewPdfRecycler: androidx.recyclerview.widget.RecyclerView = activity.findViewById(R.id.previewPdfRecycler)
     val previewDocxWebView: android.webkit.WebView = activity.findViewById(R.id.previewDocxWebView)
     private val previewUnsupported: View = activity.findViewById(R.id.previewUnsupported)
@@ -134,51 +139,48 @@ class PreviewRenderHelper(
         } else if (isVideo || isAudio) {
             previewVideo.visibility = View.VISIBLE
             previewLoadingIndicator.visibility = View.VISIBLE
-            val mediaController = android.widget.MediaController(activity)
-            mediaController.setAnchorView(previewVideo)
-            previewVideo.setMediaController(mediaController)
             
             if (previewUrl == null) {
                 previewLoadingIndicator.visibility = View.GONE
                 return
             }
 
-            activity.lifecycleScope.launch {
-                try {
-                    val fileBytes = withContext(Dispatchers.IO) {
-                        val request = okhttp3.Request.Builder()
-                            .url(previewUrl)
-                            .addHeader("ngrok-skip-browser-warning", "69420")
-                            .build()
-                        val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
-                        if (!response.isSuccessful) throw Exception("HTTP ${response.code}")
-                        response.body?.bytes() ?: throw Exception("Empty response")
-                    }
+            try {
+                if (exoPlayer == null) {
+                    val dataSourceFactory = DefaultHttpDataSource.Factory()
+                        .setDefaultRequestProperties(mapOf("ngrok-skip-browser-warning" to "69420"))
                     
-                    val tempFile = File(activity.cacheDir, "temp_preview_media.${if(isVideo) "mp4" else "mp3"}")
-                    withContext(Dispatchers.IO) {
-                        tempFile.writeBytes(fileBytes)
-                    }
+                    exoPlayer = ExoPlayer.Builder(activity)
+                        .setMediaSourceFactory(androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory))
+                        .build()
+                        
+                    previewVideo.player = exoPlayer
+                }
 
-                    withContext(Dispatchers.Main) {
-                        previewVideo.setVideoURI(Uri.fromFile(tempFile))
-                        previewVideo.setOnPreparedListener { 
-                            it.start() 
+                exoPlayer?.setMediaItem(MediaItem.fromUri(previewUrl))
+                exoPlayer?.prepare()
+                exoPlayer?.playWhenReady = true
+                
+                exoPlayer?.addListener(object : androidx.media3.common.Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == androidx.media3.common.Player.STATE_READY) {
                             previewLoadingIndicator.visibility = View.GONE
-                        }
-                        previewVideo.setOnErrorListener { _, _, _ ->
-                            previewLoadingIndicator.visibility = View.GONE
-                            true
+                        } else if (playbackState == androidx.media3.common.Player.STATE_BUFFERING) {
+                            previewLoadingIndicator.visibility = View.VISIBLE
                         }
                     }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        android.widget.Toast.makeText(activity, "Error loading media: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                         previewLoadingIndicator.visibility = View.GONE
                         previewUnsupported.visibility = View.VISIBLE
                         previewVideo.visibility = View.GONE
+                        android.widget.Toast.makeText(activity, "Error loading media: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                }
+                })
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(activity, "Error initializing player: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                previewLoadingIndicator.visibility = View.GONE
+                previewUnsupported.visibility = View.VISIBLE
+                previewVideo.visibility = View.GONE
             }
         } else if (isText) {
             previewTextScroll.visibility = View.VISIBLE
@@ -369,7 +371,8 @@ class PreviewRenderHelper(
             e.printStackTrace()
         }
         try {
-            previewVideo.stopPlayback()
+            exoPlayer?.release()
+            exoPlayer = null
         } catch (e: Exception) {
             e.printStackTrace()
         }

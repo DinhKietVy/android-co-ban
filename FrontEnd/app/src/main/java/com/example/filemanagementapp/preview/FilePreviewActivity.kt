@@ -361,10 +361,31 @@ class FilePreviewActivity : AppCompatActivity() {
         AI_ANALYSIS
     }
 
+    override fun onPause() {
+        super.onPause()
+        if (::previewRenderHelper.isInitialized) {
+            previewRenderHelper.exoPlayer?.pause()
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if (::previewRenderHelper.isInitialized) {
             previewRenderHelper.cleanUp()
+        }
+    }
+
+    private fun updateFileContent(content: String) {
+        val item = explorerItem ?: return
+        val username = intent.getStringExtra("extra_username") ?: return
+        
+        lifecycleScope.launch {
+            val result = explorerRepository.updateFileContent(username, item.path, content)
+            if (result.isSuccess) {
+                android.widget.Toast.makeText(this@FilePreviewActivity, "Đã lưu thành công", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                android.widget.Toast.makeText(this@FilePreviewActivity, "Lỗi khi lưu: ${result.exceptionOrNull()?.message}", android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

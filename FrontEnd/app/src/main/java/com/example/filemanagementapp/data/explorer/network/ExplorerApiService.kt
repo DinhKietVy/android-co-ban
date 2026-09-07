@@ -10,6 +10,7 @@ import com.example.filemanagementapp.data.explorer.model.ExplorerMoveFolderReque
 import com.example.filemanagementapp.data.explorer.model.ExplorerMutationResponse
 import com.example.filemanagementapp.data.explorer.model.ExplorerRenameFileRequest
 import com.example.filemanagementapp.data.explorer.model.ExplorerRenameFolderRequest
+import com.example.filemanagementapp.data.explorer.model.ExplorerUpdateFileRequest
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -66,5 +67,10 @@ interface ExplorerApiService {
         @Part("username") username: RequestBody,
         @Part("targetPath") targetPath: RequestBody,
         @Part file: MultipartBody.Part
+    ): Response<ExplorerMutationResponse>
+
+    @PUT("api/data/file-content")
+    suspend fun updateFileContent(
+        @Body request: ExplorerUpdateFileRequest
     ): Response<ExplorerMutationResponse>
 }

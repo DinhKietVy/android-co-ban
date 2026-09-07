@@ -85,4 +85,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
 
     implementation("com.airbnb.android:lottie:6.6.7")
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
+    implementation(libs.photoview)
 }

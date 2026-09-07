@@ -93,7 +93,7 @@
                             android:scaleType="fitCenter"
                             tools:src="@drawable/file_text" />
 
-                        <VideoView
+                        <androidx.media3.ui.PlayerView
                             android:id="@+id/previewVideo"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
@@ -105,7 +105,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:visibility="gone">
-                            <TextView
+                            <EditText
                                 android:id="@+id/previewText"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
@@ -113,6 +113,10 @@
                                 android:textColor="@color/preview_text_primary"
                                 android:textSize="14sp"
                                 android:fontFamily="monospace"
+                                android:background="@null"
+                                android:focusable="false"
+                                android:cursorVisible="false"
+                                android:inputType="textMultiLine|textNoSuggestions"
                                 tools:text="Sample text content..." />
                         </ScrollView>
 
@@ -497,5 +501,17 @@
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/editFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="90dp"
+        android:src="@drawable/edit_3"
+        android:visibility="gone"
+        app:tint="@color/white"
+        app:backgroundTint="@color/preview_primary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
