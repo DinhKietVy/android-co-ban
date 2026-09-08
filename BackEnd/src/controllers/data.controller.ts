@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import sharp from 'sharp';
+import ffmpeg from 'fluent-ffmpeg';
+import libre from 'libreoffice-convert';
+import util from 'util';
 
 // Cấu hình storage cho multer
 const storage = multer.diskStorage({
@@ -836,5 +840,145 @@ export const searchFiles = (req: Request, res: Response) => {
 
   } catch (error: any) {
     return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};
+
+// =====================================================================
+// API chuyển đổi định dạng file (Universal Format Converter)
+// =====================================================================
+
+const libreConvertAsync = util.promisify(libre.convert);
+
+// Nếu soffice không nằm trong PATH, có thể set biến môi trường SOFFICE_PATH trong .env
+// Ví dụ: SOFFICE_PATH=C:\Program Files\LibreOffice\program\soffice.exe
+if (process.env.SOFFICE_PATH) {
+  (libre as any).soffice = process.env.SOFFICE_PATH;
+}
+
+// Danh sách định dạng được phép (whitelist) để tránh rủi ro bảo mại
+const ALLOWED_IMAGE_FORMATS = ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'gif', 'avif'];
+const ALLOWED_VIDEO_FORMATS = ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v'];
+const ALLOWED_AUDIO_FORMATS = ['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac', 'wma'];
+const ALLOWED_DOCUMENT_FORMATS = ['pdf']; // LibreOffice chỉ hỗ trợ xuất sang PDF
+
+const IMAGE_SOURCE_FORMATS = new Set(['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff', 'gif', 'avif']);
+const VIDEO_SOURCE_FORMATS = new Set(['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v']);
+const AUDIO_SOURCE_FORMATS = new Set(['mp3', 'wav', 'm4a', 'ogg', 'aac', 'flac', 'wma']);
+const DOCUMENT_SOURCE_FORMATS = new Set(['docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'odt', 'ods', 'odp']);
+
+/**
+ * Tạo đường dẫn output không bị trùng, tự động thêm hậu tố (1), (2)...
+ */
+const generateUniqueOutputPath = (dir: string, baseName: string, ext: string): string => {
+  let outputPath = path.join(dir, `${baseName}.${ext}`);
+  let counter = 1;
+  while (fs.existsSync(outputPath)) {
+    outputPath = path.join(dir, `${baseName} (${counter}).${ext}`);
+    counter++;
+  }
+  return outputPath;
+};
+
+export const convertFile = async (req: Request, res: Response) => {
+  try {
+    const { username, filePath, targetFormat } = req.body;
+
+    // --- Validate đầu vào ---
+    if (!username || !filePath || !targetFormat) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath, targetFormat)' });
+    }
+
+    // Làm sạch targetFormat: chỉ cho phép chữ và số, loại bỏ dấu chấm đầu tiên nếu có
+    const cleanTargetFormat = (targetFormat as string).toLowerCase().replace(/^\./, '').trim();
+
+    // Validate targetFormat chỉ là chữ/số, không chứa ký tự nguy hiểm
+    if (!/^[a-z0-9]+$/.test(cleanTargetFormat)) {
+      return res.status(400).json({ error: 'Định dạng đích không hợp lệ' });
+    }
+
+    const userRootPath = path.resolve(__dirname, '../../data', username);
+    const absoluteInputPath = path.resolve(userRootPath, filePath as string);
+
+    // Chống Path Traversal
+    if (!absoluteInputPath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn file không hợp lệ' });
+    }
+
+    if (!fs.existsSync(absoluteInputPath)) {
+      return res.status(404).json({ error: 'File nguồn không tồn tại' });
+    }
+
+    if (!fs.statSync(absoluteInputPath).isFile()) {
+      return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một file' });
+    }
+
+    // Lấy thông tin file nguồn
+    const sourceExt = path.extname(absoluteInputPath).toLowerCase().replace('.', '');
+    const sourceBaseName = path.basename(absoluteInputPath, path.extname(absoluteInputPath));
+    const sourceDir = path.dirname(absoluteInputPath);
+
+    // Tạo đường dẫn output không trùng lặp
+    const outputPath = generateUniqueOutputPath(sourceDir, sourceBaseName, cleanTargetFormat);
+    const relativeNewPath = path.relative(userRootPath, outputPath).replace(/\\/g, '/');
+    const relativeOriginalPath = path.relative(userRootPath, absoluteInputPath).replace(/\\/g, '/');
+
+    // --- Phân loại và gọi engine tương ứng ---
+
+    if (IMAGE_SOURCE_FORMATS.has(sourceExt)) {
+      // --- Engine Ảnh (Sharp) ---
+      if (!ALLOWED_IMAGE_FORMATS.includes(cleanTargetFormat)) {
+        return res.status(400).json({ error: `Không hỗ trợ chuyển đổi ảnh sang định dạng .${cleanTargetFormat}. Hỗ trợ: ${ALLOWED_IMAGE_FORMATS.join(', ')}` });
+      }
+
+      await sharp(absoluteInputPath)
+        .toFormat(cleanTargetFormat as keyof sharp.FormatEnum)
+        .toFile(outputPath);
+
+    } else if (AUDIO_SOURCE_FORMATS.has(sourceExt) || VIDEO_SOURCE_FORMATS.has(sourceExt)) {
+      // --- Engine Audio/Video (FFmpeg) ---
+      const allowedMedia = [...ALLOWED_VIDEO_FORMATS, ...ALLOWED_AUDIO_FORMATS];
+      if (!allowedMedia.includes(cleanTargetFormat)) {
+        return res.status(400).json({ error: `Không hỗ trợ chuyển đổi media sang định dạng .${cleanTargetFormat}. Hỗ trợ: ${allowedMedia.join(', ')}` });
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg(absoluteInputPath)
+          .toFormat(cleanTargetFormat)
+          .on('end', () => resolve())
+          .on('error', (err: Error) => reject(err))
+          .save(outputPath);
+      });
+
+    } else if (DOCUMENT_SOURCE_FORMATS.has(sourceExt)) {
+      // --- Engine Tài liệu (LibreOffice) ---
+      if (!ALLOWED_DOCUMENT_FORMATS.includes(cleanTargetFormat)) {
+        return res.status(400).json({ error: `Không hỗ trợ chuyển đổi tài liệu sang định dạng .${cleanTargetFormat}. Hiện chỉ hỗ trợ: pdf` });
+      }
+
+      const fileData = fs.readFileSync(absoluteInputPath);
+      const convertedBuffer = await libreConvertAsync(fileData, '.pdf', undefined);
+      fs.writeFileSync(outputPath, convertedBuffer);
+
+    } else {
+      return res.status(400).json({
+        error: `Định dạng nguồn .${sourceExt} không được hỗ trợ`,
+        supportedImageFormats: ALLOWED_IMAGE_FORMATS,
+        supportedVideoFormats: ALLOWED_VIDEO_FORMATS,
+        supportedAudioFormats: ALLOWED_AUDIO_FORMATS,
+        supportedDocumentFormats: [...DOCUMENT_SOURCE_FORMATS]
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Chuyển đổi thành công',
+      data: {
+        originalPath: relativeOriginalPath,
+        newPath: relativeNewPath
+      }
+    });
+
+  } catch (error: any) {
+    // Dọn dẹp file output nếu quá trình convert thất bại giữa chừng
+    return res.status(500).json({ error: 'Lỗi trong quá trình chuyển đổi', detail: error.message });
   }
 };

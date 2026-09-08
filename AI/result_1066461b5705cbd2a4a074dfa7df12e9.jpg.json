@@ -1,0 +1,76 @@
+{
+    "input_path": "temp_1066461b5705cbd2a4a074dfa7df12e9.jpg",
+    "page_index": null,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_textline_orientation": false
+    },
+    "dt_polys": [
+        [
+            [
+                412,
+                538
+            ],
+            [
+                441,
+                538
+            ],
+            [
+                441,
+                551
+            ],
+            [
+                412,
+                551
+            ]
+        ]
+    ],
+    "text_det_params": {
+        "limit_side_len": 1536,
+        "limit_type": "max",
+        "thresh": 0.2,
+        "max_side_limit": 4000,
+        "box_thresh": 0.45,
+        "unclip_ratio": 2.0
+    },
+    "text_type": "general",
+    "textline_orientation_angles": [
+        -1
+    ],
+    "text_rec_score_thresh": 0.0,
+    "return_word_box": false,
+    "rec_texts": [
+        "CNn"
+    ],
+    "rec_scores": [
+        0.5136618614196777
+    ],
+    "rec_polys": [
+        [
+            [
+                412,
+                538
+            ],
+            [
+                441,
+                538
+            ],
+            [
+                441,
+                551
+            ],
+            [
+                412,
+                551
+            ]
+        ]
+    ],
+    "rec_boxes": [
+        [
+            412,
+            538,
+            441,
+            551
+        ]
+    ]
+}
