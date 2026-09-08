@@ -52,7 +52,7 @@ const router = Router();
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/upload', authenticateToken,  uploadData);
+router.post('/upload', authenticateToken, uploadData);
 
 // API để ghi đè nội dung chữ vào file cũ
 router.put('/file-content', authenticateToken, updateFileContent);
@@ -109,7 +109,7 @@ router.put('/file-content', authenticateToken, updateFileContent);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/folder',authenticateToken, createFolder);
+router.post('/folder', authenticateToken, createFolder);
 
 /**
  * @swagger
@@ -163,7 +163,7 @@ router.post('/folder',authenticateToken, createFolder);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/move-file',authenticateToken, moveFile);
+router.post('/move-file', authenticateToken, moveFile);
 
 /**
  * @swagger
@@ -203,7 +203,7 @@ router.post('/move-file',authenticateToken, moveFile);
  *             schema:
  *               type: object
  *               properties:
- *                 message: 
+ *                 message:
  *                   type: string
  *                   example: Di chuyển thư mục thành công
  *                 data:
@@ -217,7 +217,7 @@ router.post('/move-file',authenticateToken, moveFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/move-folder',authenticateToken, moveFolder);
+router.post('/move-folder', authenticateToken, moveFolder);
 
 /**
  * @swagger
@@ -266,7 +266,7 @@ router.post('/move-folder',authenticateToken, moveFolder);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.delete('/file',authenticateToken, deleteFile);
+router.delete('/file', authenticateToken, deleteFile);
 
 /**
  * @swagger
@@ -315,7 +315,7 @@ router.delete('/file',authenticateToken, deleteFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.delete('/folder',authenticateToken, deleteFolder);
+router.delete('/folder', authenticateToken, deleteFolder);
 
 /**
  * @swagger
@@ -355,42 +355,6 @@ router.delete('/folder',authenticateToken, deleteFolder);
  *                   example: Lấy dữ liệu thành công
  *                 data:
  *                   type: object
- *                   properties:
- *                     username:
- *                       type: string
- *                       example: admin123
- *                     currentFolder:
- *                       type: string
- *                       example: hinhanh
- *                     folders:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           name:
- *                             type: string
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                           modifiedAt:
- *                             type: string
- *                             format: date-time
- *                     files:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           name:
- *                             type: string
- *                           size:
- *                             type: integer
- *                             description: Kích thước file tính bằng byte
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                           modifiedAt:
- *                             type: string
- *                             format: date-time
  *       400:
  *         description: Đường dẫn trỏ tới file thay vì thư mục, hoặc thiếu dữ liệu
  *       403:
@@ -400,13 +364,13 @@ router.delete('/folder',authenticateToken, deleteFolder);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/list',authenticateToken, listDirectory);
+router.post('/list', authenticateToken, listDirectory);
 
 /**
  * @swagger
  * /api/data/download:
  *   get:
- *     summary: Tải file về máy
+ *     summary: Tải file về máy (GET)
  *     description: Tải một file từ server về máy người dùng. Hỗ trợ truyền tham số qua query.
  *     tags: [Data]
  *     parameters:
@@ -441,7 +405,7 @@ router.post('/list',authenticateToken, listDirectory);
  *       500:
  *         description: Lỗi hệ thống server
  *   post:
- *     summary: Tải file về máy
+ *     summary: Tải file về máy (POST)
  *     description: Tải một file từ server về máy người dùng. Hỗ trợ truyền tham số qua body.
  *     tags: [Data]
  *     requestBody:
@@ -479,8 +443,8 @@ router.post('/list',authenticateToken, listDirectory);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.get('/download',authenticateToken, downloadFile);
-router.post('/download',authenticateToken, downloadFile);
+router.get('/download', authenticateToken, downloadFile);
+router.post('/download', authenticateToken, downloadFile);
 
 /**
  * @swagger
@@ -534,7 +498,7 @@ router.post('/download',authenticateToken, downloadFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/rename-file',authenticateToken, renameFile);
+router.post('/rename-file', authenticateToken, renameFile);
 
 /**
  * @swagger
@@ -588,7 +552,7 @@ router.post('/rename-file',authenticateToken, renameFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/rename-folder',authenticateToken, renameFolder);
+router.post('/rename-folder', authenticateToken, renameFolder);
 
 /**
  * @swagger
@@ -628,33 +592,6 @@ router.post('/rename-folder',authenticateToken, renameFolder);
  *                   example: Tìm kiếm thành công
  *                 data:
  *                   type: object
- *                   properties:
- *                     username:
- *                       type: string
- *                     keyword:
- *                       type: string
- *                     results:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           name:
- *                             type: string
- *                           path:
- *                             type: string
- *                             description: Đường dẫn tương đối từ thư mục gốc của user (có thể dùng gọi API khác)
- *                           type:
- *                             type: string
- *                             enum: [file, folder]
- *                           size:
- *                             type: integer
- *                             description: Kích thước file (byte). Không có nếu là thư mục.
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                           modifiedAt:
- *                             type: string
- *                             format: date-time
  *       400:
  *         description: Thiếu dữ liệu (username, keyword)
  *       404:
@@ -662,6 +599,83 @@ router.post('/rename-folder',authenticateToken, renameFolder);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/search',authenticateToken, searchFiles);
+router.post('/search', authenticateToken, searchFiles);
+
+/**
+ * @swagger
+ * /api/data/convert:
+ *   post:
+ *     summary: Chuyển đổi định dạng file
+ *     description: |
+ *       Chuyển đổi một file sang định dạng khác ngay trên server. Hỗ trợ 3 loại engine:
+ *       - **Ảnh** (Sharp): jpg, jpeg, png, webp, bmp, tiff, gif, avif
+ *       - **Audio/Video** (FFmpeg): mp4, mkv, avi, mov, wmv, flv, webm, m4v, mp3, wav, m4a, ogg, aac, flac, wma
+ *       - **Tài liệu** (LibreOffice): docx, doc, xlsx, xls, pptx, ppt, odt → pdf
+ *
+ *       **Lưu ý:** Quá trình chuyển đổi video có thể mất nhiều thời gian tùy vào kích thước file và hiệu năng server.
+ *     tags: [Data]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - filePath
+ *               - targetFormat
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Tên đăng nhập của người dùng
+ *                 example: admin123
+ *               filePath:
+ *                 type: string
+ *                 description: Đường dẫn của file cần chuyển đổi (tính từ thư mục gốc của user)
+ *                 example: Documents/BaoCao.docx
+ *               targetFormat:
+ *                 type: string
+ *                 description: Định dạng đích (không cần dấu chấm, ví dụ "pdf", "mp3", "webp")
+ *                 example: pdf
+ *     responses:
+ *       200:
+ *         description: Chuyển đổi thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Chuyển đổi thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     originalPath:
+ *                       type: string
+ *                       description: Đường dẫn tương đối của file gốc
+ *                       example: Documents/BaoCao.docx
+ *                     newPath:
+ *                       type: string
+ *                       description: Đường dẫn tương đối của file đã được chuyển đổi
+ *                       example: Documents/BaoCao.pdf
+ *       400:
+ *         description: Thiếu dữ liệu, định dạng không hợp lệ, hoặc định dạng không được hỗ trợ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Định dạng không được hỗ trợ
+ *       403:
+ *         description: Đường dẫn không hợp lệ (Path Traversal)
+ *       404:
+ *         description: File nguồn không tồn tại
+ *       500:
+ *         description: Lỗi trong quá trình chuyển đổi
+ */
+router.post('/convert', authenticateToken, convertFile);
 
 export default router;

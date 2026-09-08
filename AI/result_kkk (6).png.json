@@ -1,0 +1,76 @@
+{
+    "input_path": "temp_kkk (6).png",
+    "page_index": null,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_textline_orientation": false
+    },
+    "dt_polys": [
+        [
+            [
+                83,
+                89
+            ],
+            [
+                155,
+                89
+            ],
+            [
+                155,
+                114
+            ],
+            [
+                83,
+                114
+            ]
+        ]
+    ],
+    "text_det_params": {
+        "limit_side_len": 1536,
+        "limit_type": "max",
+        "thresh": 0.2,
+        "max_side_limit": 4000,
+        "box_thresh": 0.45,
+        "unclip_ratio": 2.0
+    },
+    "text_type": "general",
+    "textline_orientation_angles": [
+        -1
+    ],
+    "text_rec_score_thresh": 0.0,
+    "return_word_box": false,
+    "rec_texts": [
+        "PhimMoi"
+    ],
+    "rec_scores": [
+        0.8888956904411316
+    ],
+    "rec_polys": [
+        [
+            [
+                83,
+                89
+            ],
+            [
+                155,
+                89
+            ],
+            [
+                155,
+                114
+            ],
+            [
+                83,
+                114
+            ]
+        ]
+    ],
+    "rec_boxes": [
+        [
+            83,
+            89,
+            155,
+            114
+        ]
+    ]
+}
