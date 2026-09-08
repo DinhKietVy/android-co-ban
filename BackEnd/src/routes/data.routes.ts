@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles } from '../controllers/data.controller';
+import {convertFile, uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles } from '../controllers/data.controller';
 import { authenticateToken } from '../middleware/auth';
 
 
