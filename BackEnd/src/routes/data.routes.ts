@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import {convertFile, uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles } from '../controllers/data.controller';
+import {convertFile, uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles, compressFiles, extractFile } from '../controllers/data.controller';
 import { authenticateToken } from '../middleware/auth';
 
 
@@ -677,5 +677,141 @@ router.post('/search', authenticateToken, searchFiles);
  *         description: Lỗi trong quá trình chuyển đổi
  */
 router.post('/convert', authenticateToken, convertFile);
+
+/**
+ * @swagger
+ * /api/data/compress:
+ *   post:
+ *     summary: Nén file/thư mục thành file .zip
+ *     description: |
+ *       Đóng gói nhiều file và/hoặc thư mục được chỉ định thành một file `.zip` duy nhất, lưu tại thư mục đích trên server.
+ *       - `targetPath`: thư mục sẽ chứa file zip được tạo ra.
+ *       - `items`: mảng đường dẫn tương đối (tính từ thư mục gốc của user) của các file/thư mục cần nén.
+ *       - Các item không tồn tại hoặc có đường dẫn không hợp lệ sẽ bị bỏ qua.
+ *     tags: [Data]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - targetPath
+ *               - zipName
+ *               - items
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Tên đăng nhập của người dùng
+ *                 example: admin123
+ *               targetPath:
+ *                 type: string
+ *                 description: Đường dẫn thư mục đích sẽ lưu file zip (tính từ thư mục gốc của user). Truyền chuỗi rỗng `""` để lưu ở thư mục gốc.
+ *                 example: /
+ *               zipName:
+ *                 type: string
+ *                 description: Tên file zip sẽ được tạo (phải kết thúc bằng .zip)
+ *                 example: TaiLieu_Nen.zip
+ *               items:
+ *                 type: array
+ *                 description: Danh sách đường dẫn tương đối của các file hoặc thư mục cần nén
+ *                 items:
+ *                   type: string
+ *                 example: ["/BaoCao.docx", "/HinhAnh/Anh1.png", "/ThuMucChuaData"]
+ *     responses:
+ *       200:
+ *         description: Nén file thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Nén file thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     zipFilePath:
+ *                       type: string
+ *                       description: Đường dẫn tương đối của file zip vừa được tạo
+ *                       example: /TaiLieu_Nen.zip
+ *       400:
+ *         description: Thiếu dữ liệu, tên file zip không hợp lệ, hoặc không có item hợp lệ nào
+ *       403:
+ *         description: Đường dẫn không hợp lệ (Path Traversal)
+ *       404:
+ *         description: Thư mục đích không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.post('/compress', authenticateToken, compressFiles);
+
+/**
+ * @swagger
+ * /api/data/extract:
+ *   post:
+ *     summary: Giải nén file .zip
+ *     description: |
+ *       Giải nén một file `.zip` có sẵn trên server vào thư mục đích được chỉ định.
+ *       - Thư mục đích sẽ được tạo tự động nếu chưa tồn tại.
+ *       - Nếu có file trùng tên, file cũ sẽ bị ghi đè.
+ *     tags: [Data]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - filePath
+ *               - extractToPath
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Tên đăng nhập của người dùng
+ *                 example: admin123
+ *               filePath:
+ *                 type: string
+ *                 description: Đường dẫn của file .zip cần giải nén (tính từ thư mục gốc của user)
+ *                 example: /TaiLieu_Nen.zip
+ *               extractToPath:
+ *                 type: string
+ *                 description: Đường dẫn thư mục đích để giải nén vào (tính từ thư mục gốc của user). Sẽ được tạo tự động nếu chưa tồn tại.
+ *                 example: /TaiLieu_Nen_Giai_Nen
+ *     responses:
+ *       200:
+ *         description: Giải nén thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Giải nén thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     extractPath:
+ *                       type: string
+ *                       description: Đường dẫn tương đối của thư mục chứa nội dung đã giải nén
+ *                       example: /TaiLieu_Nen_Giai_Nen
+ *       400:
+ *         description: Thiếu dữ liệu hoặc file không phải định dạng .zip
+ *       403:
+ *         description: Đường dẫn không hợp lệ (Path Traversal)
+ *       404:
+ *         description: Không tìm thấy file zip
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.post('/extract', authenticateToken, extractFile);
 
 export default router;

@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import libre from 'libreoffice-convert';
 import util from 'util';
+import AdmZip from 'adm-zip';
 
 // Cấu hình storage cho multer
 const storage = multer.diskStorage({
@@ -1020,5 +1021,151 @@ export const convertFile = async (req: Request, res: Response) => {
   } catch (error: any) {
     // Dọn dẹp file output nếu quá trình convert thất bại giữa chừng
     return res.status(500).json({ error: 'Lỗi trong quá trình chuyển đổi', detail: error.message });
+  }
+};
+
+// =====================================================================
+// API Nén file/thư mục thành file .zip
+// =====================================================================
+export const compressFiles = (req: Request, res: Response) => {
+  try {
+    const { username, targetPath, zipName, items } = req.body;
+
+    // Validate đầu vào
+    if (!username || targetPath === undefined || !zipName || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, targetPath, zipName, items)' });
+    }
+
+    // Đảm bảo tên file zip kết thúc bằng .zip
+    const safeZipName = zipName.endsWith('.zip') ? zipName : `${zipName}.zip`;
+
+    // Chống ký tự nguy hiểm trong tên file zip (chỉ cho phép chữ, số, dấu gạch ngang, gạch dưới, dấu chấm, space)
+    if (!/^[\w\s\-\.]+\.zip$/i.test(safeZipName)) {
+      return res.status(400).json({ error: 'Tên file zip không hợp lệ' });
+    }
+
+    const userRootPath = path.resolve(__dirname, '../../data', username);
+
+    // Validate targetPath (thư mục chứa file zip đầu ra)
+    const absoluteTargetPath = path.resolve(userRootPath, targetPath);
+    if (!absoluteTargetPath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn targetPath không hợp lệ' });
+    }
+
+    if (!fs.existsSync(absoluteTargetPath) || !fs.statSync(absoluteTargetPath).isDirectory()) {
+      return res.status(404).json({ error: 'Thư mục đích (targetPath) không tồn tại' });
+    }
+
+    const outputZipPath = path.join(absoluteTargetPath, safeZipName);
+
+    // Tạo file zip mới
+    const zip = new AdmZip();
+    let addedCount = 0;
+
+    for (const itemPath of items) {
+      const absoluteItemPath = path.resolve(userRootPath, itemPath);
+
+      // Chống Path Traversal cho từng item
+      if (!absoluteItemPath.startsWith(userRootPath)) {
+        continue; // Bỏ qua item không hợp lệ
+      }
+
+      if (!fs.existsSync(absoluteItemPath)) {
+        continue; // Bỏ qua item không tồn tại
+      }
+
+      const stats = fs.statSync(absoluteItemPath);
+      if (stats.isDirectory()) {
+        // Thêm toàn bộ thư mục, giữ tên thư mục làm tên bên trong zip
+        zip.addLocalFolder(absoluteItemPath, path.basename(absoluteItemPath));
+      } else {
+        // Thêm file đơn lẻ
+        zip.addLocalFile(absoluteItemPath);
+      }
+      addedCount++;
+    }
+
+    if (addedCount === 0) {
+      return res.status(400).json({ error: 'Không có item hợp lệ nào để nén' });
+    }
+
+    // Lưu file zip ra ổ cứng
+    zip.writeZip(outputZipPath);
+
+    // Trả về đường dẫn tương đối của file zip
+    const relativeZipPath = path.relative(userRootPath, outputZipPath).replace(/\\/g, '/');
+
+    return res.status(200).json({
+      message: 'Nén file thành công',
+      data: {
+        zipFilePath: `/${relativeZipPath}`
+      }
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ khi nén file', detail: error.message });
+  }
+};
+
+// =====================================================================
+// API Giải nén file .zip
+// =====================================================================
+export const extractFile = (req: Request, res: Response) => {
+  try {
+    const { username, filePath, extractToPath } = req.body;
+
+    // Validate đầu vào
+    if (!username || !filePath || extractToPath === undefined) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath, extractToPath)' });
+    }
+
+    const userRootPath = path.resolve(__dirname, '../../data', username);
+
+    // Validate đường dẫn file zip
+    const absoluteZipPath = path.resolve(userRootPath, filePath);
+    if (!absoluteZipPath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn file zip không hợp lệ' });
+    }
+
+    if (!fs.existsSync(absoluteZipPath)) {
+      return res.status(404).json({ error: 'Không tìm thấy file zip' });
+    }
+
+    if (!fs.statSync(absoluteZipPath).isFile()) {
+      return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một file' });
+    }
+
+    // Kiểm tra đúng định dạng .zip
+    if (path.extname(absoluteZipPath).toLowerCase() !== '.zip') {
+      return res.status(400).json({ error: 'File phải có định dạng .zip' });
+    }
+
+    // Validate đường dẫn đích giải nén
+    const absoluteExtractPath = path.resolve(userRootPath, extractToPath);
+    if (!absoluteExtractPath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn giải nén không hợp lệ' });
+    }
+
+    // Tạo thư mục đích nếu chưa có
+    if (!fs.existsSync(absoluteExtractPath)) {
+      fs.mkdirSync(absoluteExtractPath, { recursive: true });
+    }
+
+    // Thực hiện giải nén (tham số `true` để overwrite nếu có file trùng)
+    const zip = new AdmZip(absoluteZipPath);
+    zip.extractAllTo(absoluteExtractPath, true);
+
+    // Trả về đường dẫn tương đối của thư mục đích
+    const relativeExtractPath = path.relative(userRootPath, absoluteExtractPath).replace(/\\/g, '/');
+
+    return res.status(200).json({
+      message: 'Giải nén thành công',
+      data: {
+        extractPath: `/${relativeExtractPath}`
+      }
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ khi giải nén file', detail: error.message });
   }
 };
