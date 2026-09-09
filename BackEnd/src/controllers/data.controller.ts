@@ -1169,3 +1169,295 @@ export const extractFile = (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Lỗi máy chủ khi giải nén file', detail: error.message });
   }
 };
+
+// =====================================================================
+// API Chia sẻ file (share_file)
+// =====================================================================
+import { connectDB } from '../config/database';
+import sql from 'mssql';
+
+// POST /api/data/share — Thêm bản ghi chia sẻ
+export const shareFile = async (req: Request, res: Response) => {
+  try {
+    const { ownerUsername, targetUsername, filePath } = req.body;
+
+    if (!ownerUsername || !targetUsername || !filePath) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (ownerUsername, targetUsername, filePath)' });
+    }
+
+    if (ownerUsername === targetUsername) {
+      return res.status(400).json({ error: 'Không thể chia sẻ file cho chính mình' });
+    }
+
+    const pool = await connectDB();
+
+    // Lấy id của owner
+    const ownerResult = await pool.request()
+      .input('username', sql.VarChar(255), ownerUsername)
+      .query('SELECT id FROM users WHERE username = @username');
+
+    if (ownerResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng owner' });
+    }
+    const ownerId: number = ownerResult.recordset[0].id;
+
+    // Kiểm tra file thực sự tồn tại trong thư mục của owner
+    const userRootPath = path.resolve(__dirname, '../../data', ownerUsername);
+    const absoluteFilePath = path.resolve(userRootPath, filePath);
+    if (!absoluteFilePath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn file không hợp lệ' });
+    }
+    if (!fs.existsSync(absoluteFilePath) || !fs.statSync(absoluteFilePath).isFile()) {
+      return res.status(404).json({ error: 'File không tồn tại trong thư mục của owner' });
+    }
+
+    // Lấy id của target
+    const targetResult = await pool.request()
+      .input('username', sql.VarChar(255), targetUsername)
+      .query('SELECT id FROM users WHERE username = @username');
+
+    if (targetResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng được chia sẻ' });
+    }
+    const targetId: number = targetResult.recordset[0].id;
+
+    // Chuẩn hoá file_path (dùng dấu /)
+    const normalizedFilePath = path.relative(userRootPath, absoluteFilePath).replace(/\\/g, '/');
+
+    // Thêm bản ghi (bỏ qua nếu đã tồn tại)
+    await pool.request()
+      .input('owner_id', sql.Int, ownerId)
+      .input('target_id', sql.Int, targetId)
+      .input('file_path', sql.VarChar(255), normalizedFilePath)
+      .query(`
+        IF NOT EXISTS (
+          SELECT 1 FROM share_file
+          WHERE owner_id = @owner_id AND target_id = @target_id AND file_path = @file_path
+        )
+        INSERT INTO share_file (owner_id, target_id, file_path)
+        VALUES (@owner_id, @target_id, @file_path)
+      `);
+
+    return res.status(201).json({
+      message: 'Chia sẻ file thành công',
+      data: { ownerUsername, targetUsername, filePath: normalizedFilePath }
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};
+
+// DELETE /api/data/share — Xoá bản ghi chia sẻ
+export const unshareFile = async (req: Request, res: Response) => {
+  try {
+    const { ownerUsername, targetUsername, filePath } = req.body;
+
+    if (!ownerUsername || !targetUsername || !filePath) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (ownerUsername, targetUsername, filePath)' });
+    }
+
+    const pool = await connectDB();
+
+    const ownerResult = await pool.request()
+      .input('username', sql.VarChar(255), ownerUsername)
+      .query('SELECT id FROM users WHERE username = @username');
+
+    if (ownerResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng owner' });
+    }
+    const ownerId: number = ownerResult.recordset[0].id;
+
+    const targetResult = await pool.request()
+      .input('username', sql.VarChar(255), targetUsername)
+      .query('SELECT id FROM users WHERE username = @username');
+
+    if (targetResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng được chia sẻ' });
+    }
+    const targetId: number = targetResult.recordset[0].id;
+
+    const deleteResult = await pool.request()
+      .input('owner_id', sql.Int, ownerId)
+      .input('target_id', sql.Int, targetId)
+      .input('file_path', sql.VarChar(255), filePath)
+      .query(`
+        DELETE FROM share_file
+        WHERE owner_id = @owner_id AND target_id = @target_id AND file_path = @file_path
+      `);
+
+    if (deleteResult.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy bản ghi chia sẻ này' });
+    }
+
+    return res.status(200).json({
+      message: 'Huỷ chia sẻ file thành công',
+      data: { ownerUsername, targetUsername, filePath }
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};
+
+// PUT /api/data/share — Cập nhật file_path của bản ghi chia sẻ
+export const updateShare = async (req: Request, res: Response) => {
+  try {
+    const { ownerUsername, targetUsername, oldFilePath, newFilePath } = req.body;
+
+    if (!ownerUsername || !targetUsername || !oldFilePath || !newFilePath) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (ownerUsername, targetUsername, oldFilePath, newFilePath)' });
+    }
+
+    const pool = await connectDB();
+
+    const ownerResult = await pool.request()
+      .input('username', sql.VarChar(255), ownerUsername)
+      .query('SELECT id FROM users WHERE username = @username');
+
+    if (ownerResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng owner' });
+    }
+    const ownerId: number = ownerResult.recordset[0].id;
+
+    const targetResult = await pool.request()
+      .input('username', sql.VarChar(255), targetUsername)
+      .query('SELECT id FROM users WHERE username = @username');
+
+    if (targetResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng được chia sẻ' });
+    }
+    const targetId: number = targetResult.recordset[0].id;
+
+    // Kiểm tra file mới tồn tại trong thư mục của owner
+    const userRootPath = path.resolve(__dirname, '../../data', ownerUsername);
+    const absoluteNewFilePath = path.resolve(userRootPath, newFilePath);
+    if (!absoluteNewFilePath.startsWith(userRootPath)) {
+      return res.status(403).json({ error: 'Đường dẫn file mới không hợp lệ' });
+    }
+    if (!fs.existsSync(absoluteNewFilePath) || !fs.statSync(absoluteNewFilePath).isFile()) {
+      return res.status(404).json({ error: 'File mới không tồn tại trong thư mục của owner' });
+    }
+
+    const normalizedNewFilePath = path.relative(userRootPath, absoluteNewFilePath).replace(/\\/g, '/');
+
+    const updateResult = await pool.request()
+      .input('owner_id', sql.Int, ownerId)
+      .input('target_id', sql.Int, targetId)
+      .input('old_file_path', sql.VarChar(255), oldFilePath)
+      .input('new_file_path', sql.VarChar(255), normalizedNewFilePath)
+      .query(`
+        UPDATE share_file
+        SET file_path = @new_file_path
+        WHERE owner_id = @owner_id AND target_id = @target_id AND file_path = @old_file_path
+      `);
+
+    if (updateResult.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy bản ghi chia sẻ cần cập nhật' });
+    }
+
+    return res.status(200).json({
+      message: 'Cập nhật chia sẻ thành công',
+      data: { ownerUsername, targetUsername, oldFilePath, newFilePath: normalizedNewFilePath }
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};
+
+// GET /api/data/share/by-owner?ownerUsername=xxx&filePath=xxx
+// Lấy danh sách những ai đang được chia sẻ file cụ thể của owner
+// Nếu không truyền filePath → trả về tất cả file và người được chia sẻ
+export const getSharedByOwner = async (req: Request, res: Response) => {
+  try {
+    const ownerUsername = req.query.ownerUsername as string;
+    const filePath = req.query.filePath as string | undefined;
+
+    if (!ownerUsername) {
+      return res.status(400).json({ error: 'Thiếu tham số bắt buộc: ownerUsername' });
+    }
+
+    const pool = await connectDB();
+
+    const ownerResult = await pool.request()
+      .input('username', sql.VarChar(255), ownerUsername)
+      .query('SELECT id FROM users WHERE username = @username');
+
+    if (ownerResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng owner' });
+    }
+    const ownerId: number = ownerResult.recordset[0].id;
+
+    const request = pool.request().input('owner_id', sql.Int, ownerId);
+
+    let query = `
+      SELECT
+        sf.file_path,
+        t.username AS targetUsername
+      FROM share_file sf
+      INNER JOIN users t ON sf.target_id = t.id
+      WHERE sf.owner_id = @owner_id
+    `;
+
+    if (filePath) {
+      query += ' AND sf.file_path = @file_path';
+      request.input('file_path', sql.VarChar(255), filePath);
+    }
+
+    query += ' ORDER BY sf.file_path, t.username';
+
+    const result = await request.query(query);
+
+    return res.status(200).json({
+      message: 'Lấy danh sách file đang chia sẻ thành công',
+      data: result.recordset
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};
+
+// GET /api/data/share/to-me?targetUsername=xxx
+// Lấy danh sách các file được chia sẻ đến target, kèm thông tin người chia sẻ
+export const getSharedToMe = async (req: Request, res: Response) => {
+  try {
+    const targetUsername = req.query.targetUsername as string;
+
+    if (!targetUsername) {
+      return res.status(400).json({ error: 'Thiếu tham số bắt buộc: targetUsername' });
+    }
+
+    const pool = await connectDB();
+
+    const targetResult = await pool.request()
+      .input('username', sql.VarChar(255), targetUsername)
+      .query('SELECT id FROM users WHERE username = @username');
+
+    if (targetResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    }
+    const targetId: number = targetResult.recordset[0].id;
+
+    const result = await pool.request()
+      .input('target_id', sql.Int, targetId)
+      .query(`
+        SELECT
+          sf.file_path,
+          o.username AS ownerUsername
+        FROM share_file sf
+        INNER JOIN users o ON sf.owner_id = o.id
+        WHERE sf.target_id = @target_id
+        ORDER BY o.username, sf.file_path
+      `);
+
+    return res.status(200).json({
+      message: 'Lấy danh sách file được chia sẻ thành công',
+      data: result.recordset
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};

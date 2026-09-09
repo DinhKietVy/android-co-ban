@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import {convertFile, uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles, compressFiles, extractFile } from '../controllers/data.controller';
+import {convertFile, uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles, compressFiles, extractFile, shareFile, unshareFile, updateShare, getSharedByOwner, getSharedToMe } from '../controllers/data.controller';
 import { authenticateToken } from '../middleware/auth';
 
 
@@ -813,5 +813,251 @@ router.post('/compress', authenticateToken, compressFiles);
  *         description: Lỗi hệ thống server
  */
 router.post('/extract', authenticateToken, extractFile);
+
+/**
+ * @swagger
+ * /api/data/share:
+ *   post:
+ *     summary: Chia sẻ file cho người dùng khác
+ *     description: |
+ *       Tạo bản ghi chia sẻ trong bảng `share_file`. File phải tồn tại trong thư mục của owner.
+ *       Nếu bản ghi đã tồn tại, request sẽ không tạo trùng lặp.
+ *     tags: [Share]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ownerUsername
+ *               - targetUsername
+ *               - filePath
+ *             properties:
+ *               ownerUsername:
+ *                 type: string
+ *                 description: Username của người sở hữu file
+ *                 example: admin123
+ *               targetUsername:
+ *                 type: string
+ *                 description: Username của người được chia sẻ
+ *                 example: user456
+ *               filePath:
+ *                 type: string
+ *                 description: Đường dẫn tương đối của file cần chia sẻ (tính từ thư mục gốc của owner)
+ *                 example: BaoCao.docx
+ *     responses:
+ *       201:
+ *         description: Chia sẻ file thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Chia sẻ file thành công
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Thiếu dữ liệu hoặc tự chia sẻ cho chính mình
+ *       403:
+ *         description: Đường dẫn file không hợp lệ (Path Traversal)
+ *       404:
+ *         description: Người dùng hoặc file không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ *   delete:
+ *     summary: Huỷ chia sẻ file
+ *     description: Xoá bản ghi chia sẻ khỏi bảng `share_file`.
+ *     tags: [Share]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ownerUsername
+ *               - targetUsername
+ *               - filePath
+ *             properties:
+ *               ownerUsername:
+ *                 type: string
+ *                 example: admin123
+ *               targetUsername:
+ *                 type: string
+ *                 example: user456
+ *               filePath:
+ *                 type: string
+ *                 example: BaoCao.docx
+ *     responses:
+ *       200:
+ *         description: Huỷ chia sẻ thành công
+ *       400:
+ *         description: Thiếu dữ liệu
+ *       404:
+ *         description: Người dùng hoặc bản ghi chia sẻ không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ *   put:
+ *     summary: Cập nhật đường dẫn file chia sẻ
+ *     description: Cập nhật `file_path` trong bảng `share_file` khi file được đổi tên hoặc di chuyển. File mới phải tồn tại trong thư mục của owner.
+ *     tags: [Share]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ownerUsername
+ *               - targetUsername
+ *               - oldFilePath
+ *               - newFilePath
+ *             properties:
+ *               ownerUsername:
+ *                 type: string
+ *                 example: admin123
+ *               targetUsername:
+ *                 type: string
+ *                 example: user456
+ *               oldFilePath:
+ *                 type: string
+ *                 description: Đường dẫn cũ của file
+ *                 example: BaoCao.docx
+ *               newFilePath:
+ *                 type: string
+ *                 description: Đường dẫn mới của file
+ *                 example: TaiLieu/BaoCao.docx
+ *     responses:
+ *       200:
+ *         description: Cập nhật chia sẻ thành công
+ *       400:
+ *         description: Thiếu dữ liệu
+ *       403:
+ *         description: Đường dẫn file mới không hợp lệ (Path Traversal)
+ *       404:
+ *         description: Người dùng, file mới, hoặc bản ghi chia sẻ không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.post('/share', authenticateToken, shareFile);
+router.delete('/share', authenticateToken, unshareFile);
+router.put('/share', authenticateToken, updateShare);
+
+/**
+ * @swagger
+ * /api/data/share/by-owner:
+ *   get:
+ *     summary: Lấy danh sách file owner đang chia sẻ
+ *     description: |
+ *       Trả về danh sách những người đang được chia sẻ file của owner.
+ *       - Nếu truyền thêm `filePath` → chỉ lấy những ai được chia sẻ file đó cụ thể.
+ *       - Nếu không truyền `filePath` → trả về toàn bộ (tất cả file và người nhận tương ứng).
+ *     tags: [Share]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ownerUsername
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Username của người sở hữu file
+ *         example: admin123
+ *       - in: query
+ *         name: filePath
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Đường dẫn file cần lọc (tính từ thư mục gốc của owner). Bỏ qua nếu muốn lấy tất cả.
+ *         example: BaoCao.docx
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách file đang chia sẻ thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       file_path:
+ *                         type: string
+ *                         example: BaoCao.docx
+ *                       targetUsername:
+ *                         type: string
+ *                         example: user456
+ *       400:
+ *         description: Thiếu tham số ownerUsername
+ *       404:
+ *         description: Không tìm thấy owner
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.get('/share/by-owner', authenticateToken, getSharedByOwner);
+
+/**
+ * @swagger
+ * /api/data/share/to-me:
+ *   get:
+ *     summary: Lấy danh sách file được chia sẻ đến mình
+ *     description: |
+ *       Trả về toàn bộ file mà người khác đã chia sẻ cho `targetUsername`.
+ *       Mỗi bản ghi gồm đường dẫn file và thông tin người đã chia sẻ (id, username, full_name).
+ *     tags: [Share]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: targetUsername
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Username của người nhận chia sẻ
+ *         example: user456
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách file được chia sẻ thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       file_path:
+ *                         type: string
+ *                         example: BaoCao.docx
+ *                       ownerUsername:
+ *                         type: string
+ *                         example: admin123
+ *       400:
+ *         description: Thiếu tham số targetUsername
+ *       404:
+ *         description: Không tìm thấy target
+ *       500:
+ *         description: Lỗi hệ thống server
+ */
+router.get('/share/to-me', authenticateToken, getSharedToMe);
 
 export default router;
