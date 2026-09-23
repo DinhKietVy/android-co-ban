@@ -141,6 +141,7 @@
     <string name="explorer_search">Tìm kiếm tệp</string>
     <string name="explorer_more">Thêm tùy chọn</string>
     <string name="explorer_create">Tạo mới</string>
+    <string name="explorer_upload_folder">Tải lên thư mục</string>
     <string name="explorer_item_count">%1$d mục</string>
     <string name="explorer_modified">%1$s</string>
     <string name="explorer_file_meta">%1$s • %2$s</string>

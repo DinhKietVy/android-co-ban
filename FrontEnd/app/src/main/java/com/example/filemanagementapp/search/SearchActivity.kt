@@ -480,6 +480,14 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         }
     }
 
+    override fun onShare(item: ExplorerItem) {}
+
+    override fun onConvert(item: ExplorerItem, targetFormat: String) {}
+
+    override fun onCompress(item: ExplorerItem) {}
+
+    override fun onExtract(item: ExplorerItem) {}
+
     companion object {
         const val EXTRA_USERNAME = "extra_username"
         const val EXTRA_RESULT_FOLDER_PATH = "extra_result_folder_path"

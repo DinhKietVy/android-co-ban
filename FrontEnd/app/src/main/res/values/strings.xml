@@ -143,6 +143,7 @@
     <string name="explorer_search">Search files</string>
     <string name="explorer_more">More options</string>
     <string name="explorer_create">Create item</string>
+    <string name="explorer_upload_folder">Upload folder</string>
     <string name="explorer_item_count">%1$d items</string>
     <string name="explorer_modified">%1$s</string>
     <string name="explorer_file_meta">%1$s • %2$s</string>
@@ -451,6 +452,13 @@
     <string name="action_open">Open</string>
     <string name="action_download">Download</string>
     <string name="action_rename">Rename</string>
+    <string name="action_share">Chia sẻ</string>
+    <string name="dialog_share_title">Chia sẻ tập tin</string>
+    <string name="dialog_share_hint">Nhập tên đăng nhập của người nhận</string>
+    <string name="dialog_share_button">Chia sẻ</string>
+    <string name="toast_share_success">Chia sẻ tập tin thành công</string>
+    <string name="toast_share_failed">Chia sẻ thất bại: %1$s</string>
+    <string name="action_public_link">Tạo Public Link</string>
     <string name="action_move">Move</string>
     <string name="action_favorite">Favorite</string>
     <string name="action_delete">Delete</string>
@@ -473,4 +481,24 @@
     <string name="explorer_upload_notification_failed_message">Cannot upload %1$s</string>
     <string name="explorer_upload_channel_name">Upload progress</string>
     <string name="explorer_upload_channel_description">Shows file upload progress notifications</string>
+
+    <!-- Format Conversion -->
+    <string name="action_convert">Convert format</string>
+    <string name="dialog_converting_title">AI is converting</string>
+    <string name="dialog_converting_subtitle">Please wait a moment for the magic to happen...</string>
+    <string name="dialog_choose_format_title">Choose format</string>
+    <string name="msg_convert_success">Converted successfully</string>
+    <string name="error_convert_failed">Conversion failed</string>
+
+    <!-- Compress and Extract -->
+    <string name="preview_action_compress">Compress</string>
+    <string name="preview_action_extract">Extract</string>
+    <string name="dialog_compressing_title">AI is compressing...</string>
+    <string name="dialog_compressing_subtitle">Please wait while we pack your files</string>
+    <string name="dialog_extracting_title">AI is extracting...</string>
+    <string name="dialog_extracting_subtitle">Please wait while we unpack the archive</string>
+    <string name="dialog_compress_name_title">Name your archive</string>
+    <string name="dialog_compress_name_hint">Enter zip name (e.g. archive.zip)</string>
+    <string name="dialog_compress_button">Compress</string>
+    <string name="dialog_extract_button">Extract here</string>
 </resources>

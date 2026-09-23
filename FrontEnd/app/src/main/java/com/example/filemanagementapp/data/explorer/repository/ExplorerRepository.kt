@@ -89,6 +89,173 @@ class ExplorerRepository(
         }
     }
 
+    suspend fun convertFile(
+        username: String,
+        filePath: String,
+        targetFormat: String
+    ): Result<com.example.filemanagementapp.data.explorer.model.ExplorerConvertResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.convertFile(
+                com.example.filemanagementapp.data.explorer.model.ExplorerConvertRequest(
+                    username = username,
+                    filePath = filePath,
+                    targetFormat = targetFormat
+                )
+            )
+            
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val parsedError = response.errorBody()?.charStream()?.use { reader ->
+                    runCatching { gson.fromJson(reader, ExplorerMutationResponse::class.java) }.getOrNull()
+                }
+                val errorMessage = parsedError?.error
+                    ?: parsedError?.detail
+                    ?: response.message()
+                    ?: "Khong the chuyen doi file"
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (ioException: IOException) {
+            Result.failure(Exception("Khong the ket noi toi server. Kiem tra backend va mang."))
+        } catch (exception: Exception) {
+            Result.failure(Exception(exception.message ?: "Loi khi chuyen doi file"))
+        }
+    }
+
+    suspend fun compressFiles(
+        username: String,
+        targetPath: String,
+        zipName: String,
+        items: List<String>
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.compressFiles(
+                com.example.filemanagementapp.data.explorer.model.ExplorerCompressRequest(
+                    username = username,
+                    targetPath = targetPath,
+                    zipName = zipName,
+                    items = items
+                )
+            )
+
+            if (response.isSuccessful) {
+                Result.success(response.body()?.message ?: "Nen file thanh cong")
+            } else {
+                val parsedError = response.errorBody()?.charStream()?.use { reader ->
+                    runCatching { gson.fromJson(reader, ExplorerMutationResponse::class.java) as ExplorerMutationResponse }.getOrNull()
+                }
+                val errorMessage = parsedError?.error
+                    ?: parsedError?.detail
+                    ?: response.message()
+                    ?: "Khong the nen file"
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (ioException: IOException) {
+            Result.failure(Exception("Khong the ket noi toi server."))
+        } catch (exception: Exception) {
+            Result.failure(Exception(exception.message ?: "Loi khi nen file"))
+        }
+    }
+
+    suspend fun extractFile(
+        username: String,
+        filePath: String,
+        extractToPath: String
+    ): Result<com.example.filemanagementapp.data.explorer.model.ExplorerExtractResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.extractFile(
+                com.example.filemanagementapp.data.explorer.model.ExplorerExtractRequest(
+                    username = username,
+                    filePath = filePath,
+                    extractToPath = extractToPath
+                )
+            )
+
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val parsedError = response.errorBody()?.charStream()?.use { reader ->
+                    runCatching { gson.fromJson(reader, ExplorerMutationResponse::class.java) as ExplorerMutationResponse }.getOrNull()
+                }
+                val errorMessage = parsedError?.error
+                    ?: parsedError?.detail
+                    ?: response.message()
+                    ?: "Khong the giai nen file"
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (ioException: IOException) {
+            Result.failure(Exception("Khong the ket noi toi server."))
+        } catch (exception: Exception) {
+            Result.failure(Exception(exception.message ?: "Loi khi giai nen file"))
+        }
+    }
+
+    suspend fun getSharedToMe(targetUsername: String): Result<com.example.filemanagementapp.data.explorer.model.ExplorerSharedResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.getSharedToMe(targetUsername = targetUsername)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.message() ?: "Khong the tai danh sach duoc chia se"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Loi mang"))
+        }
+    }
+
+    suspend fun getSharedByOwner(ownerUsername: String, filePath: String? = null): Result<com.example.filemanagementapp.data.explorer.model.ExplorerSharedResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.getSharedByOwner(ownerUsername = ownerUsername, filePath = filePath)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.message() ?: "Khong the tai danh sach dang chia se"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Loi mang"))
+        }
+    }
+
+    suspend fun shareFile(
+        ownerUsername: String,
+        targetUsername: String,
+        filePath: String,
+        permission: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.shareFile(
+                com.example.filemanagementapp.data.explorer.model.ExplorerShareRequest(
+                    ownerUsername = ownerUsername,
+                    targetUsername = targetUsername,
+                    filePath = filePath,
+                    permission = permission
+                )
+            )
+            response.toMutationResult()
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Khong the chia se file"))
+        }
+    }
+
+    suspend fun unshareFile(
+        ownerUsername: String,
+        targetUsername: String,
+        filePath: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.unshareFile(
+                com.example.filemanagementapp.data.explorer.model.ExplorerUnshareRequest(
+                    ownerUsername = ownerUsername,
+                    targetUsername = targetUsername,
+                    filePath = filePath
+                )
+            )
+            response.toMutationResult()
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Khong the huy chia se file"))
+        }
+    }
+
     suspend fun createFolder(
         username: String,
         targetPath: String,
@@ -134,11 +301,12 @@ class ExplorerRepository(
     suspend fun uploadFile(
         username: String,
         targetPath: String,
-        fileUri: Uri
+        fileUri: Uri,
+        overrideFileName: String? = null
     ): Result<Pair<String, String>> = withContext(Dispatchers.IO) {
         try {
             val resolver = appContext.contentResolver
-            val fileName = resolveDisplayName(fileUri) ?: "upload-${System.currentTimeMillis()}"
+            val fileName = overrideFileName ?: (resolveDisplayName(fileUri) ?: "upload-${System.currentTimeMillis()}")
             val tempFile = File.createTempFile("upload-", "-$fileName", appContext.cacheDir)
             resolver.openInputStream(fileUri)?.use { input ->
                 tempFile.outputStream().use { output -> input.copyTo(output) }
@@ -269,7 +437,8 @@ class ExplorerRepository(
                             type = ExplorerItem.Type.FOLDER,
                             itemCount = folder.itemCount,
                             modified = formatDate(folder.modifiedAt),
-                            modifiedEpochMillis = parseEpochMillis(folder.modifiedAt)
+                            modifiedEpochMillis = parseEpochMillis(folder.modifiedAt),
+                            previewUrl = buildPreviewUrl(username.orEmpty(), joinPath(normalizedFolder, folderName))
                         )
                     )
                 }
@@ -329,6 +498,39 @@ class ExplorerRepository(
             normalizedParent.isBlank() -> normalizedChild
             normalizedChild.isBlank() -> normalizedParent
             else -> "$normalizedParent/$normalizedChild"
+        }
+    }
+
+    suspend fun createPublicLink(
+        username: String,
+        filePath: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.createPublicLink(
+                com.example.filemanagementapp.data.explorer.model.PublicLinkCreateRequest(username, filePath)
+            )
+            if (response.isSuccessful) {
+                Result.success(response.body()?.token ?: "")
+            } else {
+                Result.failure(Exception("Không thể tạo liên kết công khai"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Lỗi kết nối"))
+        }
+    }
+
+    suspend fun getPublicLinkInfo(
+        token: String
+    ): Result<com.example.filemanagementapp.data.explorer.model.PublicLinkInfoResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.getPublicLinkInfo(token)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Liên kết không tồn tại hoặc đã hết hạn"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Lỗi kết nối"))
         }
     }
 
@@ -431,6 +633,22 @@ class ExplorerRepository(
 
     private fun buildStorageSummary(totalUsedBytes: Long): String {
         return "${formatSize(totalUsedBytes)} used"
+    }
+
+    suspend fun getFileInfo(owner: String, path: String): Result<com.example.filemanagementapp.data.explorer.model.PublicLinkInfoResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.getFileInfo(owner = owner, path = path)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val parsedError = response.errorBody()?.charStream()?.use { reader ->
+                    runCatching { gson.fromJson(reader, ExplorerMutationResponse::class.java) as ExplorerMutationResponse }.getOrNull()
+                }
+                Result.failure(Exception(parsedError?.error ?: parsedError?.detail ?: response.message() ?: "Khong the tai thong tin file"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Loi mang"))
+        }
     }
 }
 

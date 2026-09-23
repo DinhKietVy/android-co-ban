@@ -9,14 +9,20 @@ import android.widget.ScrollView
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import coil.load
 import com.example.filemanagementapp.R
 import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
 import com.example.filemanagementapp.explorer.ExplorerItem
+import android.content.ComponentName
+import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,13 +46,24 @@ class PreviewRenderHelper(
     
     private val previewImage: ImageView = activity.findViewById(R.id.previewImage)
     val previewVideo: androidx.media3.ui.PlayerView = activity.findViewById(R.id.previewVideo)
-    var exoPlayer: ExoPlayer? = null
-    private val previewTextScroll: ScrollView = activity.findViewById(R.id.previewTextScroll)
-    private val previewText: EditText = activity.findViewById(R.id.previewText)
+    private val previewAudioContainer: LinearLayout = activity.findViewById(R.id.previewAudioContainer)
+    private val audioArt: ImageView = activity.findViewById(R.id.audioArt)
+    private var audioArtAnimator: android.animation.ObjectAnimator? = null
+    
+    // Rich Editor specific fields
+    private var isRichEditing = false
+    private val previewRichTextContainer: android.widget.LinearLayout = activity.findViewById(R.id.previewRichTextContainer)
+    private val richEditorToolbar: android.widget.HorizontalScrollView = activity.findViewById(R.id.richEditorToolbar)
+    private val richEditor: jp.wasabeef.richeditor.RichEditor = activity.findViewById(R.id.richEditor)
+    var exoPlayer: Player? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
     private val editFab: com.google.android.material.floatingactionbutton.FloatingActionButton = activity.findViewById(R.id.editFab)
     private val previewPdfRecycler: androidx.recyclerview.widget.RecyclerView = activity.findViewById(R.id.previewPdfRecycler)
     val previewDocxWebView: android.webkit.WebView = activity.findViewById(R.id.previewDocxWebView)
     private val previewUnsupported: View = activity.findViewById(R.id.previewUnsupported)
+    private val rotateVideoFab: com.google.android.material.floatingactionbutton.FloatingActionButton = activity.findViewById(R.id.rotateVideoFab)
+    private val extractButton: com.google.android.material.button.MaterialButton = activity.findViewById(R.id.extractButton)
+    private val previewConvertPdfButton: android.widget.Button = activity.findViewById(R.id.previewConvertPdfButton)
     val previewLoadingIndicator: ProgressBar = activity.findViewById(R.id.previewLoadingIndicator)
     
     private val openExternallyButton: com.google.android.material.button.MaterialButton = activity.findViewById(R.id.openExternallyButton)
@@ -61,7 +78,14 @@ class PreviewRenderHelper(
     var pdfRenderer: android.graphics.pdf.PdfRenderer? = null
     var pdfFileDescriptor: android.os.ParcelFileDescriptor? = null
 
-    fun setup(onOpenExternally: (View) -> Unit, onAiDataChanged: (String, List<String>) -> Unit = { _, _ -> }) {
+    fun setup(
+        onOpenExternally: (View) -> Unit,
+        onExtract: () -> Unit,
+        onAiDataChanged: (String, List<String>) -> Unit = { _, _ -> },
+        onEditImage: (String) -> Unit = {},
+        onSaveTextContent: (String) -> Unit = {},
+        onConvertPdfRequested: () -> Unit = {}
+    ) {
         titleText.text = fileName.ifBlank { activity.getString(R.string.preview_file_name) }
         previewInfoNameValue.text = fileName.ifBlank { activity.getString(R.string.preview_file_name) }
         
@@ -94,19 +118,36 @@ class PreviewRenderHelper(
         val isText = extension in listOf("txt", "json", "xml", "md", "csv", "kt", "java", "py", "html", "css", "js", "sh")
         val isPdf = extension == "pdf"
         val isDocx = extension in listOf("doc", "docx")
+        val isArchive = extension in listOf("zip", "rar", "7z", "tar", "gz")
 
         previewImage.visibility = View.GONE
         previewVideo.visibility = View.GONE
-        previewTextScroll.visibility = View.GONE
+        previewAudioContainer.visibility = View.GONE
+        previewRichTextContainer.visibility = View.GONE
         previewPdfRecycler.visibility = View.GONE
         previewDocxWebView.visibility = View.GONE
         previewUnsupported.visibility = View.GONE
         previewLoadingIndicator.visibility = View.GONE
+        rotateVideoFab.visibility = View.GONE
 
         showProcessedImageSwitch.isEnabled = (isImage || (extension.isBlank() && originalPreviewSource != null)) && !analyzedImagePath.isNullOrEmpty()
 
         if (isImage || (extension.isBlank() && originalPreviewSource != null)) {
             previewImage.visibility = View.VISIBLE
+            editFab.visibility = View.VISIBLE
+            editFab.setOnClickListener { anchor ->
+                val popup = android.widget.PopupMenu(activity, anchor)
+                popup.menu.add(0, 1, 0, "Cắt & Xoay")
+                popup.menu.add(0, 2, 1, "Vẽ & Ghi chú")
+                popup.setOnMenuItemClickListener { menuItem ->
+                    when (menuItem.itemId) {
+                        1 -> onEditImage("crop")
+                        2 -> onEditImage("draw")
+                    }
+                    true
+                }
+                popup.show()
+            }
             
             fun loadImage(sourceUri: Uri?) {
                 previewLoadingIndicator.visibility = View.VISIBLE
@@ -140,52 +181,145 @@ class PreviewRenderHelper(
             previewVideo.visibility = View.VISIBLE
             previewLoadingIndicator.visibility = View.VISIBLE
             
+            if (isAudio) {
+                previewAudioContainer.visibility = View.VISIBLE
+                if (audioArtAnimator == null) {
+                    audioArtAnimator = android.animation.ObjectAnimator.ofFloat(audioArt, View.ROTATION, 0f, 360f).apply {
+                        duration = 10000
+                        repeatCount = android.animation.ValueAnimator.INFINITE
+                        interpolator = android.view.animation.LinearInterpolator()
+                    }
+                }
+            }
+            
             if (previewUrl == null) {
                 previewLoadingIndicator.visibility = View.GONE
                 return
             }
 
             try {
-                if (exoPlayer == null) {
-                    val dataSourceFactory = DefaultHttpDataSource.Factory()
-                        .setDefaultRequestProperties(mapOf("ngrok-skip-browser-warning" to "69420"))
-                    
-                    exoPlayer = ExoPlayer.Builder(activity)
-                        .setMediaSourceFactory(androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory))
-                        .build()
-                        
-                    previewVideo.player = exoPlayer
-                }
-
-                exoPlayer?.setMediaItem(MediaItem.fromUri(previewUrl))
-                exoPlayer?.prepare()
-                exoPlayer?.playWhenReady = true
-                
-                exoPlayer?.addListener(object : androidx.media3.common.Player.Listener {
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (playbackState == androidx.media3.common.Player.STATE_READY) {
-                            previewLoadingIndicator.visibility = View.GONE
-                        } else if (playbackState == androidx.media3.common.Player.STATE_BUFFERING) {
-                            previewLoadingIndicator.visibility = View.VISIBLE
+                val sessionToken = SessionToken(activity, ComponentName(activity, AudioPlaybackService::class.java))
+                controllerFuture = MediaController.Builder(activity, sessionToken).buildAsync()
+                controllerFuture?.addListener({
+                    try {
+                        val controller = controllerFuture?.get()
+                        exoPlayer = controller
+                        if (controller != null) {
+                            previewVideo.player = controller
+                            if (isVideo) {
+                                rotateVideoFab.visibility = View.VISIBLE
+                                rotateVideoFab.setOnClickListener {
+                                    val currentOrientation = activity.resources.configuration.orientation
+                                    if (currentOrientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+                                        activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                                    } else {
+                                        activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                                    }
+                                }
+                            }
+                            val currentUri = controller.currentMediaItem?.localConfiguration?.uri?.toString()
+                            if (currentUri != previewUrl) {
+                                val mediaItem = MediaItem.Builder()
+                                    .setUri(previewUrl)
+                                    .setMediaMetadata(
+                                        MediaMetadata.Builder()
+                                            .setTitle(fileName)
+                                            .build()
+                                    )
+                                    .build()
+                                controller.setMediaItem(mediaItem)
+                                controller.prepare()
+                                controller.playWhenReady = true
+                            }
+                            
+                            controller.addListener(object : Player.Listener {
+                                override fun onPlaybackStateChanged(playbackState: Int) {
+                                    if (playbackState == Player.STATE_READY) {
+                                        previewLoadingIndicator.visibility = View.GONE
+                                        if (isAudio) {
+                                            previewVideo.visibility = View.VISIBLE
+                                            val params = previewVideo.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+                                            params.width = 1
+                                            params.height = 1
+                                            previewVideo.layoutParams = params
+                                        }
+                                    }
+                                }
+                                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                                    if (activity is FilePreviewActivity) {
+                                        activity.updatePictureInPictureActions(isPlaying)
+                                    }
+                                    if (isAudio) {
+                                        if (isPlaying) {
+                                            if (audioArtAnimator?.isPaused == true) {
+                                                audioArtAnimator?.resume()
+                                            } else {
+                                                audioArtAnimator?.start()
+                                            }
+                                        } else {
+                                            audioArtAnimator?.pause()
+                                        }
+                                    }
+                                }
+                            })
                         }
-                    }
-                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                         previewLoadingIndicator.visibility = View.GONE
-                        previewUnsupported.visibility = View.VISIBLE
-                        previewVideo.visibility = View.GONE
-                        android.widget.Toast.makeText(activity, "Error loading media: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                })
+                }, ContextCompat.getMainExecutor(activity))
             } catch (e: Exception) {
                 android.widget.Toast.makeText(activity, "Error initializing player: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
                 previewLoadingIndicator.visibility = View.GONE
                 previewUnsupported.visibility = View.VISIBLE
                 previewVideo.visibility = View.GONE
+                previewAudioContainer.visibility = View.GONE
             }
         } else if (isText) {
-            previewTextScroll.visibility = View.VISIBLE
+            previewRichTextContainer.visibility = View.VISIBLE
             previewLoadingIndicator.visibility = View.VISIBLE
-            previewText.text = activity.getString(R.string.preview_loading_text)
+            richEditor.setHtml(activity.getString(R.string.preview_loading_text))
+            
+            // Setup rich editor properties
+            richEditor.setEditorHeight(200)
+            richEditor.setEditorFontSize(16)
+            richEditor.setPadding(10, 10, 10, 10)
+            richEditor.setPlaceholder("Insert text here...")
+            richEditor.setInputEnabled(false) // Initially read-only
+            
+            // Setup toolbar actions
+            activity.findViewById<View>(R.id.action_undo).setOnClickListener { richEditor.undo() }
+            activity.findViewById<View>(R.id.action_redo).setOnClickListener { richEditor.redo() }
+            activity.findViewById<View>(R.id.action_bold).setOnClickListener { richEditor.setBold() }
+            activity.findViewById<View>(R.id.action_italic).setOnClickListener { richEditor.setItalic() }
+            activity.findViewById<View>(R.id.action_underline).setOnClickListener { richEditor.setUnderline() }
+            activity.findViewById<View>(R.id.action_heading1).setOnClickListener { richEditor.setHeading(1) }
+            activity.findViewById<View>(R.id.action_heading2).setOnClickListener { richEditor.setHeading(2) }
+            activity.findViewById<View>(R.id.action_bullets).setOnClickListener { richEditor.setBullets() }
+            activity.findViewById<View>(R.id.action_numbers).setOnClickListener { richEditor.setNumbers() }
+            
+            editFab.visibility = View.VISIBLE
+            isRichEditing = false
+            editFab.setImageResource(R.drawable.edit_3)
+            
+            editFab.setOnClickListener {
+                if (!isRichEditing) {
+                    isRichEditing = true
+                    editFab.setImageResource(R.drawable.check)
+                    richEditor.setInputEnabled(true)
+                    richEditor.focusEditor()
+                    richEditorToolbar.visibility = View.VISIBLE
+                } else {
+                    isRichEditing = false
+                    editFab.setImageResource(R.drawable.edit_3)
+                    richEditor.setInputEnabled(false)
+                    richEditorToolbar.visibility = View.GONE
+                    
+                    val newHtmlContent = richEditor.html ?: ""
+                    onSaveTextContent(newHtmlContent)
+                }
+            }
+            
             activity.lifecycleScope.launch {
                 try {
                     val content = withContext(Dispatchers.IO) {
@@ -198,9 +332,14 @@ class PreviewRenderHelper(
                         if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${response.message}")
                         response.body?.string() ?: throw Exception("Empty response body")
                     }
-                    previewText.text = content
+                    if (extension == "html" || content.contains("<html") || content.contains("<body") || content.contains("<p>")) {
+                         richEditor.setHtml(content)
+                    } else {
+                         val escapedText = content.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
+                         richEditor.setHtml(escapedText)
+                    }
                 } catch (e: Exception) {
-                    previewText.text = activity.getString(R.string.preview_error_loading_text) + "\n" + e.message
+                    richEditor.setHtml(activity.getString(R.string.preview_error_loading_text) + "<br>" + e.message)
                 } finally {
                     previewLoadingIndicator.visibility = View.GONE
                 }
@@ -289,6 +428,21 @@ class PreviewRenderHelper(
         } else {
             previewUnsupported.visibility = View.VISIBLE
             openExternallyButton.setOnClickListener(onOpenExternally)
+            if (isArchive) {
+                extractButton.visibility = View.VISIBLE
+                extractButton.setOnClickListener { onExtract() }
+            } else {
+                extractButton.visibility = View.GONE
+            }
+            val isConvertible = extension in listOf("xlsx", "xls", "pptx", "ppt", "doc", "docx")
+            if (isConvertible) {
+                previewConvertPdfButton.visibility = View.VISIBLE
+                previewConvertPdfButton.setOnClickListener {
+                    onConvertPdfRequested()
+                }
+            } else {
+                previewConvertPdfButton.visibility = View.GONE
+            }
         }
 
         ocrTextView.text = ocrText.ifBlank {
@@ -371,8 +525,13 @@ class PreviewRenderHelper(
             e.printStackTrace()
         }
         try {
-            exoPlayer?.release()
-            exoPlayer = null
+            controllerFuture?.let { MediaController.releaseFuture(it) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
+            audioArtAnimator?.cancel()
+            audioArtAnimator = null
         } catch (e: Exception) {
             e.printStackTrace()
         }

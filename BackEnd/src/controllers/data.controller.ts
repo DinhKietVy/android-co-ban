@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import { connectDB } from '../config/database';
+import sql from 'mssql';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
@@ -649,14 +651,36 @@ export const listDirectory = (req: Request, res: Response) => {
 };
 
 // API tải file
-export const downloadFile = (req: Request, res: Response) => {
+export const downloadFile = async (req: Request, res: Response) => {
   try {
     // Lấy dữ liệu từ query (nếu là GET request) hoặc body (nếu là POST request)
     const username = req.query.username || req.body.username;
     const filePath = req.query.filePath || req.body.filePath;
+    const callerUsername = req.query.callerUsername || req.body.callerUsername || username; // Tạm thời fallback về username nếu không có (để không phá vỡ logic cũ)
 
     if (!username || filePath === undefined) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath)' });
+    }
+
+    if (callerUsername !== username) {
+      // Kiểm tra quyền truy cập qua bảng share_file
+      const pool = await connectDB();
+      const result = await pool.request()
+        .input('ownerUsername', sql.VarChar, username)
+        .input('targetUsername', sql.VarChar, callerUsername)
+        .input('filePath', sql.VarChar, filePath)
+        .query(`
+          SELECT 1 FROM share_file sf
+          JOIN users owner ON sf.owner_id = owner.id
+          JOIN users target ON sf.target_id = target.id
+          WHERE owner.username = @ownerUsername
+            AND target.username = @targetUsername
+            AND sf.file_path = @filePath
+        `);
+      
+      if (result.recordset.length === 0) {
+        return res.status(403).json({ error: 'Bạn không có quyền tải file này (không được chia sẻ)' });
+      }
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username as string);
@@ -673,20 +697,42 @@ export const downloadFile = (req: Request, res: Response) => {
       return res.status(404).json({ error: 'File không tồn tại' });
     }
 
-    // Đảm bảo đây là file, không phải thư mục
-    if (!fs.statSync(absoluteFilePath).isFile()) {
-      return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một file' });
-    }
-
-    // Tải file về máy người dùng
-    return res.download(absoluteFilePath, path.basename(absoluteFilePath), (err) => {
-      if (err) {
-        console.error('Lỗi khi tải file:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: 'Lỗi trong quá trình truyền file' });
+    // Tải file hoặc thư mục về máy người dùng
+    if (fs.statSync(absoluteFilePath).isDirectory()) {
+      // Nếu là thư mục, nén thành file zip tạm thời và gửi về
+      const zip = new AdmZip();
+      zip.addLocalFolder(absoluteFilePath);
+      
+      const os = require('os');
+      const tempZipPath = path.join(os.tmpdir(), `${Date.now()}_${path.basename(absoluteFilePath)}.zip`);
+      
+      zip.writeZip(tempZipPath);
+      
+      return res.download(tempZipPath, `${path.basename(absoluteFilePath)}.zip`, (err) => {
+        if (err) {
+          console.error('Lỗi khi gửi file zip:', err);
         }
+        // Xóa file zip tạm sau khi gửi xong (hoặc có lỗi)
+        if (fs.existsSync(tempZipPath)) {
+          fs.unlinkSync(tempZipPath);
+        }
+      });
+    } else {
+      // Đảm bảo đây là file
+      if (!fs.statSync(absoluteFilePath).isFile()) {
+        return res.status(400).json({ error: 'Đường dẫn yêu cầu không trỏ tới một file hoặc thư mục hợp lệ' });
       }
-    });
+
+      // Tải file đơn lẻ
+      return res.download(absoluteFilePath, path.basename(absoluteFilePath), (err) => {
+        if (err) {
+          console.error('Lỗi khi tải file:', err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Lỗi trong quá trình truyền file' });
+          }
+        }
+      });
+    }
 
   } catch (error: any) {
     if (!res.headersSent) {
@@ -1455,6 +1501,71 @@ export const getSharedToMe = async (req: Request, res: Response) => {
     return res.status(200).json({
       message: 'Lấy danh sách file được chia sẻ thành công',
       data: result.recordset
+    });
+
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
+  }
+};
+
+// GET /api/data/file-info?owner=...&path=...
+// Lấy thông tin file sau khi check quyền
+export const getFileInfo = async (req: Request, res: Response) => {
+  try {
+    const ownerUsername = req.query.owner as string;
+    const filePath = req.query.path as string;
+    const currentUsername = (req as any).user.username;
+
+    if (!ownerUsername || !filePath) {
+      return res.status(400).json({ error: 'Thiếu owner hoặc path' });
+    }
+
+    let hasPermission = false;
+    let permissionType = '';
+
+    if (ownerUsername === currentUsername) {
+      hasPermission = true;
+      permissionType = 'OWNER';
+    } else {
+      const pool = await connectDB();
+      // Check share
+      const checkResult = await pool.request()
+        .input('owner', sql.VarChar(255), ownerUsername)
+        .input('target', sql.VarChar(255), currentUsername)
+        .input('file_path', sql.VarChar(255), filePath)
+        .query(`
+          SELECT sf.id 
+          FROM share_file sf
+          INNER JOIN users o ON sf.owner_id = o.id
+          INNER JOIN users t ON sf.target_id = t.id
+          WHERE o.username = @owner AND t.username = @target AND sf.file_path = @file_path
+        `);
+      if (checkResult.recordset.length > 0) {
+        hasPermission = true;
+        permissionType = 'READ';
+      }
+    }
+
+    if (!hasPermission) {
+      return res.status(403).json({ error: 'Không có quyền truy cập file này' });
+    }
+
+    const absolutePath = path.resolve(__dirname, '../../data', ownerUsername, filePath);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ error: 'File không tồn tại' });
+    }
+
+    const stats = fs.statSync(absolutePath);
+    if (!stats.isFile()) {
+      return res.status(400).json({ error: 'Đường dẫn không phải là file' });
+    }
+
+    return res.status(200).json({
+      fileName: path.basename(absolutePath),
+      size: stats.size,
+      ownerUsername: ownerUsername,
+      filePath: filePath,
+      permission: permissionType
     });
 
   } catch (error: any) {

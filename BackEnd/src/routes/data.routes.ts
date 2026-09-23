@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import {convertFile, uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles, compressFiles, extractFile, shareFile, unshareFile, updateShare, getSharedByOwner, getSharedToMe } from '../controllers/data.controller';
+import {convertFile, uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles, compressFiles, extractFile, shareFile, unshareFile, updateShare, getSharedByOwner, getSharedToMe, getFileInfo } from '../controllers/data.controller';
 import { authenticateToken } from '../middleware/auth';
 
 
@@ -1059,5 +1059,6 @@ router.get('/share/by-owner', authenticateToken, getSharedByOwner);
  *         description: Lỗi hệ thống server
  */
 router.get('/share/to-me', authenticateToken, getSharedToMe);
+router.get('/file-info', authenticateToken, getFileInfo);
 
 export default router;

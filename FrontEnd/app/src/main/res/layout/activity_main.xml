@@ -1,51 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/main_surface"
     tools:context=".main.MainActivity">
 
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/mainViewPager"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/bottomDivider"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <!-- Nội dung chính (ViewPager) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mainContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/main_surface">
 
-    <View
-        android:id="@+id/bottomDivider"
-        android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:background="@color/main_divider"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/mainViewPager"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavigation"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Navigation Menu (Drawer) -->
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/navigationView"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:fitsSystemWindows="true"
         android:background="@color/main_surface"
-        android:minHeight="76dp"
-        android:paddingTop="8dp"
-        app:itemActiveIndicatorStyle="@null"
-        app:itemIconSize="24dp"
+        app:itemTextColor="@color/explorer_text_primary"
         app:itemIconTint="@color/main_bottom_nav_item_colors"
-        app:itemPaddingTop="6dp"
-        app:itemPaddingBottom="2dp"
-        app:itemRippleColor="@android:color/transparent"
-        app:itemTextAppearanceActive="@style/MainBottomNavTextAppearance"
-        app:itemTextAppearanceInactive="@style/MainBottomNavTextAppearance"
-        app:itemTextColor="@color/main_bottom_nav_item_colors"
-        app:labelVisibilityMode="labeled"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/main_bottom_navigation" />
+        app:headerLayout="@layout/nav_header_main"
+        app:menu="@menu/menu_main_drawer" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

@@ -93,32 +93,83 @@
                             android:scaleType="fitCenter"
                             tools:src="@drawable/file_text" />
 
+                        <LinearLayout
+                            android:id="@+id/previewAudioContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+                            
+                            <ImageView
+                                android:id="@+id/audioArt"
+                                android:layout_width="200dp"
+                                android:layout_height="200dp"
+                                android:src="@drawable/file_audio"
+                                android:tint="@color/preview_surface"
+                                android:background="@drawable/circle_shape"
+                                android:backgroundTint="@color/preview_primary"
+                                android:padding="48dp"
+                                android:elevation="8dp" />
+                        </LinearLayout>
+
                         <androidx.media3.ui.PlayerView
                             android:id="@+id/previewVideo"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:layout_gravity="center"
-                            android:visibility="gone" />
+                            android:visibility="gone"
+                            app:shutter_background_color="@android:color/transparent" />
+                            
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:id="@+id/rotateVideoFab"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="top|end"
+                            android:layout_margin="16dp"
+                            android:visibility="gone"
+                            app:srcCompat="@drawable/rotate_ccw"
+                            app:fabSize="mini"
+                            app:backgroundTint="@color/preview_surface"
+                            app:tint="@color/preview_primary" />
 
-                        <ScrollView
-                            android:id="@+id/previewTextScroll"
+                        <LinearLayout
+                            android:id="@+id/previewRichTextContainer"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:visibility="gone">
-                            <EditText
-                                android:id="@+id/previewText"
+                            android:orientation="vertical"
+                            android:visibility="gone"
+                            android:background="@android:color/white">
+                            
+                            <HorizontalScrollView
+                                android:id="@+id/richEditorToolbar"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:padding="16dp"
-                                android:textColor="@color/preview_text_primary"
-                                android:textSize="14sp"
-                                android:fontFamily="monospace"
-                                android:background="@null"
-                                android:focusable="false"
-                                android:cursorVisible="false"
-                                android:inputType="textMultiLine|textNoSuggestions"
-                                tools:text="Sample text content..." />
-                        </ScrollView>
+                                android:scrollbars="none"
+                                android:visibility="gone">
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:padding="8dp">
+                                    <Button android:id="@+id/action_undo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Undo" style="?android:attr/buttonBarButtonStyle" />
+                                    <Button android:id="@+id/action_redo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Redo" style="?android:attr/buttonBarButtonStyle" />
+                                    <Button android:id="@+id/action_bold" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="B" android:textStyle="bold" style="?android:attr/buttonBarButtonStyle" />
+                                    <Button android:id="@+id/action_italic" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="I" android:textStyle="italic" style="?android:attr/buttonBarButtonStyle" />
+                                    <Button android:id="@+id/action_underline" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="U" style="?android:attr/buttonBarButtonStyle" />
+                                    <Button android:id="@+id/action_heading1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="H1" style="?android:attr/buttonBarButtonStyle" />
+                                    <Button android:id="@+id/action_heading2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="H2" style="?android:attr/buttonBarButtonStyle" />
+                                    <Button android:id="@+id/action_bullets" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="• List" style="?android:attr/buttonBarButtonStyle" />
+                                    <Button android:id="@+id/action_numbers" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1. List" style="?android:attr/buttonBarButtonStyle" />
+                                </LinearLayout>
+                            </HorizontalScrollView>
+                            
+                            <jp.wasabeef.richeditor.RichEditor
+                                android:id="@+id/richEditor"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
+                        </LinearLayout>
 
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/previewPdfRecycler"
@@ -159,6 +210,23 @@
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
 
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="Định dạng không được hỗ trợ để hiển thị trực tiếp."
+                                android:textAlignment="center"
+                                android:textColor="@color/preview_text_secondary"
+                                android:textSize="14sp" />
+
+                            <Button
+                                android:id="@+id/previewConvertPdfButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:text="Chuyển đổi sang PDF để Xem trước"
+                                android:visibility="gone" />
+
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/openExternallyButton"
                                 android:layout_width="wrap_content"
@@ -166,6 +234,15 @@
                                 android:layout_marginTop="24dp"
                                 android:text="@string/preview_open_externally"
                                 app:icon="@drawable/external_link" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/extractButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:text="@string/preview_action_extract"
+                                android:visibility="gone"
+                                app:icon="@drawable/folder_open" />
                         </LinearLayout>
 
                         <ProgressBar

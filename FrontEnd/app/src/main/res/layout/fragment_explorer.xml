@@ -27,6 +27,17 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
+                <ImageButton
+                    android:id="@+id/explorerHeaderMenuButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Menu"
+                    android:padding="8dp"
+                    android:src="@drawable/list"
+                    android:tint="@color/explorer_text_primary" />
+
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -483,6 +494,20 @@
                 android:textSize="14sp"
                 android:textStyle="bold"
                 tools:text="3 items selected" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/compressSelectedButton"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/preview_action_compress"
+                android:textAllCaps="false"
+                app:icon="@drawable/folder_input"
+                app:iconTint="@color/explorer_primary"
+                app:strokeColor="@color/explorer_border" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/moveSelectedButton"

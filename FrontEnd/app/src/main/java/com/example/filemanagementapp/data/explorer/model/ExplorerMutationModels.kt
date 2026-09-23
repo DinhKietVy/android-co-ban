@@ -45,3 +45,53 @@ data class ExplorerMutationResponse(
     val error: String? = null,
     val detail: String? = null
 )
+
+data class ExplorerConvertRequest(
+    val username: String,
+    val filePath: String,
+    val targetFormat: String
+)
+
+data class ExplorerConvertResponse(
+    val message: String? = null,
+    val data: ExplorerConvertResponseData? = null,
+    val error: String? = null,
+    val detail: String? = null
+)
+
+data class ExplorerConvertResponseData(
+    val originalPath: String,
+    val newPath: String,
+    val convertedFilePath: String
+)
+
+data class ExplorerCompressRequest(
+    val username: String,
+    val targetPath: String,
+    val zipName: String,
+    val items: List<String>
+)
+
+data class ExplorerCompressResponse(
+    val message: String,
+    val data: ExplorerCompressResponseData?
+)
+
+data class ExplorerCompressResponseData(
+    val zipFilePath: String
+)
+
+data class ExplorerExtractRequest(
+    val username: String,
+    val filePath: String,
+    val extractToPath: String
+)
+
+data class ExplorerExtractResponse(
+    val message: String,
+    val data: ExplorerExtractResponseData?
+)
+
+data class ExplorerExtractResponseData(
+    val extractPath: String
+)

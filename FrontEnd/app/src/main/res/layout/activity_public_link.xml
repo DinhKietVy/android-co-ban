@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:background="@color/explorer_bg">
+
+    <ImageView
+        android:id="@+id/publicLinkIcon"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/external_link"
+        android:tint="@color/explorer_primary"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/publicLinkTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Liên kết công khai"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/explorer_text_primary"
+        android:layout_marginBottom="24dp"/>
+
+    <TextView
+        android:id="@+id/publicLinkFileName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:textColor="@color/explorer_text_primary"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/publicLinkFileSize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="@color/explorer_text_secondary"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/publicLinkOwner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="@color/explorer_text_secondary"
+        android:layout_marginBottom="32dp"/>
+
+    <ProgressBar
+        android:id="@+id/publicLinkLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_marginBottom="32dp"/>
+
+    <Button
+        android:id="@+id/publicLinkDownloadButton"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Tải xuống"
+        android:visibility="gone"
+        android:backgroundTint="@color/explorer_primary"
+        android:textColor="@color/white"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/publicLinkCloseButton"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Đóng"
+        android:backgroundTint="@color/grey_200"
+        android:textColor="@color/explorer_text_primary"/>
+
+</LinearLayout>

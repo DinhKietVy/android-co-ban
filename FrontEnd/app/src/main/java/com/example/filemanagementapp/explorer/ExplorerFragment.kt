@@ -58,6 +58,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.launch
 
 class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
@@ -73,6 +76,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var explorerAdapter: ExplorerAdapter
     private lateinit var homeIcon: ImageView
     private lateinit var homeSeparator: ImageView
+    private lateinit var headerMenuButton: ImageButton
     private lateinit var headerSearchButton: ImageButton
     private lateinit var headerMoreButton: ImageButton
     private lateinit var breadcrumbRecyclerView: RecyclerView
@@ -100,10 +104,12 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var uploadProgressMetaText: TextView
     private lateinit var selectionActionCard: View
     private lateinit var selectionSummaryText: TextView
+    private lateinit var compressSelectedButton: View
     private lateinit var moveSelectedButton: View
     private lateinit var deleteSelectedButton: View
     private var currentDownloadProgress: ExplorerDownloadProgress? = null
     private var pendingDownloadItem: ExplorerItem? = null
+    private var convertingDialog: androidx.appcompat.app.AlertDialog? = null
     private val uploadFileLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -123,6 +129,48 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             Toast.makeText(requireContext(), R.string.msg_uploading_file, Toast.LENGTH_SHORT).show()
         }
     }
+
+    private val uploadFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let { treeUri ->
+            runCatching {
+                requireContext().contentResolver.takePersistableUriPermission(
+                    treeUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            Toast.makeText(requireContext(), R.string.msg_uploading_file, Toast.LENGTH_SHORT).show()
+            
+            // Chạy duyệt thư mục dưới background để không làm đứng UI
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                val rootDoc = androidx.documentfile.provider.DocumentFile.fromTreeUri(requireContext(), treeUri)
+                rootDoc?.let { doc ->
+                    traverseAndUploadFolder(doc, "")
+                }
+            }
+        }
+    }
+
+    private fun traverseAndUploadFolder(docFile: androidx.documentfile.provider.DocumentFile, relativePath: String) {
+        val currentPath = if (relativePath.isEmpty()) docFile.name.orEmpty() else "$relativePath/${docFile.name.orEmpty()}"
+        
+        for (file in docFile.listFiles()) {
+            if (file.isDirectory) {
+                traverseAndUploadFolder(file, currentPath)
+            } else if (file.isFile) {
+                // Gửi từng file lên với targetPath là currentFolder (trên server) cộng với đường dẫn tương đối
+                val serverTargetPath = viewModel.uiState.value.currentFolder.trim('/') + "/" + currentPath
+                com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
+                    context = requireContext(),
+                    fileUri = file.uri,
+                    targetPath = serverTargetPath,
+                    username = username
+                )
+            }
+        }
+    }
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -167,7 +215,11 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             }
             FilePreviewActivity.RESULT_ACTION_AI -> {
                 val item = result.data?.getSerializableExtra(FilePreviewActivity.EXTRA_EXPLORER_ITEM) as? ExplorerItem
-                if (item != null) viewModel.analyzeItem(item)
+                if (item != null) onAnalyzeAi(item)
+            }
+            FilePreviewActivity.RESULT_ACTION_EXTRACT -> {
+                val item = result.data?.getSerializableExtra(FilePreviewActivity.EXTRA_EXPLORER_ITEM) as? ExplorerItem
+                if (item != null) onExtract(item)
             }
         }
     }
@@ -217,6 +269,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
 
         homeIcon = view.findViewById(R.id.homeBreadcrumbIcon)
         homeSeparator = view.findViewById(R.id.homeBreadcrumbSeparator)
+        headerMenuButton = view.findViewById(R.id.explorerHeaderMenuButton)
         headerSearchButton = view.findViewById(R.id.explorerHeaderSearchButton)
         headerMoreButton = view.findViewById(R.id.explorerHeaderMoreButton)
         breadcrumbRecyclerView = view.findViewById(R.id.breadcrumbRecyclerView)
@@ -244,6 +297,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         uploadProgressMetaText = view.findViewById(R.id.uploadProgressMetaText)
         selectionActionCard = view.findViewById(R.id.selectionActionCard)
         selectionSummaryText = view.findViewById(R.id.selectionSummaryText)
+        compressSelectedButton = view.findViewById(R.id.compressSelectedButton)
         moveSelectedButton = view.findViewById(R.id.moveSelectedButton)
         deleteSelectedButton = view.findViewById(R.id.deleteSelectedButton)
 
@@ -270,12 +324,13 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                     item = item,
                     config = FileActionSheetController.ActionConfig(
                         showOpen = item.type == ExplorerItem.Type.FOLDER,
-                        showDownload = item.type == ExplorerItem.Type.FILE,
+                        showDownload = true, // Cho phép tải xuống cả file và folder
                         showRename = true,
                         showMove = true,
                         showFavorite = true,
                         showDelete = true,
-                        showAi = item.isImagePreviewable
+                        showAi = item.isImagePreviewable,
+                        showExtract = true
                     )
                 )
             },
@@ -292,6 +347,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         homeIcon.setOnClickListener {
             viewModel.loadRootDirectory()
         }
+        headerMenuButton.setOnClickListener {
+            (activity as? com.example.filemanagementapp.main.MainActivity)?.openDrawer()
+        }
         headerSearchButton.setOnClickListener {
             searchActivityLauncher.launch(SearchActivity.newIntent(requireContext(), username))
         }
@@ -303,6 +361,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         }
         createFab.setOnClickListener {
             showCreateActionsSheet()
+        }
+        compressSelectedButton.setOnClickListener {
+            showCompressSelectedDialog()
         }
         moveSelectedButton.setOnClickListener {
             showMoveSelectedDialog()
@@ -424,6 +485,47 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     private fun render(state: ExplorerUiState) {
+        if (state.processingState != null) {
+            if (convertingDialog == null) {
+                convertingDialog = MaterialAlertDialogBuilder(requireContext())
+                    .setView(R.layout.dialog_beautiful_loading)
+                    .setCancelable(false)
+                    .create()
+                    .apply { window?.setBackgroundDrawableResource(android.R.color.transparent) }
+            }
+            if (convertingDialog?.isShowing == false) {
+                convertingDialog?.show()
+            }
+            
+            // Update texts and icon based on processingState
+            convertingDialog?.let { dialog ->
+                val titleView = dialog.findViewById<TextView>(R.id.loadingTitle)
+                val subtitleView = dialog.findViewById<TextView>(R.id.loadingSubtitle)
+                val iconView = dialog.findViewById<ImageView>(R.id.loadingIcon)
+                
+                when (state.processingState) {
+                    com.example.filemanagementapp.explorer.ui.ProcessingState.CONVERTING -> {
+                        titleView?.setText(R.string.dialog_converting_title)
+                        subtitleView?.setText(R.string.dialog_converting_subtitle)
+                        iconView?.setImageResource(R.drawable.rotate_ccw)
+                    }
+                    com.example.filemanagementapp.explorer.ui.ProcessingState.COMPRESSING -> {
+                        titleView?.setText(R.string.dialog_compressing_title)
+                        subtitleView?.setText(R.string.dialog_compressing_subtitle)
+                        iconView?.setImageResource(R.drawable.folder_input)
+                    }
+                    com.example.filemanagementapp.explorer.ui.ProcessingState.EXTRACTING -> {
+                        titleView?.setText(R.string.dialog_extracting_title)
+                        subtitleView?.setText(R.string.dialog_extracting_subtitle)
+                        iconView?.setImageResource(R.drawable.folder_input)
+                    }
+                }
+            }
+        } else {
+            convertingDialog?.dismiss()
+            convertingDialog = null
+        }
+
         loadingIndicator.visibility = if (state.isLoading) View.VISIBLE else View.GONE
         aiLoadingOverlay.visibility = if (state.isAnalyzingAi) View.VISIBLE else View.GONE
         if (state.isAnalyzingAi) {
@@ -431,7 +533,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         } else {
             aiLoadingAnimation.cancelAnimation()
         }
-        recyclerView.alpha = if (state.isLoading || state.isAnalyzingAi) 0.5f else 1f
+        recyclerView.alpha = if (state.isLoading || state.isAnalyzingAi || state.processingState != null) 0.5f else 1f
         swipeRefreshLayout.isRefreshing = state.isRefreshing
         swipeRefreshLayout.isEnabled = !state.isAnalyzingAi && !state.isSelectionMode
         storageValueText.text = state.storageSummary
@@ -492,10 +594,6 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     override fun onDownload(item: ExplorerItem) {
-        if (item.type == ExplorerItem.Type.FOLDER) {
-            Toast.makeText(requireContext(), R.string.explorer_download_folder_unsupported, Toast.LENGTH_SHORT).show()
-            return
-        }
         if (item.previewUrl.isNullOrBlank()) {
             Toast.makeText(requireContext(), R.string.explorer_download_start_failed, Toast.LENGTH_SHORT).show()
             return
@@ -533,11 +631,51 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         viewModel.analyzeItem(item)
     }
 
+    override fun onConvert(item: ExplorerItem, targetFormat: String) {
+        viewModel.convertFile(item, targetFormat)
+    }
+
+    override fun onCompress(item: ExplorerItem) {
+        showCompressItemDialog(item)
+    }
+
+    override fun onExtract(item: ExplorerItem) {
+        viewModel.extractItem(item)
+    }
+
+    override fun onShare(item: ExplorerItem) {
+        showShareDialog(item)
+    }
+
+    private fun showShareDialog(item: ExplorerItem) {
+        val view = android.view.LayoutInflater.from(requireContext()).inflate(R.layout.dialog_share, null)
+        val inputLayout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogShareInputLayout)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogShareInputEditText)
+        val radioGroup = view.findViewById<android.widget.RadioGroup>(R.id.dialogSharePermissionGroup)
+        
+        inputLayout.hint = getString(R.string.dialog_share_hint)
+        
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_share_title)
+            .setView(view)
+            .setPositiveButton(R.string.dialog_share_button) { _, _ ->
+                val targetUsername = input.text?.toString().orEmpty().trim()
+                if (targetUsername.isNotBlank()) {
+                    val permission = if (radioGroup.checkedRadioButtonId == R.id.dialogSharePermissionWrite) "WRITE" else "READ"
+                    viewModel.shareItem(item, targetUsername, permission)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private fun startDownload(item: ExplorerItem) {
         val downloadUrl = item.previewUrl ?: return
+        val finalFileName = if (item.type == ExplorerItem.Type.FOLDER) "${item.name}.zip" else item.name
+        
         ExplorerDownloadService.start(
             context = requireContext(),
-            fileName = item.name,
+            fileName = finalFileName,
             downloadUrl = downloadUrl
         )
         Toast.makeText(requireContext(), R.string.explorer_download_started, Toast.LENGTH_SHORT).show()
@@ -674,6 +812,10 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             dialog.dismiss()
             uploadFileLauncher.launch(arrayOf("*/*"))
         }
+        contentView.findViewById<View>(R.id.actionUploadFolder).setOnClickListener {
+            dialog.dismiss()
+            uploadFolderLauncher.launch(null)
+        }
 
         dialog.show()
     }
@@ -714,6 +856,51 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             .setNegativeButton(R.string.explorer_dialog_cancel, null)
             .setPositiveButton(R.string.explorer_dialog_confirm) { _, _ ->
                 viewModel.deleteSelectedItems()
+            }
+            .show()
+    }
+
+    private fun showCompressSelectedDialog() {
+        val view = layoutInflater.inflate(R.layout.dialog_input, null)
+        val inputLayout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+        
+        inputLayout.hint = getString(R.string.dialog_compress_name_hint)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_compress_name_title)
+            .setView(view)
+            .setNegativeButton(R.string.explorer_dialog_cancel, null)
+            .setPositiveButton(R.string.dialog_compress_button) { _, _ ->
+                val zipNameInput = input.text?.toString().orEmpty()
+                if (zipNameInput.isNotBlank()) {
+                    val finalName = if (zipNameInput.endsWith(".zip")) zipNameInput else "$zipNameInput.zip"
+                    viewModel.compressSelectedItems(finalName)
+                }
+            }
+            .show()
+    }
+
+    private fun showCompressItemDialog(item: ExplorerItem) {
+        val view = layoutInflater.inflate(R.layout.dialog_input, null)
+        val inputLayout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+        
+        inputLayout.hint = getString(R.string.dialog_compress_name_hint)
+        // Default name is the item's name without extension if it's a file, or just folder name
+        val defaultName = if (item.type == ExplorerItem.Type.FILE) item.name.substringBeforeLast(".") else item.name
+        input.setText(defaultName)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_compress_name_title)
+            .setView(view)
+            .setNegativeButton(R.string.explorer_dialog_cancel, null)
+            .setPositiveButton(R.string.dialog_compress_button) { _, _ ->
+                val zipNameInput = input.text?.toString().orEmpty()
+                if (zipNameInput.isNotBlank()) {
+                    val finalName = if (zipNameInput.endsWith(".zip")) zipNameInput else "$zipNameInput.zip"
+                    viewModel.compressItem(item, finalName)
+                }
             }
             .show()
     }

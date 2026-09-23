@@ -21,7 +21,9 @@ data class ExplorerItem(
     val aiAnalyzed: Boolean = false,
     val ocrSnippet: String? = null,
     val analyzedImagePath: String? = null,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val ownerUsername: String? = null,
+    val permission: String? = null
 ) : Serializable {
     enum class Type {
         FOLDER,

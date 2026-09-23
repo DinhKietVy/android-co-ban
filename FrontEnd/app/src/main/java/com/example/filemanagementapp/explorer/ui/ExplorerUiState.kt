@@ -7,6 +7,7 @@ import com.example.filemanagementapp.explorer.ExplorerItem
 data class ExplorerUiState(
     val isLoading: Boolean = false,
     val isAnalyzingAi: Boolean = false,
+    val processingState: ProcessingState? = null,
     val isRefreshing: Boolean = false,
     val isSelectionMode: Boolean = false,
     val displayMode: ExplorerAdapter.DisplayMode = ExplorerAdapter.DisplayMode.GRID,
@@ -24,4 +25,10 @@ enum class SortOption {
     NAME,
     DATE_MODIFIED,
     SIZE
+}
+
+enum class ProcessingState {
+    CONVERTING,
+    COMPRESSING,
+    EXTRACTING
 }

@@ -179,6 +179,112 @@ class ExplorerViewModel(
         }
     }
 
+    fun shareItem(item: ExplorerItem, targetUsername: String, permission: String) {
+        viewModelScope.launch {
+            repository.shareFile(
+                ownerUsername = username,
+                targetUsername = targetUsername,
+                filePath = item.path,
+                permission = permission
+            ).onSuccess { message ->
+                emitMessage(UiText.DynamicString(message))
+            }.onFailure { throwable ->
+                emitMessage(UiText.DynamicString(throwable.message ?: "Lỗi chia sẻ"))
+            }
+        }
+    }
+
+    fun convertFile(item: ExplorerItem, targetFormat: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(processingState = ProcessingState.CONVERTING) }
+            repository.convertFile(
+                username = username,
+                filePath = item.path,
+                targetFormat = targetFormat
+            ).onSuccess { response ->
+                directoryCacheLocalRepository.invalidateDirectory(
+                    username = username,
+                    folderPath = _uiState.value.currentFolder
+                )
+                emitMessage(UiText.DynamicString(response.message ?: "Converted successfully"))
+                refreshCurrentDirectory()
+            }.onFailure { throwable ->
+                emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
+            }.also {
+                _uiState.update { state -> state.copy(processingState = null) }
+            }
+        }
+    }
+
+    fun compressSelectedItems(zipName: String) {
+        val selectedItems = currentDirectoryItems.filter { it.path in _uiState.value.selectedPaths }
+        if (selectedItems.isEmpty()) {
+            emitMessage(UiText.StringResource(R.string.error_no_item_selected))
+            return
+        }
+        compressPaths(zipName, selectedItems.map { it.path })
+    }
+
+    fun compressItem(item: ExplorerItem, zipName: String) {
+        compressPaths(zipName, listOf(item.path))
+    }
+
+    private fun compressPaths(zipName: String, paths: List<String>) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(processingState = ProcessingState.COMPRESSING) }
+            repository.compressFiles(
+                username = username,
+                targetPath = _uiState.value.currentFolder,
+                zipName = zipName,
+                items = paths
+            ).onSuccess { message ->
+                directoryCacheLocalRepository.invalidateDirectory(
+                    username = username,
+                    folderPath = _uiState.value.currentFolder
+                )
+                emitMessage(UiText.DynamicString(message))
+                _uiState.update { state ->
+                    state.copy(
+                        isSelectionMode = false,
+                        selectedPaths = emptySet()
+                    )
+                }
+                refreshCurrentDirectory()
+            }.onFailure { throwable ->
+                emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
+            }.also {
+                _uiState.update { state -> state.copy(processingState = null) }
+            }
+        }
+    }
+
+    fun extractItem(item: ExplorerItem) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(processingState = ProcessingState.EXTRACTING) }
+            repository.extractFile(
+                username = username,
+                filePath = item.path,
+                extractToPath = _uiState.value.currentFolder
+            ).onSuccess { response ->
+                directoryCacheLocalRepository.invalidateDirectory(
+                    username = username,
+                    folderPath = _uiState.value.currentFolder
+                )
+                emitMessage(UiText.DynamicString(response.message))
+                val extractedPath = response.data?.extractPath
+                if (extractedPath != null) {
+                    loadDirectory(extractedPath)
+                } else {
+                    refreshCurrentDirectory()
+                }
+            }.onFailure { throwable ->
+                emitMessage(UiText.DynamicString(throwable.message ?: "Error"))
+            }.also {
+                _uiState.update { state -> state.copy(processingState = null) }
+            }
+        }
+    }
+
     fun onUploadCompleted(uploadedFileName: String) {
         viewModelScope.launch {
             directoryCacheLocalRepository.invalidateDirectory(

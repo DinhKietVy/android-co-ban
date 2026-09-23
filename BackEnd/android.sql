@@ -30,4 +30,13 @@ CREATE LOGIN myuser WITH PASSWORD = '123456';
 CREATE USER myuser FOR LOGIN myuser;
 ALTER ROLE db_owner ADD MEMBER myuser;
 
+CREATE TABLE public_links (
+    token VARCHAR(36) PRIMARY KEY,
+    owner_id INT NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    expires_at DATETIME NULL,
+    CONSTRAINT FK_public_link_owner FOREIGN KEY (owner_id) REFERENCES users(id)
+);
+
 DELETE users

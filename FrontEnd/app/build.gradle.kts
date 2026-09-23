@@ -87,5 +87,10 @@ dependencies {
     implementation("com.airbnb.android:lottie:6.6.7")
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.media3.session)
+    implementation("jp.wasabeef:richeditor-android:2.0.0")
     implementation(libs.photoview)
+    implementation("com.github.yalantis:ucrop:2.2.8")
+    implementation("com.burhanrashid52:photoeditor:3.0.2")
+    implementation("androidx.documentfile:documentfile:1.0.1")
 }

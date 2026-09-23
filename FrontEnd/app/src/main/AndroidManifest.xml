@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
         android:name=".FileManagementApp"
@@ -25,6 +26,8 @@
             android:exported="false" />
         <activity
             android:name=".preview.FilePreviewActivity"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:exported="false" />
         <activity
             android:name=".password.ForgotPasswordActivity"
@@ -48,6 +51,22 @@
         <activity
             android:name=".main.MainActivity"
             android:exported="true" />
+        <activity
+            android:name=".main.DeepLinkRoutingActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="filemanagementapp" android:host="public-link" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="filemanagementapp" android:host="file" />
+            </intent-filter>
+        </activity>
         <service
             android:name=".download.ExplorerDownloadService"
             android:exported="false"
@@ -56,6 +75,14 @@
             android:name=".explorer.network.ExplorerUploadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".preview.AudioPlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService"/>
+            </intent-filter>
+        </service>
         <activity
             android:name=".profile.edit.EditProfileActivity"
             android:exported="false" />
@@ -69,6 +96,17 @@
         <activity
             android:name=".profile.theme.ThemeActivity"
             android:exported="false" />
+            
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+            
+        <activity
+            android:name=".preview.PhotoEditorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+            
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

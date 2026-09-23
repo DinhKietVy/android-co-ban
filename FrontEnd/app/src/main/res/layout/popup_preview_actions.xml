@@ -72,6 +72,35 @@
         android:layout_marginVertical="4dp"
         android:background="@color/explorer_border" />
 
+    <!-- Open Externally -->
+    <LinearLayout
+        android:id="@+id/menuOpenExternally"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/external_link"
+            android:tint="@color/explorer_text_primary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="@string/preview_open_externally"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="14sp" />
+    </LinearLayout>
+
     <!-- Rename -->
     <LinearLayout
         android:id="@+id/menuRename"

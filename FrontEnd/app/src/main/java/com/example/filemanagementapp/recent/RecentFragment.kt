@@ -65,6 +65,10 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
             val item = result.data?.getSerializableExtra(com.example.filemanagementapp.preview.FilePreviewActivity.EXTRA_EXPLORER_ITEM) as? ExplorerItem
             if (item != null) onAnalyzeAi(item)
         }
+        if (result.resultCode == com.example.filemanagementapp.preview.FilePreviewActivity.RESULT_ACTION_EXTRACT) {
+            val item = result.data?.getSerializableExtra(com.example.filemanagementapp.preview.FilePreviewActivity.EXTRA_EXPLORER_ITEM) as? ExplorerItem
+            if (item != null) onExtract(item)
+        }
     }
 
     override fun onCreateView(
@@ -453,6 +457,14 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
             }
         }
     }
+
+    override fun onShare(item: ExplorerItem) {}
+
+    override fun onConvert(item: ExplorerItem, targetFormat: String) {}
+
+    override fun onCompress(item: ExplorerItem) {}
+
+    override fun onExtract(item: ExplorerItem) {}
 
     private fun Int.dp(): Int {
         return (this * resources.displayMetrics.density).toInt()
