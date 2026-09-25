@@ -31,3 +31,6 @@ CREATE USER myuser FOR LOGIN myuser;
 ALTER ROLE db_owner ADD MEMBER myuser;
 
 DELETE users
+
+SELECT * FROM users
+SELECT * FROM share_file
