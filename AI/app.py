@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
 from io import BytesIO
 import json
+import sys
 
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, UploadFile, File, Form, Body
+from fastapi.responses import StreamingResponse, JSONResponse
 import os
 from paddleocr import PaddleOCR
 from PIL import Image, ImageDraw, ImageFont
@@ -12,8 +13,16 @@ import numpy as np
 import base64
 import uuid
 import tempfile
+from typing import Optional, List
 
 from ultralytics import YOLO
+
+# Thêm thư mục chatbot vào sys.path để import gemini_service
+_chatbot_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chatbot")
+if _chatbot_dir not in sys.path:
+    sys.path.insert(0, _chatbot_dir)
+
+from openai_service import chat_with_gemini, semantic_search
 
 ocr = None
 yolo_model = None
@@ -264,3 +273,167 @@ async def search_images_by_text(username: str = Form(...), search_string: str = 
         "total_matched": len(matched_images),
         "matched_images": matched_images
     }
+
+
+from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+
+# ============================================================
+# OPENAI SERVICE
+# Thêm thư mục chatbot vào sys.path để import openai_service
+# ============================================================
+
+_chatbot_dir = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "chatbot"
+)
+
+if _chatbot_dir not in sys.path:
+    sys.path.insert(0, _chatbot_dir)
+
+from openai_service import chat_with_gemini, semantic_search
+
+
+# ============================================================
+# AI CHATBOT
+# Tính năng 1 & 3: Chat + Action Execution
+# POST /api/ai/chat
+# ============================================================
+
+class HistoryPart(BaseModel):
+    text: str
+
+
+class HistoryTurn(BaseModel):
+    role: str
+    parts: List[HistoryPart]
+
+
+class ChatRequest(BaseModel):
+    username: str
+    prompt: str
+    filePath: Optional[str] = None
+    history: Optional[List[HistoryTurn]] = None
+
+
+@app.post("/api/ai/chat")
+async def ai_chat(req: ChatRequest):
+    """
+    Chatbot OpenAI GPT-5.5 với khả năng:
+
+    - Trả lời câu hỏi thông thường
+    - Phân tích file đính kèm (ảnh, PDF, text)
+    - Thực thi lệnh file system
+      + Tạo thư mục
+      + Di chuyển file
+      + Xóa file
+    """
+
+    if not req.username or not req.prompt:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "Thiếu username hoặc prompt"
+            }
+        )
+
+    # --------------------------------------------------------
+    # Chuyển history Pydantic -> dict thuần
+    # --------------------------------------------------------
+
+    history_raw = None
+
+    if req.history:
+        history_raw = [
+            {
+                "role": turn.role,
+                "parts": [
+                    {
+                        "text": p.text
+                    }
+                    for p in turn.parts
+                ]
+            }
+            for turn in req.history
+        ]
+
+    # --------------------------------------------------------
+    # Gọi OpenAI GPT-5.5
+    # --------------------------------------------------------
+
+    try:
+        result = chat_with_gemini(
+            username=req.username,
+            prompt=req.prompt,
+            history=history_raw,
+            file_path=req.filePath
+        )
+
+        return {
+            "success": True,
+            "data": result
+        }
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"Lỗi xử lý chatbot: {str(e)}"
+            }
+        )
+
+
+# ============================================================
+# AI SEARCH
+# Tính năng 2: Tìm kiếm thông minh (Semantic Search)
+# POST /api/ai/search
+# ============================================================
+
+class SearchRequest(BaseModel):
+    username: str
+    query: str
+
+
+@app.post("/api/ai/search")
+async def ai_search(req: SearchRequest):
+    """
+    Tìm kiếm file bằng ngôn ngữ tự nhiên.
+
+    Ví dụ:
+    "Tìm cho tôi mấy cái hóa đơn tuần trước"
+    """
+
+    if not req.username or not req.query:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "Thiếu username hoặc query"
+            }
+        )
+
+    try:
+        matched_files = semantic_search(
+            username=req.username,
+            query=req.query
+        )
+
+        return {
+            "success": True,
+            "data": {
+                "query": req.query,
+                "totalMatched": len(matched_files),
+                "files": matched_files
+            }
+        }
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"Lỗi tìm kiếm: {str(e)}"
+            }
+        )
