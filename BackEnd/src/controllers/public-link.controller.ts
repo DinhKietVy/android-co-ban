@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { sql } from '../config/db';
+import { connectDB } from '../config/database';
+import sql from 'mssql';
 import { randomUUID } from 'crypto';
 import path from 'path';
 import fs from 'fs';
@@ -15,7 +16,7 @@ export const createPublicLink = async (req: Request, res: Response): Promise<voi
             return;
         }
         
-        const pool = await sql.connect();
+        const pool = await connectDB();
         const userResult = await pool.request()
             .input('username', sql.VarChar, username)
             .query('SELECT id FROM users WHERE username = @username');
@@ -29,7 +30,6 @@ export const createPublicLink = async (req: Request, res: Response): Promise<voi
 
         const token = randomUUID();
         
-        const pool = await sql.connect();
         await pool.request()
             .input('token', sql.VarChar, token)
             .input('owner_id', sql.Int, ownerId)
@@ -50,7 +50,7 @@ export const getPublicLinkInfo = async (req: Request, res: Response): Promise<vo
     try {
         const { token } = req.params;
         
-        const pool = await sql.connect();
+        const pool = await connectDB();
         const result = await pool.request()
             .input('token', sql.VarChar, token)
             .query(`
@@ -94,7 +94,7 @@ export const downloadPublicLink = async (req: Request, res: Response): Promise<v
     try {
         const { token } = req.params;
         
-        const pool = await sql.connect();
+        const pool = await connectDB();
         const result = await pool.request()
             .input('token', sql.VarChar, token)
             .query(`
