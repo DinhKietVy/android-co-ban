@@ -13,17 +13,21 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+import com.example.filemanagementapp.data.ai.repository.AiAnalysisRepository
+
 class SearchViewModel(
     private val username: String,
     private val searchRepository: SearchRepository,
     private val searchHistoryRepo: SearchHistoryPreferencesRepository,
-    private val favoriteLocalRepository: FavoriteLocalRepository
+    private val favoriteLocalRepository: FavoriteLocalRepository,
+    private val aiAnalysisRepository: AiAnalysisRepository
 ) : ViewModel() {
 
     enum class Sort { NAME, DATE, SIZE }
 
     data class UiState(
         val isLoading: Boolean = true,
+        val isAiLoading: Boolean = false,
         val allItems: List<SearchItem> = emptyList(),
         val filteredItems: List<SearchItem> = emptyList(),
         val recentSearches: List<String> = emptyList(),
@@ -33,25 +37,29 @@ class SearchViewModel(
     )
 
     private val _isLoading = MutableStateFlow(true)
+    private val _isAiLoading = MutableStateFlow(false)
+    private val _aiSearchResults = MutableStateFlow<List<String>?>(null)
     private val _allItems = MutableStateFlow<List<SearchItem>>(emptyList())
     private val _query = MutableStateFlow("")
     private val _selectedCategory = MutableStateFlow("all")
     private val _currentSort = MutableStateFlow(Sort.NAME)
 
-    private data class FilterCriteria(val query: String, val category: String, val sort: Sort)
-    private val filterCriteria = combine(_query, _selectedCategory, _currentSort) { q, c, s ->
-        FilterCriteria(q, c, s)
+    private data class FilterCriteria(val query: String, val category: String, val sort: Sort, val aiResult: List<String>?)
+    private val filterCriteria = combine(_query, _selectedCategory, _currentSort, _aiSearchResults) { q, c, s, ai ->
+        FilterCriteria(q, c, s, ai)
     }
 
     val uiState: StateFlow<UiState> = combine(
         _isLoading,
+        _isAiLoading,
         _allItems,
         filterCriteria,
         searchHistoryRepo.recentSearches
-    ) { loading, allItems, criteria, recentSearches ->
-        val filtered = filterAndSort(allItems, criteria.query, criteria.category, criteria.sort)
+    ) { loading, aiLoading, allItems, criteria, recentSearches ->
+        val filtered = filterAndSort(allItems, criteria.query, criteria.category, criteria.sort, criteria.aiResult)
         UiState(
             isLoading = loading,
+            isAiLoading = aiLoading,
             allItems = allItems,
             filteredItems = filtered,
             recentSearches = recentSearches,
@@ -101,18 +109,42 @@ class SearchViewModel(
         }
     }
 
+    fun performAiSearch(query: String) {
+        if (query.isBlank()) {
+            _aiSearchResults.value = null
+            return
+        }
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiSearchResults.value = null
+            
+            val result = aiAnalysisRepository.semanticSearch(username, query)
+            if (result.isSuccess) {
+                val files = result.getOrNull()?.data?.files ?: emptyList()
+                _aiSearchResults.value = files
+            } else {
+                _aiSearchResults.value = emptyList() // or handle error
+            }
+            _isAiLoading.value = false
+        }
+    }
+
     private fun filterAndSort(
         items: List<SearchItem>,
         query: String,
         category: String,
-        sort: Sort
+        sort: Sort,
+        aiResult: List<String>?
     ): List<SearchItem> {
         if (query.isBlank()) {
             return emptyList()
         }
 
         val filtered = items.filter { item ->
-            val matchesQuery = if (query.isBlank()) {
+            val matchesQuery = if (aiResult != null) {
+                // Nếu có kết quả AI, chỉ hiển thị những file nằm trong danh sách AI trả về
+                aiResult.any { it.equals(item.name, ignoreCase = true) || it.contains(item.name, ignoreCase = true) }
+            } else if (query.isBlank()) {
                 true
             } else {
                 when (category) {
@@ -157,14 +189,16 @@ class SearchViewModel(
         private val username: String,
         private val searchRepository: SearchRepository,
         private val searchHistoryRepo: SearchHistoryPreferencesRepository,
-        private val favoriteLocalRepository: FavoriteLocalRepository
+        private val favoriteLocalRepository: FavoriteLocalRepository,
+        private val aiAnalysisRepository: com.example.filemanagementapp.data.ai.repository.AiAnalysisRepository
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return SearchViewModel(
                 username,
                 searchRepository,
                 searchHistoryRepo,
-                favoriteLocalRepository
+                favoriteLocalRepository,
+                aiAnalysisRepository
             ) as T
         }
     }

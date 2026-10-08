@@ -126,7 +126,14 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
             callbacks = this
         )
 
-        val factory = SearchViewModel.Factory(username, searchRepo, searchHistory, favoriteLocal)
+        val aiRepoForSearch = com.example.filemanagementapp.data.ai.repository.AiAnalysisRepository(
+            applicationContext,
+            com.example.filemanagementapp.data.ai.network.AiNetworkModule.aiApiService,
+            com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.okHttpClient,
+            com.example.filemanagementapp.data.ai.network.AiNetworkModule.gson
+        )
+
+        val factory = SearchViewModel.Factory(username, searchRepo, searchHistory, favoriteLocal, aiRepoForSearch)
         viewModel = ViewModelProvider(this, factory)[SearchViewModel::class.java]
     }
 
@@ -142,6 +149,7 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
                 searchEditText.setSelection(spokenText.length)
                 viewModel.updateQuery(spokenText)
                 viewModel.addRecentSearch(spokenText)
+                viewModel.performAiSearch(spokenText)
             }
         }
     }
@@ -175,6 +183,7 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
             viewModel.updateQuery(query)
             if (query.isNotBlank()) {
                 viewModel.addRecentSearch(query)
+                viewModel.performAiSearch(query)
             }
             val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             imm.hideSoftInputFromWindow(v.windowToken, 0)
@@ -187,6 +196,14 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     adapter.submitItems(state.filteredItems)
+                    
+                    if (state.isAiLoading) {
+                        aiLoadingOverlay.visibility = View.VISIBLE
+                        aiLoadingAnimation.playAnimation()
+                    } else {
+                        aiLoadingOverlay.visibility = View.GONE
+                        aiLoadingAnimation.cancelAnimation()
+                    }
                     
                     val isSearching = state.query.isNotBlank()
                     
@@ -479,8 +496,7 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
             }
         }
     }
-
-    override fun onShare(item: ExplorerItem) {}
+    override fun onManageAccess(item: ExplorerItem) {}
 
     override fun onConvert(item: ExplorerItem, targetFormat: String) {}
 

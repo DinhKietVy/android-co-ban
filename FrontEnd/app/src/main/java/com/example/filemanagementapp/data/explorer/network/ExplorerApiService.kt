@@ -122,6 +122,11 @@ interface ExplorerApiService {
         @Body request: com.example.filemanagementapp.data.explorer.model.PublicLinkCreateRequest
     ): Response<com.example.filemanagementapp.data.explorer.model.PublicLinkCreateResponse>
 
+    @POST("api/public-link/delete")
+    suspend fun deletePublicLink(
+        @Body request: com.example.filemanagementapp.data.explorer.model.PublicLinkDeleteRequest
+    ): Response<ExplorerMutationResponse>
+
     @retrofit2.http.GET("api/public-link/{token}/info")
     suspend fun getPublicLinkInfo(
         @retrofit2.http.Path("token") token: String

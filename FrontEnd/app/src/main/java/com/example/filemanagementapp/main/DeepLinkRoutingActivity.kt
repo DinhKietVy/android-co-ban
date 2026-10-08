@@ -24,14 +24,9 @@ class DeepLinkRoutingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Reusing the layout for a simple spinner
-        setContentView(R.layout.activity_public_link)
+        setContentView(R.layout.activity_deeplink_loading)
 
-        progressBar = findViewById(R.id.publicLinkLoading)
-        progressBar.visibility = View.VISIBLE
-        findViewById<View>(R.id.publicLinkIcon).visibility = View.GONE
-        findViewById<View>(R.id.publicLinkTitle).visibility = View.GONE
-        findViewById<View>(R.id.publicLinkCloseButton).visibility = View.GONE
-        findViewById<View>(R.id.publicLinkDownloadButton).visibility = View.GONE
+        progressBar = findViewById(R.id.loadingSpinner)
 
         val apiService = com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.explorerApiService
         val gson = com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule.gson

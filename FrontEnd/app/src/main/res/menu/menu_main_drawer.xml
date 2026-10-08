@@ -9,35 +9,35 @@
             android:id="@+id/nav_shared"
             android:icon="@drawable/share_2"
             android:title="Được chia sẻ với tôi" />
-        <item
-            android:id="@+id/nav_public_links"
-            android:icon="@drawable/cloud"
-            android:title="Liên kết công khai" />
     </group>
 
     <item android:title="Tiện ích">
         <menu>
-            <item
-                android:id="@+id/nav_recent"
-                android:icon="@drawable/clock"
-                android:title="Gần đây" />
-            <item
-                android:id="@+id/nav_trash"
-                android:icon="@drawable/trash_2"
-                android:title="Thùng rác" />
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/nav_recent"
+                    android:icon="@drawable/clock"
+                    android:title="Gần đây" />
+                <item
+                    android:id="@+id/nav_trash"
+                    android:icon="@drawable/trash_2"
+                    android:title="Thùng rác" />
+            </group>
         </menu>
     </item>
 
     <item android:title="Hệ thống">
         <menu>
-            <item
-                android:id="@+id/nav_profile"
-                android:icon="@drawable/user"
-                android:title="Hồ sơ &amp; Cài đặt" />
-            <item
-                android:id="@+id/nav_logout"
-                android:icon="@drawable/log_out"
-                android:title="Đăng xuất" />
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/nav_profile"
+                    android:icon="@drawable/user"
+                    android:title="Hồ sơ &amp; Cài đặt" />
+                <item
+                    android:id="@+id/nav_logout"
+                    android:icon="@drawable/log_out"
+                    android:title="Đăng xuất" />
+            </group>
         </menu>
     </item>
 </menu>

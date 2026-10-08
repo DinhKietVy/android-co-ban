@@ -44,3 +44,8 @@ data class PublicLinkInfoResponse(
     @SerializedName("filePath") val filePath: String,
     @SerializedName("permission") val permission: String? = null
 )
+
+data class PublicLinkDeleteRequest(
+    @SerializedName("username") val username: String,
+    @SerializedName("filePath") val filePath: String
+)

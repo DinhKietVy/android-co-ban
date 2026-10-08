@@ -236,196 +236,6 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Share -->
-            <LinearLayout
-                android:id="@+id/actionShare"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="14dp">
-
-                <FrameLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="@color/grey_100">
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/share_2"
-                        android:tint="@color/explorer_text_primary" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_weight="1"
-                    android:text="@string/action_share"
-                    android:textColor="@color/explorer_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Public Link -->
-            <LinearLayout
-                android:id="@+id/actionPublicLink"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="14dp">
-
-                <FrameLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="@color/grey_100">
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/external_link"
-                        android:tint="@color/explorer_text_primary" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_weight="1"
-                    android:text="@string/action_public_link"
-                    android:textColor="@color/explorer_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Convert -->
-            <LinearLayout
-                android:id="@+id/actionConvert"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="14dp">
-
-                <FrameLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="@color/grey_100">
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/rotate_ccw"
-                        android:tint="@color/explorer_text_primary" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_weight="1"
-                    android:text="@string/action_convert"
-                    android:textColor="@color/explorer_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Compress -->
-            <LinearLayout
-                android:id="@+id/actionCompress"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="14dp">
-
-                <FrameLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="@color/grey_100">
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/folder_input"
-                        android:tint="@color/explorer_text_primary" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_weight="1"
-                    android:text="@string/preview_action_compress"
-                    android:textColor="@color/explorer_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Extract -->
-            <LinearLayout
-                android:id="@+id/actionExtract"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="14dp">
-
-                <FrameLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/item_explorer_file_bg"
-                    android:backgroundTint="@color/grey_100">
-
-                    <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/folder_input"
-                        android:tint="@color/explorer_text_primary" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_weight="1"
-                    android:text="@string/preview_action_extract"
-                    android:textColor="@color/explorer_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
             <!-- Move -->
             <LinearLayout
                 android:id="@+id/actionMove"
@@ -459,6 +269,160 @@
                     android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:text="@string/action_move"
+                    android:textColor="@color/explorer_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+
+
+            <!-- Share (Unified) -->
+            <LinearLayout
+                android:id="@+id/actionManageAccess"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="14dp">
+
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/item_explorer_file_bg"
+                    android:backgroundTint="@color/purple_50">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/user_plus"
+                        android:tint="@color/purple_600" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:text="Quản lý truy cập"
+                    android:textColor="@color/explorer_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Convert -->
+            <LinearLayout
+                android:id="@+id/actionConvert"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="14dp">
+
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/item_explorer_file_bg"
+                    android:backgroundTint="@color/purple_50">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/rotate_ccw"
+                        android:tint="@color/purple_600" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:text="@string/action_convert"
+                    android:textColor="@color/explorer_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Compress -->
+            <LinearLayout
+                android:id="@+id/actionCompress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="14dp">
+
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/item_explorer_file_bg"
+                    android:backgroundTint="@color/purple_50">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/folder_input"
+                        android:tint="@color/purple_600" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:text="@string/preview_action_compress"
+                    android:textColor="@color/explorer_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Extract -->
+            <LinearLayout
+                android:id="@+id/actionExtract"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="14dp">
+
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/item_explorer_file_bg"
+                    android:backgroundTint="@color/purple_50">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/folder_input"
+                        android:tint="@color/purple_600" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:text="@string/preview_action_extract"
                     android:textColor="@color/explorer_text_primary"
                     android:textSize="14sp"
                     android:textStyle="bold" />

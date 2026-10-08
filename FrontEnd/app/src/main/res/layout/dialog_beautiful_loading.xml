@@ -22,14 +22,6 @@
             app:indicatorSize="80dp"
             app:trackColor="@color/grey_100"
             app:trackThickness="6dp" />
-
-        <ImageView
-            android:id="@+id/loadingIcon"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_gravity="center"
-            android:src="@drawable/rotate_ccw"
-            app:tint="@color/explorer_primary" />
     </FrameLayout>
 
     <TextView

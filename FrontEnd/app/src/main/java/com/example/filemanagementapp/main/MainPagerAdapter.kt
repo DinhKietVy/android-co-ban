@@ -7,7 +7,6 @@ import com.example.filemanagementapp.explorer.ExplorerFragment
 import com.example.filemanagementapp.profile.ProfileFragment
 import com.example.filemanagementapp.recent.RecentFragment
 import com.example.filemanagementapp.shared.SharedFragment
-import com.example.filemanagementapp.publiclink.PublicLinkFragment
 import com.example.filemanagementapp.trash.TrashFragment
 
 class MainPagerAdapter(
@@ -21,15 +20,14 @@ class MainPagerAdapter(
         return when (position) {
             0 -> ExplorerFragment.newInstance(username)
             1 -> SharedFragment.newInstance(username)
-            2 -> PublicLinkFragment.newInstance(username)
-            3 -> RecentFragment.newInstance(username)
-            4 -> TrashFragment.newInstance(username)
-            5 -> ProfileFragment()
+            2 -> RecentFragment.newInstance(username)
+            3 -> TrashFragment.newInstance(username)
+            4 -> ProfileFragment()
             else -> throw IndexOutOfBoundsException("Invalid page index: $position")
         }
     }
 
     private companion object {
-        private const val PAGE_COUNT = 6
+        private const val PAGE_COUNT = 5
     }
 }

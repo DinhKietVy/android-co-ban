@@ -40,7 +40,7 @@ class FileActionSheetController(
         fun onOpen(item: ExplorerItem)
         fun onDownload(item: ExplorerItem)
         fun onRename(item: ExplorerItem, newName: String)
-        fun onShare(item: ExplorerItem)
+        fun onManageAccess(item: ExplorerItem)
         fun onMove(item: ExplorerItem, targetPath: String)
         fun onFavorite(item: ExplorerItem)
         fun onDelete(item: ExplorerItem)
@@ -55,7 +55,7 @@ class FileActionSheetController(
         val showDownload: Boolean = true,
         val showRename: Boolean = true,
         val showShare: Boolean = true,
-        val showPublicLink: Boolean = true,
+        val showManageAccess: Boolean = true,
         val showMove: Boolean = true,
         val showFavorite: Boolean = true,
         val showDelete: Boolean = true,
@@ -79,8 +79,7 @@ class FileActionSheetController(
     private val actionOpen: View = rootView.findViewById(R.id.actionOpen)
     private val actionDownload: View = rootView.findViewById(R.id.actionDownload)
     private val actionRename: View = rootView.findViewById(R.id.actionRename)
-    private val actionShare: View = rootView.findViewById(R.id.actionShare)
-    private val actionPublicLink: View = rootView.findViewById(R.id.actionPublicLink)
+    private val actionManageAccess: View = rootView.findViewById(R.id.actionManageAccess)
     private val actionMove: View = rootView.findViewById(R.id.actionMove)
     private val actionFavorite: View = rootView.findViewById(R.id.actionFavorite)
     private val actionDelete: View = rootView.findViewById(R.id.actionDelete)
@@ -121,8 +120,7 @@ class FileActionSheetController(
         actionOpen.setOnClickListener { dispatch { callbacks.onOpen(it) } }
         actionDownload.setOnClickListener { dispatch { callbacks.onDownload(it) } }
         actionRename.setOnClickListener { dispatch { showRenameDialog(it) } }
-        actionShare.setOnClickListener { dispatch { callbacks.onShare(it) } }
-        actionPublicLink.setOnClickListener { dispatch { showPublicLinkDialog(it) } }
+        actionManageAccess.setOnClickListener { dispatch { callbacks.onManageAccess(it) } }
         actionMove.setOnClickListener { dispatch { showMoveDialog(it) } }
         actionFavorite.setOnClickListener { dispatch { callbacks.onFavorite(it) } }
         actionDelete.setOnClickListener { dispatch { showDeleteDialog(it) } }
@@ -169,8 +167,7 @@ class FileActionSheetController(
         actionOpen.visibility = if (config.showOpen) View.VISIBLE else View.GONE
         actionDownload.visibility = if (config.showDownload) View.VISIBLE else View.GONE
         actionRename.visibility = if (config.showRename) View.VISIBLE else View.GONE
-        actionShare.visibility = if (config.showShare) View.VISIBLE else View.GONE
-        actionPublicLink.visibility = if (config.showPublicLink) View.VISIBLE else View.GONE
+        actionManageAccess.visibility = if (config.showManageAccess) View.VISIBLE else View.GONE
         actionMove.visibility = if (config.showMove) View.VISIBLE else View.GONE
         actionFavorite.visibility = if (config.showFavorite) View.VISIBLE else View.GONE
         actionDelete.visibility = if (config.showDelete) View.VISIBLE else View.GONE
@@ -434,37 +431,5 @@ class FileActionSheetController(
 
     private fun Int.dp(): Int {
         return (this * context.resources.displayMetrics.density).toInt()
-    }
-    private fun showPublicLinkDialog(item: ExplorerItem) {
-        val progressBar = ProgressBar(context).apply {
-            isIndeterminate = true
-            setPadding(0, 48, 0, 48)
-        }
-
-        val dialog = MaterialAlertDialogBuilder(context)
-            .setTitle("Đang tạo Public Link...")
-            .setView(progressBar)
-            .setCancelable(false)
-            .create()
-
-        dialog.show()
-
-        lifecycleOwner.lifecycleScope.launch {
-            val result = explorerRepository.createPublicLink(username, item.path)
-            dialog.dismiss()
-            if (result.isSuccess) {
-                val token = result.getOrNull()
-                if (!token.isNullOrEmpty()) {
-                    val publicLinkUrl = "filemanagementapp://file?token=$token"
-                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                    val clip = android.content.ClipData.newPlainText("Public Link", publicLinkUrl)
-                    clipboard.setPrimaryClip(clip)
-                    
-                    android.widget.Toast.makeText(context, "Đã copy link: $publicLinkUrl", android.widget.Toast.LENGTH_LONG).show()
-                }
-            } else {
-                android.widget.Toast.makeText(context, result.exceptionOrNull()?.message ?: "Lỗi tạo link", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 }

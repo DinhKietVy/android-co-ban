@@ -16,8 +16,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
 import com.example.filemanagementapp.R
 import com.example.filemanagementapp.login.LoginActivity
+import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
 import com.google.android.material.navigation.NavigationView
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import coil.load
+import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
@@ -68,22 +72,58 @@ class MainActivity : AppCompatActivity() {
         viewPager.adapter = MainPagerAdapter(this, username)
         viewPager.offscreenPageLimit = 6
 
-        // Setup header
         val headerView = navigationView.getHeaderView(0)
         val headerUsername = headerView.findViewById<TextView>(R.id.navHeaderUsername)
+        val headerAvatar = headerView.findViewById<ImageView>(R.id.navHeaderAvatar)
+        
         headerUsername.text = username
 
+        lifecycleScope.launch {
+            val prefs = LoginPreferencesRepository(applicationContext).preferencesFlow.first()
+            if (!prefs.avatarUrl.isNullOrEmpty()) {
+                headerAvatar.imageTintList = null
+                headerAvatar.setPadding(0, 0, 0, 0)
+                headerAvatar.load(prefs.avatarUrl) {
+                    transformations(coil.transform.CircleCropTransformation())
+                    crossfade(true)
+                    placeholder(R.drawable.user)
+                    error(R.drawable.user)
+                }
+            } else {
+                headerAvatar.setImageResource(R.drawable.user)
+                val padding = (12 * resources.displayMetrics.density).toInt()
+                headerAvatar.setPadding(padding, padding, padding, padding)
+                headerAvatar.imageTintList = ContextCompat.getColorStateList(this@MainActivity, R.color.profile_primary)
+            }
+        }
+
         navigationView.setNavigationItemSelectedListener { item ->
+            // Clear checked state of all items across groups
+            val allItems = listOf(R.id.nav_explorer, R.id.nav_shared, R.id.nav_recent, R.id.nav_trash, R.id.nav_profile, R.id.nav_logout)
+            allItems.forEach { navigationView.menu.findItem(it)?.isChecked = false }
+            item.isChecked = true
+
             when (item.itemId) {
                 R.id.nav_explorer -> viewPager.setCurrentItem(0, false)
                 R.id.nav_shared -> viewPager.setCurrentItem(1, false)
-                R.id.nav_public_links -> viewPager.setCurrentItem(2, false)
-                R.id.nav_recent -> viewPager.setCurrentItem(3, false)
-                R.id.nav_trash -> viewPager.setCurrentItem(4, false)
-                R.id.nav_profile -> viewPager.setCurrentItem(5, false)
+                R.id.nav_recent -> viewPager.setCurrentItem(2, false)
+                R.id.nav_trash -> viewPager.setCurrentItem(3, false)
+                R.id.nav_profile -> viewPager.setCurrentItem(4, false)
                 R.id.nav_logout -> {
-                    // Handle logout
-                    finish()
+                    lifecycleScope.launch {
+                        com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository(applicationContext).clearRememberedLogin()
+                        com.example.filemanagementapp.data.auth.repository.AuthRepository(
+                            authApiService = com.example.filemanagementapp.data.auth.network.AuthNetworkModule.authApiService,
+                            gson = com.example.filemanagementapp.data.auth.network.AuthNetworkModule.gson
+                        ).clearLocalSession()
+                        
+                        startActivity(
+                            android.content.Intent(this@MainActivity, com.example.filemanagementapp.login.LoginActivity::class.java).apply {
+                                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            }
+                        )
+                        finish()
+                    }
                 }
             }
             drawerLayout.closeDrawer(GravityCompat.START)

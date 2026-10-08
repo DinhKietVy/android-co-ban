@@ -54,6 +54,10 @@ class ProfileFragment : Fragment() {
     }
 
     private fun setupClickListeners(view: View) {
+        view.findViewById<View>(R.id.headerMenuButton)?.setOnClickListener {
+            (activity as? com.example.filemanagementapp.main.MainActivity)?.openDrawer()
+        }
+
         view.findViewById<View>(R.id.rowProfileEdit).setOnClickListener {
             val intent = Intent(requireContext(), EditProfileActivity::class.java)
             currentProfile?.let {
@@ -101,8 +105,7 @@ class ProfileFragment : Fragment() {
                         val avatarView = view.findViewById<ImageView>(R.id.ivProfileAvatar)
                         if (!state.profile.avatarUrl.isNullOrEmpty()) {
                             avatarView.imageTintList = null
-                            val padding = (2 * resources.displayMetrics.density).toInt()
-                            avatarView.setPadding(padding, padding, padding, padding)
+                            avatarView.setPadding(0, 0, 0, 0)
                             avatarView.load(state.profile.avatarUrl) {
                                 transformations(coil.transform.CircleCropTransformation())
                                 crossfade(true)

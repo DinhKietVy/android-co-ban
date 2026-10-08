@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bottom_sheet_bg"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Header -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quản lý truy cập"
+        android:textColor="@color/explorer_text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/shareItemName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="middle"
+        android:singleLine="true"
+        android:text="filename.txt"
+        android:textColor="@color/explorer_text_secondary"
+        android:textSize="14sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="16dp"
+        android:background="@color/explorer_border" />
+
+    <!-- Grant Access Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Thêm người dùng"
+        android:textColor="@color/explorer_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/AuthTextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/shareUsernameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp"
+                android:textSize="14sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/btnGrantAccess"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:backgroundTint="@color/purple_600"
+            android:text="Thêm"
+            android:textColor="@color/white"
+            app:cornerRadius="8dp" />
+    </LinearLayout>
+
+    <RadioGroup
+        android:id="@+id/sharePermissionGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/sharePermissionRead"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:checked="true"
+            android:text="Người xem"
+            android:textSize="13sp" />
+
+        <RadioButton
+            android:id="@+id/sharePermissionWrite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Người chỉnh sửa"
+            android:textSize="13sp" />
+    </RadioGroup>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="16dp"
+        android:background="@color/explorer_border" />
+
+    <!-- General Access Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quyền truy cập chung"
+        android:textColor="@color/explorer_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/generalAccessIcon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/item_explorer_file_bg"
+            android:backgroundTint="@color/grey_200"
+            android:padding="6dp"
+            android:src="@drawable/lock"
+            android:tint="@color/grey_700" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/generalAccessTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bị hạn chế"
+                android:textColor="@color/explorer_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/generalAccessSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chỉ những người được thêm mới có thể mở bằng liên kết này"
+                android:textColor="@color/explorer_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btnChangeGeneralAccess"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:padding="8dp"
+            android:text="Thay đổi"
+            android:textColor="@color/purple_600"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="16dp"
+        android:background="@color/explorer_border" />
+
+    <!-- Copy Link Button -->
+    <LinearLayout
+        android:id="@+id/btnCopyLink"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="8dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_link"
+            android:tint="@color/explorer_text_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Sao chép liên kết"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

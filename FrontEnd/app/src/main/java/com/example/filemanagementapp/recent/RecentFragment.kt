@@ -127,6 +127,10 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
         recentTabButton.setOnClickListener { viewModel.setTab(RecentTab.RECENT) }
         favoritesTabButton.setOnClickListener { viewModel.setTab(RecentTab.FAVORITES) }
 
+        view.findViewById<View>(R.id.headerMenuButton)?.setOnClickListener {
+            (activity as? com.example.filemanagementapp.main.MainActivity)?.openDrawer()
+        }
+
         explorerRepository = com.example.filemanagementapp.data.explorer.repository.ExplorerRepository(
             appContext = requireContext().applicationContext,
             explorerApiService = ExplorerNetworkModule.explorerApiService,
@@ -457,8 +461,7 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
             }
         }
     }
-
-    override fun onShare(item: ExplorerItem) {}
+    override fun onManageAccess(item: ExplorerItem) {}
 
     override fun onConvert(item: ExplorerItem, targetFormat: String) {}
 

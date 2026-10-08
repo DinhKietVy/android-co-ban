@@ -194,6 +194,32 @@ class ExplorerViewModel(
         }
     }
 
+    fun createPublicLink(item: ExplorerItem, onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            repository.createPublicLink(username, item.path)
+                .onSuccess { token ->
+                    onResult(token)
+                }
+                .onFailure {
+                    onResult(null)
+                    emitMessage(UiText.DynamicString(it.message ?: "Lỗi tạo link"))
+                }
+        }
+    }
+
+    fun deletePublicLink(item: ExplorerItem, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            repository.deletePublicLink(username, item.path)
+                .onSuccess {
+                    onResult(true)
+                }
+                .onFailure {
+                    onResult(false)
+                    emitMessage(UiText.DynamicString(it.message ?: "Lỗi xoá link"))
+                }
+        }
+    }
+
     fun convertFile(item: ExplorerItem, targetFormat: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(processingState = ProcessingState.CONVERTING) }
