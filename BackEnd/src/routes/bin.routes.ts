@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { listBinFiles, restoreFile, deleteBinFile } from '../controllers/bin.controller';
-import { authenticateToken } from '../middleware/auth';
 
 
 const router = Router();
@@ -58,7 +57,7 @@ const router = Router();
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/list',authenticateToken, listBinFiles);
+router.post('/list', listBinFiles);
 
 /**
  * @swagger
@@ -114,7 +113,7 @@ router.post('/list',authenticateToken, listBinFiles);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.post('/restore',authenticateToken, restoreFile);
+router.post('/restore', restoreFile);
 
 /**
  * @swagger
@@ -163,6 +162,6 @@ router.post('/restore',authenticateToken, restoreFile);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.delete('/file',authenticateToken, deleteBinFile);
+router.delete('/file', deleteBinFile);
 
 export default router;

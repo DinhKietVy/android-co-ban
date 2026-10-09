@@ -1,8 +1,8 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 
-const options: swaggerJsdoc.Options = {
+const baseOptions: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
     info: {
@@ -10,9 +10,18 @@ const options: swaggerJsdoc.Options = {
       version: "1.0.0",
       description: "API Docs",
     },
-    servers: [
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
+    security: [
       {
-        url: "http://localhost:5000",
+        bearerAuth: [],
       },
     ],
   },
@@ -20,12 +29,35 @@ const options: swaggerJsdoc.Options = {
   apis: ["./src/routes/**/*.ts"],
 };
 
-const swaggerSpec = swaggerJsdoc(options);
-
 export const setupSwagger = (app: Express) => {
-  app.use(
-    "/api-docs",
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec)
-  );
+  // serve static assets của Swagger UI
+  app.use("/api-docs", swaggerUi.serve);
+
+  // Tạo spec động theo từng request để lấy đúng host (localhost hay ngrok)
+  app.get("/api-docs", (req: Request, res: Response, next: NextFunction) => {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const serverUrl = `${protocol}://${host}`;
+
+    const dynamicOptions: swaggerJsdoc.Options = {
+      ...baseOptions,
+      definition: {
+        ...baseOptions.definition,
+        openapi: "3.0.0",
+        info: {
+          title: "Backend API",
+          version: "1.0.0",
+          description: "API Docs",
+        },
+        servers: [{ url: serverUrl }],
+      },
+    };
+
+    const swaggerSpec = swaggerJsdoc(dynamicOptions);
+    return swaggerUi.setup(swaggerSpec, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    })(req, res, next);
+  });
 };

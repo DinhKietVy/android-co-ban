@@ -653,12 +653,17 @@ export const listDirectory = (req: Request, res: Response) => {
 // API tải file
 export const downloadFile = async (req: Request, res: Response) => {
   try {
-    // Lấy dữ liệu từ query (nếu là GET request) hoặc body (nếu là POST request)
-    const username = req.query.username || req.body.username;
-    const filePath = req.query.filePath || req.body.filePath;
-    const callerUsername = req.query.callerUsername || req.body.callerUsername || username; // Tạm thời fallback về username nếu không có (để không phá vỡ logic cũ)
+    const query = req.query ?? {};
+    const body = req.body ?? {};
 
-    if (!username || filePath === undefined) {
+    console.log('[downloadFile] method:', req.method, '| query:', query, '| body keys:', Object.keys(body));
+
+    // Lấy dữ liệu từ query (nếu là GET request) hoặc body (nếu là POST request)
+    const username = query.username || body.username;
+    const filePath = query.filePath || body.filePath;
+    const callerUsername = query.callerUsername || body.callerUsername || username; // Tạm thời fallback về username nếu không có (để không phá vỡ logic cũ)
+
+    if (!username || !filePath) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath)' });
     }
 
@@ -735,6 +740,7 @@ export const downloadFile = async (req: Request, res: Response) => {
     }
 
   } catch (error: any) {
+    console.error('[downloadFile] Lỗi 500:', error);
     if (!res.headersSent) {
       return res.status(500).json({ error: 'Lỗi máy chủ', detail: error.message });
     }

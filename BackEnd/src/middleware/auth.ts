@@ -6,6 +6,9 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     const token = req.cookies?.accessToken;
     const refreshToken = req.cookies?.refreshToken;
 
+    console.log('[auth] cookies:', req.cookies);
+    console.log('[auth] headers:', req.headers.cookie);
+
     // 👉 1. Không có access token
     if (!token) {
         if (!refreshToken) {
@@ -25,8 +28,8 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
             // 2. Set cookie mới
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'development',
-                sameSite: 'strict',
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
                 maxAge: 15 * 60 * 1000,
             });
             // 3. Quan trọng nhất: Gán user và đi tiếp để lấy dữ liệu luôn
