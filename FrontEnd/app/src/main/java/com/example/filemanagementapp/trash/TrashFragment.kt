@@ -128,6 +128,9 @@ class TrashFragment : Fragment() {
         view.findViewById<View>(R.id.topMoreButton)?.setOnClickListener {
             showTopMoreMenu(it)
         }
+        view.findViewById<View>(R.id.headerMenuButton)?.setOnClickListener {
+            (activity as? com.example.filemanagementapp.main.MainActivity)?.openDrawer()
+        }
         view.findViewById<View>(R.id.topSearchButton)?.setOnClickListener {
             defaultTopBar.visibility = View.GONE
             searchTopBar.visibility = View.VISIBLE

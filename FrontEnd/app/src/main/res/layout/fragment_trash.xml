@@ -12,6 +12,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/trash_surface"
+        android:paddingTop="30dp"
         android:elevation="2dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,6 +26,16 @@
             android:orientation="horizontal"
             android:paddingStart="16dp"
             android:paddingEnd="8dp">
+
+            <ImageButton
+                android:id="@+id/headerMenuButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Menu"
+                android:src="@drawable/list"
+                android:tint="@color/trash_text_primary" />
 
             <TextView
                 android:layout_width="0dp"

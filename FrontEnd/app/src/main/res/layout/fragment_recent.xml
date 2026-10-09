@@ -18,15 +18,28 @@
             android:layout_height="wrap_content"
             android:background="@android:color/white"
             android:orientation="vertical"
+            android:paddingTop="30dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <FrameLayout
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+
+                <ImageButton
+                    android:id="@+id/headerMenuButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Menu"
+                    android:src="@drawable/list"
+                    android:tint="@color/recent_primary" />
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="wrap_content"
@@ -89,7 +102,7 @@
 
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-            </FrameLayout>
+            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"

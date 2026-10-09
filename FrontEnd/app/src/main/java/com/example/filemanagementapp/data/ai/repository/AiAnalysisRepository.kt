@@ -18,12 +18,28 @@ import java.io.File
 import java.io.IOException
 import java.util.UUID
 
+import com.example.filemanagementapp.data.ai.model.SearchRequest
+import com.example.filemanagementapp.data.ai.model.AiSearchResponse
+
 class AiAnalysisRepository(
     private val context: Context,
     private val aiApiService: AiApiService,
     private val okHttpClient: OkHttpClient,
     private val gson: Gson
 ) {
+    suspend fun semanticSearch(username: String, query: String): Result<AiSearchResponse> = withContext(Dispatchers.IO) {
+        try {
+            val request = SearchRequest(username, query)
+            val response = aiApiService.searchWithAi(request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("AI Search failed: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
     suspend fun analyzeImageFile(
         username: String,
         fileName: String,

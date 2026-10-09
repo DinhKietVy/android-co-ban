@@ -47,7 +47,7 @@
                 android:layout_width="18dp"
                 android:layout_height="18dp"
                 android:layout_gravity="center"
-                android:src="@drawable/folder"
+                android:src="@drawable/ic_folder_plus"
                 android:tint="@color/explorer_primary" />
         </FrameLayout>
 
@@ -78,14 +78,14 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="@drawable/item_explorer_file_bg"
-            android:backgroundTint="@color/grey_100">
+            android:backgroundTint="@color/blue_50">
 
             <ImageView
                 android:layout_width="18dp"
                 android:layout_height="18dp"
                 android:layout_gravity="center"
-                android:src="@drawable/cloud"
-                android:tint="@color/explorer_text_primary" />
+                android:src="@drawable/ic_file_up"
+                android:tint="@color/explorer_primary" />
         </FrameLayout>
 
         <TextView
@@ -115,14 +115,14 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="@drawable/item_explorer_file_bg"
-            android:backgroundTint="@color/grey_100">
+            android:backgroundTint="@color/blue_50">
 
             <ImageView
                 android:layout_width="18dp"
                 android:layout_height="18dp"
                 android:layout_gravity="center"
-                android:src="@drawable/cloud"
-                android:tint="@color/explorer_text_primary" />
+                android:src="@drawable/ic_folder_up"
+                android:tint="@color/explorer_primary" />
         </FrameLayout>
 
         <TextView

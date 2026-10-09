@@ -7,13 +7,21 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <ImageView
-        android:id="@+id/navHeaderAvatar"
+    <FrameLayout
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:layout_marginBottom="16dp"
-        android:src="@drawable/folder"
-        android:contentDescription="Avatar" />
+        android:background="@drawable/profile_avatar_background">
+
+        <ImageView
+            android:id="@+id/navHeaderAvatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:src="@drawable/user"
+            android:tint="@color/profile_primary"
+            android:contentDescription="Avatar" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/navHeaderUsername"

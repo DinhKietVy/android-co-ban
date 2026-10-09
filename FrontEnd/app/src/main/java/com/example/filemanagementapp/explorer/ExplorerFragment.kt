@@ -497,27 +497,23 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 convertingDialog?.show()
             }
             
-            // Update texts and icon based on processingState
+            // Update texts based on processingState
             convertingDialog?.let { dialog ->
                 val titleView = dialog.findViewById<TextView>(R.id.loadingTitle)
                 val subtitleView = dialog.findViewById<TextView>(R.id.loadingSubtitle)
-                val iconView = dialog.findViewById<ImageView>(R.id.loadingIcon)
                 
                 when (state.processingState) {
                     com.example.filemanagementapp.explorer.ui.ProcessingState.CONVERTING -> {
                         titleView?.setText(R.string.dialog_converting_title)
                         subtitleView?.setText(R.string.dialog_converting_subtitle)
-                        iconView?.setImageResource(R.drawable.rotate_ccw)
                     }
                     com.example.filemanagementapp.explorer.ui.ProcessingState.COMPRESSING -> {
                         titleView?.setText(R.string.dialog_compressing_title)
                         subtitleView?.setText(R.string.dialog_compressing_subtitle)
-                        iconView?.setImageResource(R.drawable.folder_input)
                     }
                     com.example.filemanagementapp.explorer.ui.ProcessingState.EXTRACTING -> {
                         titleView?.setText(R.string.dialog_extracting_title)
                         subtitleView?.setText(R.string.dialog_extracting_subtitle)
-                        iconView?.setImageResource(R.drawable.folder_input)
                     }
                 }
             }
@@ -643,30 +639,105 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         viewModel.extractItem(item)
     }
 
-    override fun onShare(item: ExplorerItem) {
+    override fun onManageAccess(item: ExplorerItem) {
         showShareDialog(item)
     }
 
     private fun showShareDialog(item: ExplorerItem) {
-        val view = android.view.LayoutInflater.from(requireContext()).inflate(R.layout.dialog_share, null)
-        val inputLayout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogShareInputLayout)
-        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogShareInputEditText)
-        val radioGroup = view.findViewById<android.widget.RadioGroup>(R.id.dialogSharePermissionGroup)
+        val bottomSheet = com.google.android.material.bottomsheet.BottomSheetDialog(requireContext())
+        val view = android.view.LayoutInflater.from(requireContext()).inflate(R.layout.bottom_sheet_share_manage, null)
+        bottomSheet.setContentView(view)
+
+        view.findViewById<TextView>(R.id.shareItemName).text = item.name
         
-        inputLayout.hint = getString(R.string.dialog_share_hint)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.shareUsernameInput)
+        val radioGroup = view.findViewById<android.widget.RadioGroup>(R.id.sharePermissionGroup)
+        val btnGrantAccess = view.findViewById<android.widget.Button>(R.id.btnGrantAccess)
         
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_share_title)
-            .setView(view)
-            .setPositiveButton(R.string.dialog_share_button) { _, _ ->
-                val targetUsername = input.text?.toString().orEmpty().trim()
-                if (targetUsername.isNotBlank()) {
-                    val permission = if (radioGroup.checkedRadioButtonId == R.id.dialogSharePermissionWrite) "WRITE" else "READ"
-                    viewModel.shareItem(item, targetUsername, permission)
+        btnGrantAccess.setOnClickListener {
+            val targetUsername = input.text?.toString().orEmpty().trim()
+            if (targetUsername.isNotBlank()) {
+                val permission = if (radioGroup.checkedRadioButtonId == R.id.sharePermissionWrite) "WRITE" else "READ"
+                viewModel.shareItem(item, targetUsername, permission)
+                input.text?.clear()
+                bottomSheet.dismiss()
+            }
+        }
+        
+        var isRestricted = item.previewUrl.isNullOrEmpty()
+        
+        val btnCopyLink = view.findViewById<View>(R.id.btnCopyLink)
+        btnCopyLink.setOnClickListener {
+            if (isRestricted) {
+                val internalLinkUrl = "filemanagementapp://file?owner=$username&path=${android.net.Uri.encode(item.path)}"
+                val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("Internal Link", internalLinkUrl)
+                clipboard.setPrimaryClip(clip)
+                android.widget.Toast.makeText(requireContext(), "Đã copy link nội bộ (Yêu cầu đăng nhập & có quyền)", android.widget.Toast.LENGTH_LONG).show()
+            } else {
+                viewModel.createPublicLink(item) { token ->
+                    if (!token.isNullOrEmpty()) {
+                        val publicLinkUrl = "filemanagementapp://file?token=$token"
+                        val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        val clip = android.content.ClipData.newPlainText("Public Link", publicLinkUrl)
+                        clipboard.setPrimaryClip(clip)
+                        android.widget.Toast.makeText(requireContext(), "Đã copy link công khai: $publicLinkUrl", android.widget.Toast.LENGTH_LONG).show()
+                    }
                 }
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            bottomSheet.dismiss()
+        }
+        
+        val btnChangeGeneralAccess = view.findViewById<TextView>(R.id.btnChangeGeneralAccess)
+        val generalAccessTitle = view.findViewById<TextView>(R.id.generalAccessTitle)
+        val generalAccessSubtitle = view.findViewById<TextView>(R.id.generalAccessSubtitle)
+        val generalAccessIcon = view.findViewById<ImageView>(R.id.generalAccessIcon)
+        
+        // Cập nhật giao diện tạm thời nếu có public link (nếu API có trả về)
+        if (!isRestricted) {
+            generalAccessTitle.text = "Bất kỳ ai có liên kết"
+            generalAccessSubtitle.text = "Bất kỳ ai trên Internet có liên kết này đều có thể xem"
+            generalAccessIcon.setImageResource(R.drawable.ic_link)
+        }
+        
+        btnChangeGeneralAccess.setOnClickListener {
+            val popup = android.widget.PopupMenu(requireContext(), it)
+            popup.menu.add(0, 1, 0, "Bị hạn chế")
+            popup.menu.add(0, 2, 0, "Bất kỳ ai có liên kết")
+            
+            popup.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    1 -> {
+                        isRestricted = true
+                        generalAccessTitle.text = "Bị hạn chế"
+                        generalAccessSubtitle.text = "Chỉ những người được thêm mới có thể mở bằng liên kết này"
+                        generalAccessIcon.setImageResource(R.drawable.lock)
+                        
+                        viewModel.deletePublicLink(item) { success ->
+                            if (success) {
+                                android.widget.Toast.makeText(requireContext(), "Đã chuyển về quyền Bị hạn chế", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    2 -> {
+                        isRestricted = false
+                        generalAccessTitle.text = "Bất kỳ ai có liên kết"
+                        generalAccessSubtitle.text = "Bất kỳ ai trên Internet có liên kết này đều có thể xem"
+                        generalAccessIcon.setImageResource(R.drawable.ic_link)
+                        
+                        viewModel.createPublicLink(item) { token -> 
+                            if (!token.isNullOrEmpty()) {
+                                android.widget.Toast.makeText(requireContext(), "Đã bật chia sẻ công khai", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                true
+            }
+            popup.show()
+        }
+        
+        bottomSheet.show()
     }
 
     private fun startDownload(item: ExplorerItem) {

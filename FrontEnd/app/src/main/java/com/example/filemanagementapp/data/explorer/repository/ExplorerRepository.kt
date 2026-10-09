@@ -519,6 +519,24 @@ class ExplorerRepository(
         }
     }
 
+    suspend fun deletePublicLink(
+        username: String,
+        filePath: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = explorerApiService.deletePublicLink(
+                com.example.filemanagementapp.data.explorer.model.PublicLinkDeleteRequest(username, filePath)
+            )
+            if (response.isSuccessful) {
+                Result.success(response.body()?.message ?: "Thành công")
+            } else {
+                Result.failure(Exception("Không thể thu hồi liên kết công khai"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(e.message ?: "Lỗi kết nối"))
+        }
+    }
+
     suspend fun getPublicLinkInfo(
         token: String
     ): Result<com.example.filemanagementapp.data.explorer.model.PublicLinkInfoResponse> = withContext(Dispatchers.IO) {

@@ -56,7 +56,12 @@ class SharedFragment : Fragment() {
         
         val recyclerView = view.findViewById<RecyclerView>(R.id.sharedRecyclerView)
         val progressBar = view.findViewById<ProgressBar>(R.id.progressBar)
-        val emptyStateContainer = view.findViewById<LinearLayout>(R.id.emptyStateContainer)
+        val emptyStateContainer = view.findViewById<LinearLayout>(R
+        .id.emptyStateContainer)
+        
+        view.findViewById<View>(R.id.headerMenuButton)?.setOnClickListener {
+            (activity as? com.example.filemanagementapp.main.MainActivity)?.openDrawer()
+        }
 
         adapter = ExplorerAdapter(
             onItemClick = { item ->

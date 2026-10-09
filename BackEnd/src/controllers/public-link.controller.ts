@@ -122,3 +122,43 @@ export const downloadPublicLink = async (req: Request, res: Response): Promise<v
         res.status(500).json({ error: error.message });
     }
 };
+
+export const deletePublicLink = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { username, filePath } = req.body;
+        
+        if (!username || !filePath) {
+            res.status(400).json({ error: 'Thiếu username hoặc filePath' });
+            return;
+        }
+        
+        const pool = await connectDB();
+        const userResult = await pool.request()
+            .input('username', sql.VarChar, username)
+            .query('SELECT id FROM users WHERE username = @username');
+            
+        if (userResult.recordset.length === 0) {
+            res.status(404).json({ error: 'Không tìm thấy người dùng' });
+            return;
+        }
+        
+        const ownerId = userResult.recordset[0].id;
+        
+        const deleteResult = await pool.request()
+            .input('owner_id', sql.Int, ownerId)
+            .input('file_path', sql.VarChar, filePath)
+            .query(`
+                DELETE FROM public_links
+                WHERE owner_id = @owner_id AND file_path = @file_path
+            `);
+            
+        if (deleteResult.rowsAffected[0] > 0) {
+            res.json({ message: 'Đã thu hồi quyền truy cập công khai' });
+        } else {
+            res.json({ message: 'Không có liên kết công khai nào để thu hồi' });
+        }
+    } catch (error: any) {
+        console.error('Lỗi khi xoá public link:', error);
+        res.status(500).json({ error: error.message });
+    }
+};

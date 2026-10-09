@@ -458,7 +458,8 @@
     <string name="dialog_share_button">Chia sẻ</string>
     <string name="toast_share_success">Chia sẻ tập tin thành công</string>
     <string name="toast_share_failed">Chia sẻ thất bại: %1$s</string>
-    <string name="action_public_link">Tạo Public Link</string>
+    <string name="action_public_link">Sao chép Public Link</string>
+    <string name="action_internal_share">Grant access</string>
     <string name="action_move">Move</string>
     <string name="action_favorite">Favorite</string>
     <string name="action_delete">Delete</string>
@@ -501,4 +502,7 @@
     <string name="dialog_compress_name_hint">Enter zip name (e.g. archive.zip)</string>
     <string name="dialog_compress_button">Compress</string>
     <string name="dialog_extract_button">Extract here</string>
+
+    <string name="nav_shared">Được chia sẻ với tôi</string>
+    <string name="nav_public_links">Liên kết công khai</string>
 </resources>
