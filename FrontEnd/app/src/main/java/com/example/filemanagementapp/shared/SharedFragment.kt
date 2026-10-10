@@ -4,8 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -119,23 +121,32 @@ class SharedFragment : Fragment() {
     }
 
     private fun showActionMenu(item: ExplorerItem) {
-        val popupMenu = androidx.appcompat.widget.PopupMenu(requireContext(), requireView())
-        popupMenu.menu.add(0, 1, 0, "Đổi tên")
-        popupMenu.menu.add(0, 2, 1, "Xóa")
-        popupMenu.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                1 -> {
-                    showRenameDialog(item)
-                    true
-                }
-                2 -> {
-                    showDeleteDialog(item)
-                    true
-                }
-                else -> false
-            }
+        val bottomSheet = com.google.android.material.bottomsheet.BottomSheetDialog(requireContext())
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_shared_actions, null)
+        bottomSheet.setContentView(sheetView)
+
+        sheetView.findViewById<TextView>(R.id.sharedActionFileName).text = item.name
+        val ownerInfo = if (!item.ownerUsername.isNullOrBlank()) "Chủ sở hữu: ${item.ownerUsername} • " else ""
+        sheetView.findViewById<TextView>(R.id.sharedActionFileMeta).text = "$ownerInfo${item.modified}"
+
+        val fileIcon = sheetView.findViewById<ImageView>(R.id.sharedActionFileIcon)
+        if (item.type == ExplorerItem.Type.FOLDER) {
+            fileIcon.setImageResource(R.drawable.folder)
+        } else {
+            fileIcon.setImageResource(R.drawable.file_text)
         }
-        popupMenu.show()
+
+        sheetView.findViewById<View>(R.id.actionRename).setOnClickListener {
+            bottomSheet.dismiss()
+            showRenameDialog(item)
+        }
+
+        sheetView.findViewById<View>(R.id.actionDelete).setOnClickListener {
+            bottomSheet.dismiss()
+            showDeleteDialog(item)
+        }
+
+        bottomSheet.show()
     }
 
     private fun showRenameDialog(item: ExplorerItem) {

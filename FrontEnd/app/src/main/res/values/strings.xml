@@ -485,8 +485,8 @@
 
     <!-- Format Conversion -->
     <string name="action_convert">Convert format</string>
-    <string name="dialog_converting_title">AI is converting</string>
-    <string name="dialog_converting_subtitle">Please wait a moment for the magic to happen...</string>
+    <string name="dialog_converting_title">Converting...</string>
+    <string name="dialog_converting_subtitle">Please wait a moment...</string>
     <string name="dialog_choose_format_title">Choose format</string>
     <string name="msg_convert_success">Converted successfully</string>
     <string name="error_convert_failed">Conversion failed</string>
@@ -494,9 +494,9 @@
     <!-- Compress and Extract -->
     <string name="preview_action_compress">Compress</string>
     <string name="preview_action_extract">Extract</string>
-    <string name="dialog_compressing_title">AI is compressing...</string>
+    <string name="dialog_compressing_title">Compressing...</string>
     <string name="dialog_compressing_subtitle">Please wait while we pack your files</string>
-    <string name="dialog_extracting_title">AI is extracting...</string>
+    <string name="dialog_extracting_title">Extracting...</string>
     <string name="dialog_extracting_subtitle">Please wait while we unpack the archive</string>
     <string name="dialog_compress_name_title">Name your archive</string>
     <string name="dialog_compress_name_hint">Enter zip name (e.g. archive.zip)</string>

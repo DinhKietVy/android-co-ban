@@ -207,6 +207,11 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     ) { result ->
         when (result.resultCode) {
             android.app.Activity.RESULT_OK -> {
+                @OptIn(coil.annotation.ExperimentalCoilApi::class)
+                coil.Coil.imageLoader(requireContext()).let { loader ->
+                    loader.memoryCache?.clear()
+                    loader.diskCache?.clear()
+                }
                 viewModel.refreshCurrentDirectory()
             }
             FilePreviewActivity.RESULT_ACTION_FAVORITE -> {
@@ -700,41 +705,46 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             generalAccessIcon.setImageResource(R.drawable.ic_link)
         }
         
-        btnChangeGeneralAccess.setOnClickListener {
-            val popup = android.widget.PopupMenu(requireContext(), it)
-            popup.menu.add(0, 1, 0, "Bị hạn chế")
-            popup.menu.add(0, 2, 0, "Bất kỳ ai có liên kết")
-            
-            popup.setOnMenuItemClickListener { menuItem ->
-                when (menuItem.itemId) {
-                    1 -> {
-                        isRestricted = true
-                        generalAccessTitle.text = "Bị hạn chế"
-                        generalAccessSubtitle.text = "Chỉ những người được thêm mới có thể mở bằng liên kết này"
-                        generalAccessIcon.setImageResource(R.drawable.lock)
-                        
-                        viewModel.deletePublicLink(item) { success ->
-                            if (success) {
-                                android.widget.Toast.makeText(requireContext(), "Đã chuyển về quyền Bị hạn chế", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                    2 -> {
-                        isRestricted = false
-                        generalAccessTitle.text = "Bất kỳ ai có liên kết"
-                        generalAccessSubtitle.text = "Bất kỳ ai trên Internet có liên kết này đều có thể xem"
-                        generalAccessIcon.setImageResource(R.drawable.ic_link)
-                        
-                        viewModel.createPublicLink(item) { token -> 
-                            if (!token.isNullOrEmpty()) {
-                                android.widget.Toast.makeText(requireContext(), "Đã bật chia sẻ công khai", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                        }
+        btnChangeGeneralAccess.setOnClickListener { anchor ->
+            val popupView = layoutInflater.inflate(R.layout.popup_general_access, null)
+            val popupWindow = android.widget.PopupWindow(
+                popupView,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+            popupWindow.elevation = 8f
+            popupWindow.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+
+            popupView.findViewById<View>(R.id.menuRestricted).setOnClickListener {
+                popupWindow.dismiss()
+                isRestricted = true
+                generalAccessTitle.text = "Bị hạn chế"
+                generalAccessSubtitle.text = "Chỉ những người được thêm mới có thể mở bằng liên kết này"
+                generalAccessIcon.setImageResource(R.drawable.lock)
+
+                viewModel.deletePublicLink(item) { success ->
+                    if (success) {
+                        android.widget.Toast.makeText(requireContext(), "Đã chuyển về quyền Bị hạn chế", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
-                true
             }
-            popup.show()
+
+            popupView.findViewById<View>(R.id.menuAnyoneWithLink).setOnClickListener {
+                popupWindow.dismiss()
+                isRestricted = false
+                generalAccessTitle.text = "Bất kỳ ai có liên kết"
+                generalAccessSubtitle.text = "Bất kỳ ai trên Internet có liên kết này đều có thể xem"
+                generalAccessIcon.setImageResource(R.drawable.ic_link)
+
+                viewModel.createPublicLink(item) { token -> 
+                    if (!token.isNullOrEmpty()) {
+                        android.widget.Toast.makeText(requireContext(), "Đã bật chia sẻ công khai", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            popupWindow.showAsDropDown(anchor, 0, 8)
         }
         
         bottomSheet.show()

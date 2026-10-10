@@ -1,6 +1,7 @@
 package com.example.filemanagementapp.main
 
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
@@ -97,15 +98,24 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<View>(R.id.aiChatFab).setOnClickListener {
+            com.example.filemanagementapp.chat.AiChatBottomSheetFragment.newInstance(username)
+                .show(supportFragmentManager, com.example.filemanagementapp.chat.AiChatBottomSheetFragment.TAG)
+        }
+
         navigationView.setNavigationItemSelectedListener { item ->
             // Clear checked state of all items across groups
-            val allItems = listOf(R.id.nav_explorer, R.id.nav_shared, R.id.nav_recent, R.id.nav_trash, R.id.nav_profile, R.id.nav_logout)
+            val allItems = listOf(R.id.nav_explorer, R.id.nav_shared, R.id.nav_ai_chat, R.id.nav_recent, R.id.nav_trash, R.id.nav_profile, R.id.nav_logout)
             allItems.forEach { navigationView.menu.findItem(it)?.isChecked = false }
             item.isChecked = true
 
             when (item.itemId) {
                 R.id.nav_explorer -> viewPager.setCurrentItem(0, false)
                 R.id.nav_shared -> viewPager.setCurrentItem(1, false)
+                R.id.nav_ai_chat -> {
+                    com.example.filemanagementapp.chat.AiChatBottomSheetFragment.newInstance(username)
+                        .show(supportFragmentManager, com.example.filemanagementapp.chat.AiChatBottomSheetFragment.TAG)
+                }
                 R.id.nav_recent -> viewPager.setCurrentItem(2, false)
                 R.id.nav_trash -> viewPager.setCurrentItem(3, false)
                 R.id.nav_profile -> viewPager.setCurrentItem(4, false)

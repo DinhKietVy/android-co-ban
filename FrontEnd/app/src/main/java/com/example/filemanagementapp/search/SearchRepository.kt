@@ -137,4 +137,95 @@ class SearchRepository(
         if (path.startsWith(".") || path.contains("/.")) return false
         return true
     }
+
+    fun createSearchItemFromAiFile(
+        username: String,
+        aiFile: com.example.filemanagementapp.data.ai.model.AiSearchFileItem
+    ): SearchItem {
+        val sizeBytes = aiFile.size
+        val sizeStr = sizeBytes?.let(::formatSize).orEmpty()
+        val epochMillis = aiFile.createdAt?.toLongOrNull()
+        val dateStr = if (epochMillis != null) {
+            val sdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
+            sdf.format(java.util.Date(epochMillis))
+        } else {
+            ""
+        }
+        val encodedUsername = java.net.URLEncoder.encode(username, Charsets.UTF_8.name())
+        val encodedPath = java.net.URLEncoder.encode(aiFile.filePath, Charsets.UTF_8.name())
+        val previewUrl = "${com.example.filemanagementapp.BuildConfig.API_BASE_URL.trimEnd('/')}/api/data/download?username=$encodedUsername&filePath=$encodedPath"
+
+        val fileTags = (buildFileTags(aiFile.name) + aiFile.tags).distinct()
+
+        val rawExplorerItem = ExplorerItem(
+            id = "file:${aiFile.filePath}",
+            name = aiFile.name,
+            path = aiFile.filePath,
+            type = ExplorerItem.Type.FILE,
+            modified = dateStr,
+            modifiedEpochMillis = epochMillis,
+            size = sizeStr,
+            sizeBytes = sizeBytes,
+            previewUrl = previewUrl,
+            isImagePreviewable = isImageFile(aiFile.name),
+            fallbackIconRes = resolveFallbackIcon(aiFile.name),
+            tags = fileTags
+        )
+
+        return SearchItem(
+            id = rawExplorerItem.id,
+            name = aiFile.name,
+            path = aiFile.filePath,
+            type = resolveFileTypeString(aiFile.name),
+            size = sizeStr,
+            date = dateStr,
+            modifiedEpochMillis = epochMillis,
+            category = resolveCategory(aiFile.name),
+            ocrText = null,
+            tags = fileTags,
+            aiTags = aiFile.tags,
+            isFavorite = false,
+            rawItem = rawExplorerItem
+        )
+    }
+
+    private fun buildFileTags(fileName: String): List<String> {
+        val extension = fileName.substringAfterLast('.', "").trim()
+        if (extension.isBlank()) return emptyList()
+        return listOf(extension.uppercase())
+    }
+
+    private fun isImageFile(fileName: String): Boolean {
+        val normalizedName = fileName.lowercase()
+        return normalizedName.endsWith(".jpg") ||
+            normalizedName.endsWith(".jpeg") ||
+            normalizedName.endsWith(".png") ||
+            normalizedName.endsWith(".webp") ||
+            normalizedName.endsWith(".bmp") ||
+            normalizedName.endsWith(".gif")
+    }
+
+    private fun resolveFallbackIcon(fileName: String): Int {
+        val normalizedName = fileName.lowercase()
+        return when {
+            normalizedName.endsWith(".jpg") ||
+                normalizedName.endsWith(".jpeg") ||
+                normalizedName.endsWith(".png") ||
+                normalizedName.endsWith(".webp") ||
+                normalizedName.endsWith(".bmp") ||
+                normalizedName.endsWith(".gif") -> com.example.filemanagementapp.R.drawable.image_icon
+            normalizedName.endsWith(".mp4") ||
+                normalizedName.endsWith(".mov") ||
+                normalizedName.endsWith(".avi") ||
+                normalizedName.endsWith(".mkv") ||
+                normalizedName.endsWith(".webm") -> com.example.filemanagementapp.R.drawable.film
+            normalizedName.endsWith(".mp3") ||
+                normalizedName.endsWith(".wav") ||
+                normalizedName.endsWith(".aac") ||
+                normalizedName.endsWith(".m4a") ||
+                normalizedName.endsWith(".flac") -> com.example.filemanagementapp.R.drawable.file_audio
+            normalizedName.endsWith(".pdf") -> com.example.filemanagementapp.R.drawable.file_text
+            else -> com.example.filemanagementapp.R.drawable.file_text
+        }
+    }
 }

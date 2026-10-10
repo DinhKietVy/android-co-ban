@@ -128,6 +128,7 @@
     <color name="search_bg">#FFFFFFFF</color>
     <color name="search_surface">#FFFFFFFF</color>
     <color name="search_border">#FFE5E7EB</color>
+    <color name="search_divider">#FFE5E7EB</color>
     <color name="search_input_bg">#FFF3F4F6</color>
     <color name="search_text_primary">#FF111827</color>
     <color name="search_text_secondary">#FF6B7280</color>

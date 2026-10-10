@@ -8,7 +8,6 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -46,6 +45,9 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
     private lateinit var emptyStateContainer: View
     private lateinit var aiLoadingOverlay: View
     private lateinit var aiLoadingAnimation: com.airbnb.lottie.LottieAnimationView
+    private lateinit var aiSearchButton: View
+    private lateinit var aiSearchIcon: ImageView
+    private lateinit var aiSearchText: TextView
     
     private lateinit var viewModel: SearchViewModel
     private lateinit var actionSheetController: FileActionSheetController
@@ -87,6 +89,9 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         emptyStateContainer = findViewById(R.id.emptyStateContainer)
         aiLoadingOverlay = findViewById(R.id.aiLoadingOverlay)
         aiLoadingAnimation = findViewById(R.id.aiLoadingAnimation)
+        aiSearchButton = findViewById(R.id.aiSearchButton)
+        aiSearchIcon = findViewById(R.id.aiSearchIcon)
+        aiSearchText = findViewById(R.id.aiSearchText)
     }
 
     private fun setupRecycler() {
@@ -149,7 +154,6 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
                 searchEditText.setSelection(spokenText.length)
                 viewModel.updateQuery(spokenText)
                 viewModel.addRecentSearch(spokenText)
-                viewModel.performAiSearch(spokenText)
             }
         }
     }
@@ -172,22 +176,34 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         
         searchEditText.doAfterTextChanged { editable ->
             val query = editable?.toString().orEmpty()
-            if (query.isBlank()) {
-                viewModel.updateQuery("")
-            }
+            viewModel.updateQuery(query)
         }
         
-        // Execute search when pressing enter or equivalent
+        // Execute normal search when pressing enter
         searchEditText.setOnEditorActionListener { v, _, _ ->
-            val query = searchEditText.text.toString()
+            val query = searchEditText.text.toString().trim()
             viewModel.updateQuery(query)
             if (query.isNotBlank()) {
                 viewModel.addRecentSearch(query)
-                viewModel.performAiSearch(query)
             }
             val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             imm.hideSoftInputFromWindow(v.windowToken, 0)
             true
+        }
+
+        // Trigger AI search only when clicking the AI button
+        aiSearchButton.setOnClickListener {
+            val query = searchEditText.text.toString().trim()
+            if (query.isBlank()) {
+                Toast.makeText(this, "Vui lòng nhập từ khóa để tìm kiếm với AI", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.hideSoftInputFromWindow(it.windowToken, 0)
+
+            viewModel.addRecentSearch(query)
+            Toast.makeText(this, "Đang tìm kiếm thông minh bằng AI...", Toast.LENGTH_SHORT).show()
+            viewModel.performAiSearch(query)
         }
     }
 
@@ -196,13 +212,17 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     adapter.submitItems(state.filteredItems)
-                    
-                    if (state.isAiLoading) {
-                        aiLoadingOverlay.visibility = View.VISIBLE
-                        aiLoadingAnimation.playAnimation()
+
+                    // Update AI search button style based on whether AI search is active
+                    if (state.isAiSearchActive) {
+                        aiSearchButton.setBackgroundResource(R.drawable.bg_ai_search_btn_active)
+                        aiSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+                        aiSearchText.setTextColor(android.graphics.Color.WHITE)
                     } else {
-                        aiLoadingOverlay.visibility = View.GONE
-                        aiLoadingAnimation.cancelAnimation()
+                        aiSearchButton.setBackgroundResource(R.drawable.bg_ai_search_btn)
+                        val primaryColor = getColor(R.color.search_primary)
+                        aiSearchIcon.imageTintList = android.content.res.ColorStateList.valueOf(primaryColor)
+                        aiSearchText.setTextColor(primaryColor)
                     }
                     
                     val isSearching = state.query.isNotBlank()
@@ -224,7 +244,12 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
                             CATEGORY_FAVORITES -> getString(R.string.search_category_favorites)
                             else -> ""
                         }
-                        resultBannerText.text = getString(R.string.search_results_banner, state.filteredItems.size, bannerSuffix)
+                        val bannerText = if (state.isAiSearchActive) {
+                            "Tìm kiếm AI: ${state.filteredItems.size} kết quả cho \"$bannerSuffix\""
+                        } else {
+                            getString(R.string.search_results_banner, state.filteredItems.size, bannerSuffix)
+                        }
+                        resultBannerText.text = bannerText
                         emptyStateContainer.visibility = if (state.filteredItems.isEmpty()) View.VISIBLE else View.GONE
                     }
                     
@@ -430,7 +455,8 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
     }
 
     override fun onFavorite(item: ExplorerItem) {
-        val searchItem = viewModel.uiState.value.allItems.find { it.rawItem.path == item.path }
+        val searchItem = viewModel.uiState.value.filteredItems.find { it.rawItem.path == item.path }
+            ?: viewModel.uiState.value.allItems.find { it.rawItem.path == item.path }
         if (searchItem != null) {
             viewModel.toggleFavorite(searchItem)
         }

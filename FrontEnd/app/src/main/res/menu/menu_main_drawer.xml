@@ -15,6 +15,10 @@
         <menu>
             <group android:checkableBehavior="single">
                 <item
+                    android:id="@+id/nav_ai_chat"
+                    android:icon="@drawable/sparkles"
+                    android:title="Trợ lý AI" />
+                <item
                     android:id="@+id/nav_recent"
                     android:icon="@drawable/clock"
                     android:title="Gần đây" />

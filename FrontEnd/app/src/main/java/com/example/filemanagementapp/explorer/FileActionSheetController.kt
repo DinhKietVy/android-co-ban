@@ -177,7 +177,9 @@ class FileActionSheetController(
         val canConvert = item.type == ExplorerItem.Type.FILE && getSupportedFormats(ext).isNotEmpty()
         actionConvert.visibility = if (config.showConvert && canConvert) View.VISIBLE else View.GONE
 
-        actionCompress.visibility = if (config.showCompress) View.VISIBLE else View.GONE
+        val isArchive = ext in listOf("zip", "rar", "7z", "tar", "gz")
+        val canCompress = !isArchive
+        actionCompress.visibility = if (config.showCompress && canCompress) View.VISIBLE else View.GONE
 
         val canExtract = item.type == ExplorerItem.Type.FILE && ext == "zip"
         actionExtract.visibility = if (config.showExtract && canExtract) View.VISIBLE else View.GONE

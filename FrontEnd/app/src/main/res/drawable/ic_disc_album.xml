@@ -4,26 +4,35 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Outer circle -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M11,19a8,8 0,1 0,0 -16a8,8 0,1 0,0 16z"
+        android:pathData="M12,12m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="2" />
+    <!-- Inner circle / hole -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M12,12m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="2" />
+    <!-- Music note -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M11,12v-5l4,-1v4"
         android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:strokeWidth="2" />
     <path
         android:fillColor="#00000000"
-        android:pathData="m21,21 -4.35,-4.35"
+        android:pathData="M11,7h4"
         android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:strokeWidth="2" />
-    <!-- AI Sparkle in top right corner -->
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M20,2 Q20,5.5 16.5,5.5 Q20,5.5 20,9 Q20,5.5 23.5,5.5 Q20,5.5 20,2"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:strokeWidth="1.5" />
 </vector>
