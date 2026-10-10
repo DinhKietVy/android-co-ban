@@ -61,7 +61,6 @@ class PreviewRenderHelper(
     private val previewPdfRecycler: androidx.recyclerview.widget.RecyclerView = activity.findViewById(R.id.previewPdfRecycler)
     val previewDocxWebView: android.webkit.WebView = activity.findViewById(R.id.previewDocxWebView)
     private val previewUnsupported: View = activity.findViewById(R.id.previewUnsupported)
-    private val rotateVideoFab: com.google.android.material.floatingactionbutton.FloatingActionButton = activity.findViewById(R.id.rotateVideoFab)
     private val extractButton: com.google.android.material.button.MaterialButton = activity.findViewById(R.id.extractButton)
     private val previewConvertPdfButton: android.widget.Button = activity.findViewById(R.id.previewConvertPdfButton)
     val previewLoadingIndicator: ProgressBar = activity.findViewById(R.id.previewLoadingIndicator)
@@ -128,25 +127,35 @@ class PreviewRenderHelper(
         previewDocxWebView.visibility = View.GONE
         previewUnsupported.visibility = View.GONE
         previewLoadingIndicator.visibility = View.GONE
-        rotateVideoFab.visibility = View.GONE
 
         showProcessedImageSwitch.isEnabled = (isImage || (extension.isBlank() && originalPreviewSource != null)) && !analyzedImagePath.isNullOrEmpty()
 
         if (isImage || (extension.isBlank() && originalPreviewSource != null)) {
             previewImage.visibility = View.VISIBLE
             editFab.visibility = View.VISIBLE
+            editFab.setImageResource(R.drawable.palette)
             editFab.setOnClickListener { anchor ->
-                val popup = android.widget.PopupMenu(activity, anchor)
-                popup.menu.add(0, 1, 0, "Cắt & Xoay")
-                popup.menu.add(0, 2, 1, "Vẽ & Ghi chú")
-                popup.setOnMenuItemClickListener { menuItem ->
-                    when (menuItem.itemId) {
-                        1 -> onEditImage("crop")
-                        2 -> onEditImage("draw")
-                    }
+                val popupView = activity.layoutInflater.inflate(R.layout.popup_preview_edit_image, null)
+                val popupWindow = android.widget.PopupWindow(
+                    popupView,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
                     true
+                )
+                popupWindow.elevation = 8f
+                popupWindow.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+
+                popupView.findViewById<View>(R.id.menuCropRotate).setOnClickListener {
+                    popupWindow.dismiss()
+                    onEditImage("crop")
                 }
-                popup.show()
+                popupView.findViewById<View>(R.id.menuDrawAnnotate).setOnClickListener {
+                    popupWindow.dismiss()
+                    onEditImage("draw")
+                }
+
+                val xOffset = (-150 * activity.resources.displayMetrics.density).toInt()
+                popupWindow.showAsDropDown(anchor, xOffset, 0)
             }
             
             fun loadImage(sourceUri: Uri?) {
@@ -178,7 +187,11 @@ class PreviewRenderHelper(
                 }
             }
         } else if (isVideo || isAudio) {
-            previewVideo.visibility = View.VISIBLE
+            if (isVideo) {
+                previewVideo.visibility = View.VISIBLE
+            } else {
+                previewVideo.visibility = View.GONE
+            }
             previewLoadingIndicator.visibility = View.VISIBLE
             
             if (isAudio) {
@@ -206,14 +219,100 @@ class PreviewRenderHelper(
                         exoPlayer = controller
                         if (controller != null) {
                             previewVideo.player = controller
+                            if (isAudio) {
+                                (previewVideo.videoSurfaceView as? View)?.visibility = View.INVISIBLE
+                                
+                                // Setup custom audio UI
+                                val playPauseBtn = activity.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.audioPlayPause)
+                                val seekBackBtn = activity.findViewById<android.widget.ImageButton>(R.id.audioSeekBack)
+                                val seekForwardBtn = activity.findViewById<android.widget.ImageButton>(R.id.audioSeekForward)
+                                val seekBar = activity.findViewById<android.widget.SeekBar>(R.id.audioSeekBar)
+                                val timeCurrent = activity.findViewById<android.widget.TextView>(R.id.audioTimeCurrent)
+                                val timeTotal = activity.findViewById<android.widget.TextView>(R.id.audioTimeTotal)
+                                
+                                fun formatTime(ms: Long): String {
+                                    val totalSeconds = ms / 1000
+                                    val minutes = totalSeconds / 60
+                                    val seconds = totalSeconds % 60
+                                    return String.format(java.util.Locale.US, "%02d:%02d", minutes, seconds)
+                                }
+                                
+                                val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                                val updateProgressAction = object : Runnable {
+                                    override fun run() {
+                                        if (controller.isPlaying) {
+                                            val position = controller.currentPosition
+                                            seekBar.progress = position.toInt()
+                                            timeCurrent.text = formatTime(position)
+                                        }
+                                        handler.postDelayed(this, 1000)
+                                    }
+                                }
+                                
+                                playPauseBtn.setOnClickListener {
+                                    if (controller.isPlaying) controller.pause() else controller.play()
+                                }
+                                seekBackBtn.setOnClickListener {
+                                    controller.seekBack()
+                                }
+                                seekForwardBtn.setOnClickListener {
+                                    controller.seekForward()
+                                }
+                                
+                                seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                                    override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                                        if (fromUser) {
+                                            timeCurrent.text = formatTime(progress.toLong())
+                                        }
+                                    }
+                                    override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+                                    override fun onStopTrackingTouch(seekBar: android.widget.SeekBar) {
+                                        controller.seekTo(seekBar.progress.toLong())
+                                    }
+                                })
+                                
+                                controller.addListener(object : Player.Listener {
+                                    override fun onPlaybackStateChanged(state: Int) {
+                                        if (state == Player.STATE_READY) {
+                                            val duration = controller.duration
+                                            if (duration > 0) {
+                                                seekBar.max = duration.toInt()
+                                                timeTotal.text = formatTime(duration)
+                                            }
+                                        }
+                                    }
+                                    override fun onIsPlayingChanged(isPlaying: Boolean) {
+                                        playPauseBtn.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+                                        if (isPlaying) {
+                                            handler.post(updateProgressAction)
+                                        } else {
+                                            handler.removeCallbacks(updateProgressAction)
+                                        }
+                                    }
+                                })
+                                // Initial state sync
+                                if (controller.playbackState == Player.STATE_READY) {
+                                    val duration = controller.duration
+                                    if (duration > 0) {
+                                        seekBar.max = duration.toInt()
+                                        timeTotal.text = formatTime(duration)
+                                    }
+                                }
+                                playPauseBtn.setImageResource(if (controller.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+                                if (controller.isPlaying) handler.post(updateProgressAction)
+                                val position = controller.currentPosition
+                                seekBar.progress = position.toInt()
+                                timeCurrent.text = formatTime(position)
+
+                            } else {
+                                (previewVideo.videoSurfaceView as? View)?.visibility = View.VISIBLE
+                            }
                             if (isVideo) {
-                                rotateVideoFab.visibility = View.VISIBLE
-                                rotateVideoFab.setOnClickListener {
-                                    val currentOrientation = activity.resources.configuration.orientation
-                                    if (currentOrientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
-                                        activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                                    } else {
+                                previewVideo.setFullscreenButtonClickListener { isFullScreen ->
+                                    if (isFullScreen) {
                                         activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                                    } else {
+                                        activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                                     }
                                 }
                             }
@@ -229,25 +328,39 @@ class PreviewRenderHelper(
                                     .build()
                                 controller.setMediaItem(mediaItem)
                                 controller.prepare()
-                                controller.playWhenReady = true
+                                controller.play()
+                            } else {
+                                if (controller.playbackState == Player.STATE_ENDED) {
+                                    controller.seekTo(0)
+                                }
+                                controller.play()
+                            }
+                            
+                            if (controller.playbackState == Player.STATE_READY) {
+                                previewLoadingIndicator.visibility = View.GONE
+                                if (isVideo) {
+                                    previewVideo.visibility = View.VISIBLE
+                                }
                             }
                             
                             controller.addListener(object : Player.Listener {
                                 override fun onPlaybackStateChanged(playbackState: Int) {
                                     if (playbackState == Player.STATE_READY) {
                                         previewLoadingIndicator.visibility = View.GONE
-                                        if (isAudio) {
+                                        if (isVideo) {
                                             previewVideo.visibility = View.VISIBLE
-                                            val params = previewVideo.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-                                            params.width = 1
-                                            params.height = 1
-                                            previewVideo.layoutParams = params
                                         }
                                     }
                                 }
+                                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                    previewLoadingIndicator.visibility = View.GONE
+                                    android.widget.Toast.makeText(activity, "Error playing media", android.widget.Toast.LENGTH_SHORT).show()
+                                }
                                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                                     if (activity is FilePreviewActivity) {
-                                        activity.updatePictureInPictureActions(isPlaying)
+                                        if (!isAudio) {
+                                            activity.updatePictureInPictureActions(isPlaying)
+                                        }
                                     }
                                     if (isAudio) {
                                         if (isPlaying) {
@@ -262,6 +375,21 @@ class PreviewRenderHelper(
                                     }
                                 }
                             })
+                            
+                            // Check immediately in case the player is already ready (e.g. reopening)
+                            if (controller.playbackState == Player.STATE_READY) {
+                                previewLoadingIndicator.visibility = View.GONE
+                                if (isVideo) {
+                                    previewVideo.visibility = View.VISIBLE
+                                }
+                            }
+                            if (controller.isPlaying && isAudio) {
+                                if (audioArtAnimator?.isPaused == true) {
+                                    audioArtAnimator?.resume()
+                                } else {
+                                    audioArtAnimator?.start()
+                                }
+                            }
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -307,16 +435,35 @@ class PreviewRenderHelper(
                     isRichEditing = true
                     editFab.setImageResource(R.drawable.check)
                     richEditor.setInputEnabled(true)
+                    richEditor.requestFocus()
                     richEditor.focusEditor()
                     richEditorToolbar.visibility = View.VISIBLE
+                    
+                    richEditor.postDelayed({
+                        val imm = activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                        imm.showSoftInput(richEditor, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                    }, 200)
                 } else {
                     isRichEditing = false
                     editFab.setImageResource(R.drawable.edit_3)
                     richEditor.setInputEnabled(false)
                     richEditorToolbar.visibility = View.GONE
                     
-                    val newHtmlContent = richEditor.html ?: ""
-                    onSaveTextContent(newHtmlContent)
+                    val rawHtml = richEditor.html ?: ""
+                    val newContent = if (extension == "html" || extension == "htm") {
+                        rawHtml
+                    } else {
+                        androidx.core.text.HtmlCompat.fromHtml(
+                            rawHtml,
+                            androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY
+                        ).toString().replace('\u00A0', ' ')
+                    }
+                    val finalContent = newContent.removeSuffix("\n\n").removeSuffix("\n")
+                    
+                    val imm = activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow(richEditor.windowToken, 0)
+                    
+                    onSaveTextContent(finalContent)
                 }
             }
             
@@ -332,16 +479,25 @@ class PreviewRenderHelper(
                         if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${response.message}")
                         response.body?.string() ?: throw Exception("Empty response body")
                     }
-                    if (extension == "html" || content.contains("<html") || content.contains("<body") || content.contains("<p>")) {
-                         richEditor.setHtml(content)
+                    val finalHtml = if (extension == "html" || content.contains("<html") || content.contains("<body") || content.contains("<p>")) {
+                        content
                     } else {
-                         val escapedText = content.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
-                         richEditor.setHtml(escapedText)
+                        content.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
                     }
+                    
+                    // The richEditor WebView might need a moment to initialize its JS environment.
+                    // If we call setHtml too early, it's ignored. 
+                    richEditor.postDelayed({
+                        richEditor.setHtml(finalHtml)
+                        previewLoadingIndicator.visibility = View.GONE
+                    }, 500)
+                    
                 } catch (e: Exception) {
-                    richEditor.setHtml(activity.getString(R.string.preview_error_loading_text) + "<br>" + e.message)
-                } finally {
-                    previewLoadingIndicator.visibility = View.GONE
+                    val errorHtml = activity.getString(R.string.preview_error_loading_text) + "<br>" + e.message
+                    richEditor.postDelayed({
+                        richEditor.setHtml(errorHtml)
+                        previewLoadingIndicator.visibility = View.GONE
+                    }, 500)
                 }
             }
         } else if (isPdf || isDocx) {
@@ -450,18 +606,23 @@ class PreviewRenderHelper(
         }
         
         editOcrButton.setOnClickListener {
-            val input = android.widget.EditText(activity)
+            val dialogView = activity.layoutInflater.inflate(R.layout.dialog_input, null)
+            val inputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+            val input = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+            inputLayout.hint = "Nội dung văn bản (OCR)"
+            input.isSingleLine = false
+            input.maxLines = 8
             input.setText(ocrText)
             
             com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
-                .setTitle("Edit Extracted Text")
-                .setView(input)
-                .setPositiveButton("Save") { _, _ ->
+                .setTitle("Chỉnh sửa văn bản trích xuất")
+                .setView(dialogView)
+                .setPositiveButton("Lưu") { _, _ ->
                     ocrText = input.text.toString()
                     ocrTextView.text = ocrText.ifBlank { activity.getString(R.string.preview_ai_empty) }
                     onAiDataChanged(ocrText, aiTags)
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton("Hủy", null)
                 .show()
         }
 
@@ -487,11 +648,15 @@ class PreviewRenderHelper(
         renderTags()
 
         addTagButton.setOnClickListener {
-            val input = android.widget.EditText(activity)
+            val dialogView = activity.layoutInflater.inflate(R.layout.dialog_input, null)
+            val inputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+            val input = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+            inputLayout.hint = "Tên nhãn (Tag)"
+            
             com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
-                .setTitle("Add Tag")
-                .setView(input)
-                .setPositiveButton("Add") { _, _ ->
+                .setTitle("Thêm nhãn mới")
+                .setView(dialogView)
+                .setPositiveButton("Thêm") { _, _ ->
                     val newTag = input.text.toString().trim()
                     if (newTag.isNotBlank() && !aiTags.contains(newTag)) {
                         val mutableTags = aiTags.toMutableList()
@@ -501,8 +666,25 @@ class PreviewRenderHelper(
                         onAiDataChanged(ocrText, aiTags)
                     }
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton("Hủy", null)
                 .show()
+        }
+    }
+    fun reloadImage() {
+        val originalPreviewSource = previewUrl?.let { Uri.parse(it) }
+        previewLoadingIndicator.visibility = View.VISIBLE
+        previewImage.setImageDrawable(null)
+        val uriWithTimestamp = originalPreviewSource?.buildUpon()?.appendQueryParameter("t", System.currentTimeMillis().toString())?.build()
+        previewImage.load(uriWithTimestamp ?: originalPreviewSource) {
+            size(coil.size.Size.ORIGINAL)
+            setHeader("ngrok-skip-browser-warning", "69420")
+            error(R.drawable.explorer_file_preview_placeholder)
+            memoryCachePolicy(coil.request.CachePolicy.DISABLED)
+            diskCachePolicy(coil.request.CachePolicy.DISABLED)
+            listener(
+                onSuccess = { _, _ -> previewLoadingIndicator.visibility = View.GONE },
+                onError = { _, _ -> previewLoadingIndicator.visibility = View.GONE }
+            )
         }
     }
 
@@ -525,6 +707,7 @@ class PreviewRenderHelper(
             e.printStackTrace()
         }
         try {
+            exoPlayer?.stop()
             controllerFuture?.let { MediaController.releaseFuture(it) }
         } catch (e: Exception) {
             e.printStackTrace()

@@ -57,6 +57,14 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
     private val previewLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            @OptIn(coil.annotation.ExperimentalCoilApi::class)
+            coil.Coil.imageLoader(requireContext()).let { loader ->
+                loader.memoryCache?.clear()
+                loader.diskCache?.clear()
+            }
+            viewModel.load()
+        }
         if (result.resultCode == com.example.filemanagementapp.preview.FilePreviewActivity.RESULT_ACTION_FAVORITE) {
             val item = result.data?.getSerializableExtra(com.example.filemanagementapp.preview.FilePreviewActivity.EXTRA_EXPLORER_ITEM) as? ExplorerItem
             if (item != null) onFavorite(item)

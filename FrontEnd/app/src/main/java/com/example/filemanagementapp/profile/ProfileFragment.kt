@@ -81,7 +81,7 @@ class ProfileFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.rowProfileDelete).setOnClickListener {
-            AlertDialog.Builder(requireContext())
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle(getString(R.string.profile_delete_title))
                 .setMessage(getString(R.string.profile_delete_message))
                 .setPositiveButton(getString(R.string.profile_delete_positive)) { _, _ ->
@@ -151,23 +151,15 @@ class ProfileFragment : Fragment() {
                     }
 
                     view.findViewById<View>(R.id.rowProfileAiExtensions).setOnClickListener {
-                        val input = android.widget.EditText(requireContext())
+                        val dialogView = layoutInflater.inflate(R.layout.dialog_input, null)
+                        val inputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+                        val input = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+                        inputLayout.hint = getString(R.string.profile_ai_extensions_desc)
                         input.setText(aiSettings.aiTargetExtensions)
-                        input.hint = getString(R.string.profile_ai_extensions_desc)
-                        
-                        val margin = (20 * resources.displayMetrics.density).toInt()
-                        val container = android.widget.FrameLayout(requireContext())
-                        val params = android.widget.FrameLayout.LayoutParams(
-                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-                        params.setMargins(margin, 0, margin, 0)
-                        input.layoutParams = params
-                        container.addView(input)
 
-                        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                             .setTitle(getString(R.string.profile_ai_extensions_title))
-                            .setView(container)
+                            .setView(dialogView)
                             .setPositiveButton(android.R.string.ok) { _, _ ->
                                 viewModel.updateAiTargetExtensions(input.text.toString().trim())
                             }

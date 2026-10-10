@@ -9,7 +9,6 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.VideoView
@@ -73,6 +72,7 @@ class FilePreviewActivity : AppCompatActivity() {
 
     private lateinit var explorerRepository: ExplorerRepository
     private var explorerItem: ExplorerItem? = null
+    private var isModified = false
     private var username: String = ""
 
     private val ucropLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
@@ -116,6 +116,13 @@ class FilePreviewActivity : AppCompatActivity() {
         }
 
         bindViews()
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(closePipReceiver, android.content.IntentFilter("com.example.filemanagementapp.CLOSE_PIP"), Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(closePipReceiver, android.content.IntentFilter("com.example.filemanagementapp.CLOSE_PIP"))
+        }
         
         previewActionHandler = PreviewActionHandler(
             activity = this,
@@ -205,6 +212,12 @@ class FilePreviewActivity : AppCompatActivity() {
             }
         )
 
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                navigateUpOrFinish()
+            }
+        })
+
         setupActions()
         if (intent.getBooleanExtra(EXTRA_SHOW_AI_PANEL, false)) {
             showPanel(Panel.AI_ANALYSIS)
@@ -222,34 +235,9 @@ class FilePreviewActivity : AppCompatActivity() {
                 filePath = item.path,
                 targetFormat = "pdf"
             ).onSuccess { response ->
-                android.widget.Toast.makeText(this@FilePreviewActivity, response.message ?: "Chuyển đổi thành công!", android.widget.Toast.LENGTH_SHORT).show()
-                val convertedPath = response.data?.convertedFilePath
-                if (convertedPath != null) {
-                    // Update URL and reload preview
-                    val newPreviewUrl = "${com.example.filemanagementapp.BuildConfig.API_BASE_URL}api/data/download?path=${Uri.encode(convertedPath)}&username=$username"
-                    val newFileName = java.io.File(convertedPath).name
-                    
-                    previewRenderHelper = PreviewRenderHelper(
-                        activity = this@FilePreviewActivity,
-                        item = item, // keep original item for other actions, or null
-                        previewUrl = newPreviewUrl,
-                        analyzedImagePath = null,
-                        fileName = newFileName,
-                        ocrText = "",
-                        aiTags = emptyList()
-                    )
-                    
-                    previewRenderHelper.setup(
-                        onOpenExternally = { view ->
-                            explorerItem?.let { previewActionHandler.openExternally(it, previewRenderHelper.previewLoadingIndicator) }
-                        },
-                        onExtract = {},
-                        onAiDataChanged = { _, _ -> },
-                        onEditImage = {},
-                        onSaveTextContent = {},
-                        onConvertPdfRequested = {}
-                    )
-                }
+                previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                android.widget.Toast.makeText(this@FilePreviewActivity, "Chuyển đổi thành công! Vui lòng quay lại thư mục để xem bản PDF.", android.widget.Toast.LENGTH_SHORT).show()
+                finish()
             }.onFailure {
                 previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                 android.widget.Toast.makeText(this@FilePreviewActivity, "Lỗi chuyển đổi: ${it.message}", android.widget.Toast.LENGTH_SHORT).show()
@@ -288,8 +276,21 @@ class FilePreviewActivity : AppCompatActivity() {
 
     // Rendering logic moved to PreviewRenderHelper
 
+    private fun navigateUpOrFinish() {
+        if (isModified) {
+            setResult(RESULT_OK)
+        }
+        if (isTaskRoot) {
+            val intent = Intent(this, com.example.filemanagementapp.main.MainActivity::class.java)
+            intent.putExtra(com.example.filemanagementapp.login.LoginActivity.EXTRA_USERNAME, username)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
+        }
+        finish()
+    }
+
     private fun setupActions() {
-        findViewById<ImageButton>(R.id.backButton).setOnClickListener { finish() }
+        findViewById<android.widget.ImageButton>(R.id.backButton).setOnClickListener { navigateUpOrFinish() }
         findViewById<ImageButton>(R.id.closeSheetButton).setOnClickListener { hidePanel() }
         scrimView.setOnClickListener { hidePanel() }
         fileInfoTab.setOnClickListener { togglePanel(Panel.FILE_INFO) }
@@ -397,6 +398,14 @@ class FilePreviewActivity : AppCompatActivity() {
         updateFooterState(panel)
     }
 
+    private val closePipReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.example.filemanagementapp.CLOSE_PIP") {
+                finish()
+            }
+        }
+    }
+
     private fun hidePanel() {
         currentPanel = null
         scrimView.visibility = View.GONE
@@ -441,6 +450,10 @@ class FilePreviewActivity : AppCompatActivity() {
             popupView.findViewById<View>(R.id.menuAi).visibility = visibility
             popupView.findViewById<View>(R.id.menuAiDivider)?.visibility = visibility
             
+            val isConvertible = extension in listOf("xlsx", "xls", "pptx", "ppt", "doc", "docx")
+            popupView.findViewById<View>(R.id.menuConvert)?.visibility = if (isConvertible) View.VISIBLE else View.GONE
+            
+            
             if (item.permission == "PUBLIC_READ" || item.permission == "READ") {
                 popupView.findViewById<View>(R.id.menuRename).visibility = View.GONE
                 popupView.findViewById<View>(R.id.menuMove).visibility = View.GONE
@@ -457,6 +470,10 @@ class FilePreviewActivity : AppCompatActivity() {
         popupView.findViewById<View>(R.id.menuDownload).setOnClickListener {
             popupWindow.dismiss()
             handleActionClick("download")
+        }
+        popupView.findViewById<View>(R.id.menuConvert)?.setOnClickListener {
+            popupWindow.dismiss()
+            convertFileToPdf()
         }
         popupView.findViewById<View>(R.id.menuShare).setOnClickListener {
             popupWindow.dismiss()
@@ -519,8 +536,10 @@ class FilePreviewActivity : AppCompatActivity() {
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
         
-        val linearLayout = findViewById<LinearLayout>(R.id.previewImage).parent.parent.parent as? LinearLayout // the one with paddingBottom
-        val cardView = findViewById<View>(R.id.previewImage).parent.parent as? com.google.android.material.card.MaterialCardView
+        if (isInPictureInPictureMode) return
+        
+        val linearLayout = findViewById<View>(R.id.previewImage)?.parent?.parent?.parent as? LinearLayout // the one with paddingBottom
+        val cardView = findViewById<View>(R.id.previewImage)?.parent?.parent as? com.google.android.material.card.MaterialCardView
 
         if (newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
             findViewById<View>(R.id.topAppBar).visibility = View.GONE
@@ -578,6 +597,7 @@ class FilePreviewActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        unregisterReceiver(closePipReceiver)
         if (::previewRenderHelper.isInitialized) {
             previewRenderHelper.cleanUp()
         }
@@ -589,13 +609,15 @@ class FilePreviewActivity : AppCompatActivity() {
         val isVideo = extension in listOf("mp4", "mkv", "webm", "avi")
         val isAudio = extension in listOf("mp3", "wav", "ogg", "m4a")
         
-        // If it's a video or audio, enter PiP automatically when user goes to home
-        if (isVideo || isAudio) {
+        // If it's a video, enter PiP automatically when user goes to home
+        if (isVideo) {
             val params = android.app.PictureInPictureParams.Builder().build()
             enterPictureInPictureMode(params)
         }
     }
 
+    private var originalCardRadius: Float = -1f
+    
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         
@@ -614,15 +636,59 @@ class FilePreviewActivity : AppCompatActivity() {
             if (isImage || isText) View.VISIBLE else View.GONE
         }
         
+        val scrollContent = findViewById<android.widget.LinearLayout>(R.id.previewScrollContent)
+        val cardView = findViewById<com.google.android.material.card.MaterialCardView>(R.id.previewCardView)
+        
+        if (originalCardRadius < 0f && cardView != null) {
+            originalCardRadius = cardView.radius
+        }
+
         if (isInPictureInPictureMode) {
             hidePanel()
             if (::previewRenderHelper.isInitialized) {
                 previewRenderHelper.previewVideo.useController = false
             }
+            
+            // Remove padding, margins, and styling to make video fill screen
+            scrollContent?.setPadding(0, 0, 0, 0)
+            cardView?.strokeWidth = 0
+            cardView?.radius = 0f
+            cardView?.useCompatPadding = false
+            cardView?.setCardBackgroundColor(android.graphics.Color.TRANSPARENT)
+            
+            cardView?.layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1.0f
+            )
+            
+            // Let's just set the root background to black and remove its padding
+            val mainView = findViewById<View>(R.id.main)
+            mainView?.setBackgroundColor(android.graphics.Color.BLACK)
+            mainView?.setPadding(0, 0, 0, 0)
+            
         } else {
             if (::previewRenderHelper.isInitialized) {
                 previewRenderHelper.previewVideo.useController = true
             }
+            
+            // Restore UI
+            val dp120 = (120 * resources.displayMetrics.density).toInt()
+            val dp1 = (1 * resources.displayMetrics.density).toInt()
+            scrollContent?.setPadding(0, 0, 0, dp120)
+            
+            cardView?.layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT
+            )
+            
+            cardView?.strokeWidth = dp1
+            if (originalCardRadius >= 0f) cardView?.radius = originalCardRadius
+            cardView?.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.preview_surface))
+            
+            val mainView = findViewById<View>(R.id.main)
+            mainView?.setBackgroundResource(R.color.preview_bg)
+            mainView?.let { androidx.core.view.ViewCompat.requestApplyInsets(it) }
         }
     }
 
@@ -674,6 +740,8 @@ class FilePreviewActivity : AppCompatActivity() {
             val result = explorerRepository.updateFileContent(username, item.path, content)
             previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
             if (result.isSuccess) {
+                isModified = true
+                setResult(RESULT_OK)
                 android.widget.Toast.makeText(this@FilePreviewActivity, "Đã lưu thành công", android.widget.Toast.LENGTH_SHORT).show()
             } else {
                 android.widget.Toast.makeText(this@FilePreviewActivity, "Lỗi khi lưu: ${result.exceptionOrNull()?.message}", android.widget.Toast.LENGTH_SHORT).show()
@@ -783,7 +851,14 @@ class FilePreviewActivity : AppCompatActivity() {
         previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                val tempName = item.name + ".bak"
                 val targetPath = item.path.substringBeforeLast('/', "")
+                val tempPath = if (targetPath.isEmpty()) tempName else "$targetPath/$tempName"
+                
+                // 1. Rename old file to .bak
+                explorerRepository.renameItem(username, item, tempName)
+                
+                // 2. Upload new file with original name
                 val result = explorerRepository.uploadFile(
                     username = username,
                     targetPath = targetPath,
@@ -791,12 +866,22 @@ class FilePreviewActivity : AppCompatActivity() {
                     overrideFileName = item.name
                 )
                 
+                // 3. Delete .bak file if upload success, or rename back if failed
+                if (result.isSuccess) {
+                    val bakItem = item.copy(name = tempName, path = tempPath)
+                    explorerRepository.deleteItem(username, bakItem)
+                } else {
+                    val bakItem = item.copy(name = tempName, path = tempPath)
+                    explorerRepository.renameItem(username, bakItem, item.name)
+                }
+                
                 withContext(Dispatchers.Main) {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                     if (result.isSuccess) {
-                        android.widget.Toast.makeText(this@FilePreviewActivity, "Đã lưu đè ảnh thành công", android.widget.Toast.LENGTH_SHORT).show()
+                        isModified = true
                         setResult(RESULT_OK)
-                        finish()
+                        android.widget.Toast.makeText(this@FilePreviewActivity, "Đã lưu đè ảnh thành công", android.widget.Toast.LENGTH_SHORT).show()
+                        previewRenderHelper.reloadImage()
                     } else {
                         android.widget.Toast.makeText(this@FilePreviewActivity, "Lỗi khi lưu: ${result.exceptionOrNull()?.message}", android.widget.Toast.LENGTH_SHORT).show()
                     }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+import com.example.filemanagementapp.data.ai.model.AiSearchFileItem
 import com.example.filemanagementapp.data.ai.repository.AiAnalysisRepository
 
 class SearchViewModel(
@@ -33,18 +34,24 @@ class SearchViewModel(
         val recentSearches: List<String> = emptyList(),
         val query: String = "",
         val selectedCategory: String = "all",
-        val currentSort: Sort = Sort.NAME
+        val currentSort: Sort = Sort.NAME,
+        val isAiSearchActive: Boolean = false
     )
 
     private val _isLoading = MutableStateFlow(true)
     private val _isAiLoading = MutableStateFlow(false)
-    private val _aiSearchResults = MutableStateFlow<List<String>?>(null)
+    private val _aiSearchResults = MutableStateFlow<List<AiSearchFileItem>?>(null)
     private val _allItems = MutableStateFlow<List<SearchItem>>(emptyList())
     private val _query = MutableStateFlow("")
     private val _selectedCategory = MutableStateFlow("all")
     private val _currentSort = MutableStateFlow(Sort.NAME)
 
-    private data class FilterCriteria(val query: String, val category: String, val sort: Sort, val aiResult: List<String>?)
+    private data class FilterCriteria(
+        val query: String,
+        val category: String,
+        val sort: Sort,
+        val aiResult: List<AiSearchFileItem>?
+    )
     private val filterCriteria = combine(_query, _selectedCategory, _currentSort, _aiSearchResults) { q, c, s, ai ->
         FilterCriteria(q, c, s, ai)
     }
@@ -65,7 +72,8 @@ class SearchViewModel(
             recentSearches = recentSearches,
             query = criteria.query,
             selectedCategory = criteria.category,
-            currentSort = criteria.sort
+            currentSort = criteria.sort,
+            isAiSearchActive = criteria.aiResult != null
         )
     }.stateIn(
         scope = viewModelScope,
@@ -88,6 +96,11 @@ class SearchViewModel(
 
     fun updateQuery(query: String) {
         _query.value = query
+        _aiSearchResults.value = null
+    }
+
+    fun clearAiSearch() {
+        _aiSearchResults.value = null
     }
 
     fun selectCategory(category: String) {
@@ -123,7 +136,7 @@ class SearchViewModel(
                 val files = result.getOrNull()?.data?.files ?: emptyList()
                 _aiSearchResults.value = files
             } else {
-                _aiSearchResults.value = emptyList() // or handle error
+                _aiSearchResults.value = null
             }
             _isAiLoading.value = false
         }
@@ -134,19 +147,34 @@ class SearchViewModel(
         query: String,
         category: String,
         sort: Sort,
-        aiResult: List<String>?
+        aiResult: List<AiSearchFileItem>?
     ): List<SearchItem> {
         if (query.isBlank()) {
             return emptyList()
         }
 
-        val filtered = items.filter { item ->
-            val matchesQuery = if (aiResult != null) {
-                // Nếu có kết quả AI, chỉ hiển thị những file nằm trong danh sách AI trả về
-                aiResult.any { it.equals(item.name, ignoreCase = true) || it.contains(item.name, ignoreCase = true) }
-            } else if (query.isBlank()) {
-                true
-            } else {
+        val candidateItems: List<SearchItem> = if (aiResult != null && aiResult.isNotEmpty()) {
+            // Find existing items in cache matching aiResult
+            val matchedFromCache = items.filter { item ->
+                aiResult.any { aiFile ->
+                    aiFile.filePath.equals(item.path, ignoreCase = true) ||
+                    aiFile.name.equals(item.name, ignoreCase = true)
+                }
+            }
+            val existingPaths = matchedFromCache.map { it.path.lowercase() }.toSet()
+            val existingNames = matchedFromCache.map { it.name.lowercase() }.toSet()
+
+            // For any AI result items not already in cache, synthesize them
+            val missingFromCache = aiResult.filter { aiFile ->
+                aiFile.filePath.lowercase() !in existingPaths &&
+                aiFile.name.lowercase() !in existingNames
+            }.map { aiFile ->
+                searchRepository.createSearchItemFromAiFile(username, aiFile)
+            }
+
+            matchedFromCache + missingFromCache
+        } else {
+            items.filter { item ->
                 when (category) {
                     "ocr" -> item.ocrText?.contains(query, ignoreCase = true) == true
                     "ai-objects" -> item.aiTags.any { it.contains(query, ignoreCase = true) }
@@ -155,7 +183,9 @@ class SearchViewModel(
                             item.tags.any { it.contains(query, ignoreCase = true) }
                 }
             }
+        }
 
+        val filtered = candidateItems.filter { item ->
             val matchesCategory = when (category) {
                 "all" -> true
                 "images" -> item.category == SearchItem.Category.IMAGE
@@ -167,7 +197,7 @@ class SearchViewModel(
                 "favorites" -> item.isFavorite
                 else -> true
             }
-            matchesQuery && matchesCategory
+            matchesCategory
         }
 
         val folders = filtered.filter { it.rawItem.type == com.example.filemanagementapp.explorer.ExplorerItem.Type.FOLDER }

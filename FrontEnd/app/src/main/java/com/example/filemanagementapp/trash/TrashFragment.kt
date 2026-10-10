@@ -8,7 +8,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.EditText
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -309,28 +308,34 @@ class TrashFragment : Fragment() {
     }
 
     private fun showItemMoreMenu(item: TrashItemModel, anchor: View) {
-        val popup = PopupMenu(requireContext(), anchor)
-        popup.menu.add(0, 1, 0, getString(R.string.trash_menu_restore))
-        popup.menu.add(0, 4, 0, getString(R.string.trash_menu_delete_forever))
-        
-        popup.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                1 -> {
-                    viewModel.restoreItems(setOf(item.id))
-                    selectedIds.remove(item.id)
-                    renderSelectionState()
-                    Toast.makeText(requireContext(), getString(R.string.trash_restored_item, item.name), Toast.LENGTH_SHORT).show()
-                }
-                4 -> {
-                    viewModel.deleteItemsForever(setOf(item.id))
-                    selectedIds.remove(item.id)
-                    renderSelectionState()
-                    Toast.makeText(requireContext(), getString(R.string.trash_deleted_item, item.name), Toast.LENGTH_SHORT).show()
-                }
-            }
+        val popupView = layoutInflater.inflate(R.layout.popup_trash_item_actions, null)
+        val popupWindow = android.widget.PopupWindow(
+            popupView,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
             true
+        )
+        popupWindow.elevation = 8f
+        popupWindow.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+
+        popupView.findViewById<View>(R.id.menuRestore).setOnClickListener {
+            popupWindow.dismiss()
+            viewModel.restoreItems(setOf(item.id))
+            selectedIds.remove(item.id)
+            renderSelectionState()
+            Toast.makeText(requireContext(), getString(R.string.trash_restored_item, item.name), Toast.LENGTH_SHORT).show()
         }
-        popup.show()
+
+        popupView.findViewById<View>(R.id.menuDeleteForever).setOnClickListener {
+            popupWindow.dismiss()
+            viewModel.deleteItemsForever(setOf(item.id))
+            selectedIds.remove(item.id)
+            renderSelectionState()
+            Toast.makeText(requireContext(), getString(R.string.trash_deleted_item, item.name), Toast.LENGTH_SHORT).show()
+        }
+
+        val xOffset = (-150 * resources.displayMetrics.density).toInt()
+        popupWindow.showAsDropDown(anchor, xOffset, 0)
     }
 
     private fun showEmptyTrashConfirmDialog() {

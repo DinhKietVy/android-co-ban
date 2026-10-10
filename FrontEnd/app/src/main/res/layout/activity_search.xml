@@ -58,7 +58,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:layout_marginStart="48dp"
-                        android:layout_marginEnd="48dp"
+                        android:layout_marginEnd="108dp"
                         android:background="@android:color/transparent"
                         android:hint="@string/search_hint"
                         android:imeOptions="actionSearch"
@@ -67,17 +67,55 @@
                         android:textColorHint="@color/search_text_secondary"
                         android:textSize="15sp" />
 
-                    <ImageButton
-                        android:id="@+id/micButton"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_gravity="end|center_vertical"
-                        android:layout_marginEnd="8dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/search_mic"
-                        android:padding="8dp"
-                        android:src="@drawable/mic"
-                        android:tint="@color/search_text_secondary" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingEnd="6dp">
+
+                        <ImageButton
+                            android:id="@+id/micButton"
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/search_mic"
+                            android:padding="8dp"
+                            android:src="@drawable/mic"
+                            android:tint="@color/search_text_secondary" />
+
+                        <LinearLayout
+                            android:id="@+id/aiSearchButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginStart="2dp"
+                            android:background="@drawable/bg_ai_search_btn"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="horizontal"
+                            android:paddingStart="9dp"
+                            android:paddingEnd="9dp">
+
+                            <ImageView
+                                android:id="@+id/aiSearchIcon"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/sparkles"
+                                app:tint="@color/search_primary" />
+
+                            <TextView
+                                android:id="@+id/aiSearchText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="3dp"
+                                android:text="AI"
+                                android:textColor="@color/search_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </FrameLayout>
 
                 <ImageButton

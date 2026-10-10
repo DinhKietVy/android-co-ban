@@ -23,6 +23,21 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/aiChatFab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="96dp"
+            android:contentDescription="Trợ lý AI"
+            android:src="@drawable/sparkles"
+            app:backgroundTint="@color/search_primary"
+            app:tint="@android:color/white"
+            app:elevation="8dp"
+            app:borderWidth="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Navigation Menu (Drawer) -->
