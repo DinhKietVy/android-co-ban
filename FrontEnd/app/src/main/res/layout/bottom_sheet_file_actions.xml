@@ -122,6 +122,78 @@
             android:paddingTop="8dp"
             android:paddingBottom="32dp">
 
+            <!-- Card Hỏi AI chỉ định -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardAskAi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/blue_100"
+                app:cardBackgroundColor="@color/blue_50">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="11dp">
+
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:background="@drawable/item_explorer_file_bg"
+                        android:backgroundTint="@color/blue_600">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/sparkles"
+                            app:tint="@color/white" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/cardAskAiTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Hỏi AI về mục này"
+                            android:textColor="@color/blue_600"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/cardAskAiSubtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Tóm tắt, đọc nội dung hoặc quản lý mục này"
+                            android:textColor="@color/explorer_text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/chevron_right"
+                        app:tint="@color/blue_600" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Open -->
             <LinearLayout
                 android:id="@+id/actionOpen"

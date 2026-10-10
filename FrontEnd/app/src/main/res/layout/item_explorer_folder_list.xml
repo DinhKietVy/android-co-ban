@@ -26,6 +26,7 @@
         android:background="@drawable/explorer_icon_background">
 
         <ImageView
+            android:id="@+id/folderIconImageView"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="center"

@@ -27,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
 import com.example.filemanagementapp.data.explorer.repository.ExplorerRepository
 import com.example.filemanagementapp.download.ExplorerDownloadService
@@ -79,7 +80,7 @@ class FilePreviewActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK && result.data != null) {
             val resultUri = com.yalantis.ucrop.UCrop.getOutput(result.data!!)
             if (resultUri != null) {
-                handleCroppedImage(resultUri)
+                showSaveImageOptionsDialog(resultUri)
             }
         } else if (result.resultCode == com.yalantis.ucrop.UCrop.RESULT_ERROR && result.data != null) {
             val cropError = com.yalantis.ucrop.UCrop.getError(result.data!!)
@@ -91,7 +92,7 @@ class FilePreviewActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK && result.data != null) {
             val resultUri = result.data?.getParcelableExtra<Uri>(PhotoEditorActivity.EXTRA_OUTPUT_URI)
             if (resultUri != null) {
-                handleCroppedImage(resultUri)
+                showSaveImageOptionsDialog(resultUri)
             }
         }
     }
@@ -209,6 +210,9 @@ class FilePreviewActivity : AppCompatActivity() {
             },
             onConvertPdfRequested = {
                 convertFileToPdf()
+            },
+            onRestoreOriginal = {
+                restoreOriginalPhoto()
             }
         )
 
@@ -809,8 +813,9 @@ class FilePreviewActivity : AppCompatActivity() {
                 val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) throw Exception("HTTP ${response.code}")
                 
-                val sourceFile = File(cacheDir, "temp_edit_original.jpg")
-                val destFile = File(cacheDir, "temp_edit_result.jpg")
+                val ext = explorerItem?.name?.substringAfterLast('.', "jpg")?.ifBlank { "jpg" } ?: "jpg"
+                val sourceFile = File(cacheDir, "temp_edit_original.$ext")
+                val destFile = File(cacheDir, "temp_edit_result.$ext")
                 
                 val bytes = response.body?.bytes() ?: throw Exception("Empty body")
                 sourceFile.writeBytes(bytes)
@@ -846,50 +851,292 @@ class FilePreviewActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleCroppedImage(uri: Uri) {
+    private fun showSaveImageOptionsDialog(uri: Uri) {
+        val item = explorerItem ?: return
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_save_image_options, null)
+        dialog.setContentView(view)
+
+        val ext = item.name.substringAfterLast('.', "")
+        val baseName = item.name.substringBeforeLast('.', "")
+        val sampleNewName = if (ext.isNotEmpty()) "${baseName}_edited.$ext" else "${baseName}_edited"
+        view.findViewById<TextView>(R.id.tvSaveAsCopyDesc)?.text =
+            "Giữ nguyên 100% ảnh gốc, lưu kết quả thành tệp mới: $sampleNewName"
+
+        view.findViewById<View>(R.id.actionSaveAsCopy)?.setOnClickListener {
+            dialog.dismiss()
+            saveImageAsCopy(uri)
+        }
+
+        view.findViewById<View>(R.id.actionOverwrite)?.setOnClickListener {
+            dialog.dismiss()
+            overwriteOriginalImage(uri)
+        }
+
+        view.findViewById<View>(R.id.actionCancel)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun saveImageAsCopy(uri: Uri) {
         val item = explorerItem ?: return
         previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val tempName = item.name + ".bak"
+                val originalName = item.name
+                val ext = originalName.substringAfterLast('.', "")
+                val baseName = originalName.substringBeforeLast('.', "")
+                val newFileName = if (ext.isNotEmpty()) "${baseName}_edited.$ext" else "${baseName}_edited"
                 val targetPath = item.path.substringBeforeLast('/', "")
-                val tempPath = if (targetPath.isEmpty()) tempName else "$targetPath/$tempName"
-                
-                // 1. Rename old file to .bak
-                explorerRepository.renameItem(username, item, tempName)
-                
-                // 2. Upload new file with original name
+
                 val result = explorerRepository.uploadFile(
                     username = username,
                     targetPath = targetPath,
                     fileUri = uri,
-                    overrideFileName = item.name
+                    overrideFileName = newFileName
                 )
-                
-                // 3. Delete .bak file if upload success, or rename back if failed
-                if (result.isSuccess) {
-                    val bakItem = item.copy(name = tempName, path = tempPath)
-                    explorerRepository.deleteItem(username, bakItem)
-                } else {
-                    val bakItem = item.copy(name = tempName, path = tempPath)
-                    explorerRepository.renameItem(username, bakItem, item.name)
-                }
-                
+
                 withContext(Dispatchers.Main) {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                     if (result.isSuccess) {
                         isModified = true
                         setResult(RESULT_OK)
-                        android.widget.Toast.makeText(this@FilePreviewActivity, "Đã lưu đè ảnh thành công", android.widget.Toast.LENGTH_SHORT).show()
-                        previewRenderHelper.reloadImage()
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            "Đã lưu bản sao mới: $newFileName (ảnh gốc vẫn giữ nguyên)",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
                     } else {
-                        android.widget.Toast.makeText(this@FilePreviewActivity, "Lỗi khi lưu: ${result.exceptionOrNull()?.message}", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            "Lỗi khi lưu bản sao: ${result.exceptionOrNull()?.message}",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
-                    android.widget.Toast.makeText(this@FilePreviewActivity, "Lỗi khi upload: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        "Lỗi khi lưu: ${e.message}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun overwriteOriginalImage(uri: Uri) {
+        val item = explorerItem ?: return
+        previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val targetPath = item.path.substringBeforeLast('/', "")
+
+                // 1. Đảm bảo thư mục trash tồn tại trên server
+                explorerRepository.createFolder(username = username, targetPath = "", folderName = "trash")
+
+                // 2. Chuyển ảnh gốc hiện tại vào Thùng rác để sao lưu (Backend sẽ đặt tên {Date.now()}_{fileName} và tạo .meta.json)
+                val moveResult = explorerRepository.moveItem(
+                    username = username,
+                    item = item,
+                    targetFolderPath = "trash"
+                )
+
+                var usedTempBak = false
+                val tempBakName = item.name + ".bak"
+                val tempBakPath = if (targetPath.isEmpty()) tempBakName else "$targetPath/$tempBakName"
+                if (moveResult.isFailure) {
+                    // Fallback đổi tên tạm nếu không di chuyển được vào trash
+                    explorerRepository.renameItem(username, item, tempBakName)
+                    usedTempBak = true
+                }
+
+                // 3. Upload ảnh mới với đúng tên gốc
+                val uploadResult = explorerRepository.uploadFile(
+                    username = username,
+                    targetPath = targetPath,
+                    fileUri = uri,
+                    overrideFileName = item.name
+                )
+
+                if (uploadResult.isSuccess) {
+                    if (usedTempBak) {
+                        // Di chuyển file .bak vào trash để giữ bản sao lưu
+                        val bakItem = item.copy(name = tempBakName, path = tempBakPath)
+                        explorerRepository.moveItem(username, bakItem, "trash")
+                    }
+                } else {
+                    // Nếu upload thất bại, hoàn tác lại ảnh gốc
+                    if (usedTempBak) {
+                        val bakItem = item.copy(name = tempBakName, path = tempBakPath)
+                        explorerRepository.renameItem(username, bakItem, item.name)
+                    } else {
+                        restoreOriginalFromTrashInternal(item)
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    if (uploadResult.isSuccess) {
+                        isModified = true
+                        setResult(RESULT_OK)
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            "Đã ghi đè ảnh thành công. Ảnh gốc đã được sao lưu vào Thùng rác để bạn khôi phục khi cần.",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                        previewRenderHelper.reloadImage()
+                    } else {
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            "Lỗi khi upload: ${uploadResult.exceptionOrNull()?.message}",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        "Lỗi khi ghi đè: ${e.message}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private suspend fun restoreOriginalFromTrashInternal(item: ExplorerItem) {
+        try {
+            val trashDirectory = explorerRepository.listDirectory(username, "trash").getOrNull() ?: return
+            val candidate = trashDirectory.items.filter { trashItem ->
+                val cleanName = if (trashItem.name.matches(Regex("^\\d{13}_.*"))) {
+                    trashItem.name.substringAfter('_')
+                } else {
+                    trashItem.name
+                }
+                cleanName == item.name
+            }.maxByOrNull { trashItem ->
+                trashItem.name.substringBefore('_').toLongOrNull() ?: 0L
+            } ?: return
+            explorerRepository.moveItem(username, candidate, "RESTORE")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun restoreOriginalPhoto() {
+        val item = explorerItem ?: return
+        previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val trashResult = explorerRepository.listDirectory(username, "trash")
+                val trashDirectory = trashResult.getOrNull()
+                if (trashDirectory == null) {
+                    withContext(Dispatchers.Main) {
+                        previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            "Không thể tải danh sách Thùng rác để tìm ảnh gốc",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    return@launch
+                }
+
+                val candidates = trashDirectory.items.filter { trashItem ->
+                    val cleanName = if (trashItem.name.matches(Regex("^\\d{13}_.*"))) {
+                        trashItem.name.substringAfter('_')
+                    } else {
+                        trashItem.name
+                    }
+                    cleanName == item.name
+                }
+
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    if (candidates.isEmpty()) {
+                        MaterialAlertDialogBuilder(this@FilePreviewActivity)
+                            .setTitle("Khôi phục ảnh gốc")
+                            .setMessage("Không tìm thấy bản sao lưu ảnh gốc nào của '${item.name}' trong Thùng rác.\n\nNếu bạn chưa từng ghi đè ảnh này hoặc đã dọn sạch Thùng rác, bản sao lưu gốc không có sẵn.")
+                            .setPositiveButton("Đã hiểu", null)
+                            .show()
+                        return@withContext
+                    }
+
+                    val bestCandidate = candidates.maxByOrNull { trashItem ->
+                        trashItem.name.substringBefore('_').toLongOrNull() ?: 0L
+                    } ?: candidates.first()
+
+                    MaterialAlertDialogBuilder(this@FilePreviewActivity)
+                        .setTitle("Khôi phục ảnh gốc")
+                        .setMessage("Đã tìm thấy bản sao lưu gốc của '${item.name}' trong Thùng rác.\n\nBạn có muốn khôi phục ảnh gốc và hoàn tác các chỉnh sửa trước đó không?")
+                        .setPositiveButton("Khôi phục") { _, _ ->
+                            executeRestore(bestCandidate)
+                        }
+                        .setNegativeButton("Hủy", null)
+                        .show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        "Lỗi khi tìm ảnh gốc: ${e.message}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun executeRestore(trashedItem: ExplorerItem) {
+        val item = explorerItem ?: return
+        previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Xóa file đã chỉnh sửa hiện tại để nhường chỗ cho ảnh gốc khôi phục về đúng tên và đường dẫn
+                explorerRepository.deleteItem(username, item)
+
+                // 2. Khôi phục ảnh gốc từ thùng rác
+                val restoreResult = explorerRepository.moveItem(
+                    username = username,
+                    item = trashedItem,
+                    targetFolderPath = "RESTORE"
+                )
+
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    if (restoreResult.isSuccess) {
+                        isModified = true
+                        setResult(RESULT_OK)
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            "Đã khôi phục ảnh gốc thành công!",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                        previewRenderHelper.reloadImage()
+                    } else {
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            "Khôi phục thất bại: ${restoreResult.exceptionOrNull()?.message}",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        "Lỗi khôi phục: ${e.message}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }

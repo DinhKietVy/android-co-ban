@@ -43,6 +43,10 @@ import com.example.filemanagementapp.data.local.explorer.DirectoryCacheLocalRepo
 import com.example.filemanagementapp.data.local.favorite.FavoriteLocalRepository
 import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
 import com.example.filemanagementapp.data.explorer.repository.ExplorerRepository
+import com.example.filemanagementapp.data.drive.auth.DriveAuthManager
+import com.example.filemanagementapp.data.drive.local.DrivePreferencesRepository
+import com.example.filemanagementapp.data.drive.repository.GoogleDriveRepository
+import com.example.filemanagementapp.chat.AiChatBottomSheetFragment
 import com.example.filemanagementapp.download.ExplorerDownloadProgress
 import com.example.filemanagementapp.download.ExplorerDownloadProgressStore
 import com.example.filemanagementapp.download.ExplorerDownloadService
@@ -61,7 +65,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.documentfile.provider.DocumentFile
-import kotlinx.coroutines.launch
 
 class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private val username: String
@@ -71,6 +74,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private val navigationViewModel: MainNavigationViewModel by activityViewModels()
     private lateinit var explorerRepository: ExplorerRepository
     private lateinit var recentOpenLocalRepository: com.example.filemanagementapp.data.local.recent.RecentOpenLocalRepository
+    private lateinit var driveAuthManager: DriveAuthManager
+    private lateinit var drivePreferencesRepository: DrivePreferencesRepository
+    private val googleDriveRepository = GoogleDriveRepository()
     private lateinit var actionSheetController: FileActionSheetController
     private lateinit var breadcrumbAdapter: ExplorerBreadcrumbAdapter
     private lateinit var explorerAdapter: ExplorerAdapter
@@ -110,6 +116,28 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private var currentDownloadProgress: ExplorerDownloadProgress? = null
     private var pendingDownloadItem: ExplorerItem? = null
     private var convertingDialog: androidx.appcompat.app.AlertDialog? = null
+
+    private val googleDriveSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        driveAuthManager.parseSignInResult(result.data)
+            .onSuccess { account ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    drivePreferencesRepository.saveConnectedAccount(
+                        email = account.email.orEmpty(),
+                        displayName = account.displayName
+                    )
+                    val driveService = driveAuthManager.getDriveService(account)
+                    viewModel.setDriveService(driveService)
+                    Toast.makeText(requireContext(), "Đã kết nối Google Drive (${account.email})", Toast.LENGTH_SHORT).show()
+                    viewModel.loadDirectory("gdrive://root", "Google Drive")
+                }
+            }
+            .onFailure { error ->
+                Toast.makeText(requireContext(), "Kết nối Google Drive thất bại: ${error.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
     private val uploadFileLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -120,13 +148,18 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             }
-            com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
-                context = requireContext(),
-                fileUri = it,
-                targetPath = viewModel.uiState.value.currentFolder,
-                username = username
-            )
-            Toast.makeText(requireContext(), R.string.msg_uploading_file, Toast.LENGTH_SHORT).show()
+            if (viewModel.uiState.value.currentFolder.startsWith("gdrive://")) {
+                Toast.makeText(requireContext(), "Đang tải tệp lên Google Drive...", Toast.LENGTH_SHORT).show()
+                viewModel.uploadToDrive(it, requireContext())
+            } else {
+                com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
+                    context = requireContext(),
+                    fileUri = it,
+                    targetPath = viewModel.uiState.value.currentFolder,
+                    username = username
+                )
+                Toast.makeText(requireContext(), R.string.msg_uploading_file, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -246,6 +279,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         val appDatabase = AppDatabase.getInstance(requireContext())
         recentOpenLocalRepository = com.example.filemanagementapp.data.local.recent.RecentOpenLocalRepository(appDatabase.recentOpenDao())
         
+        driveAuthManager = DriveAuthManager(requireContext().applicationContext)
+        drivePreferencesRepository = DrivePreferencesRepository(requireContext().applicationContext)
+
         viewModel = ViewModelProvider(
             this,
             ExplorerViewModel.Factory(
@@ -268,9 +304,17 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                     directoryCacheDao = appDatabase.directoryCacheDao(),
                     gson = ExplorerNetworkModule.gson
                 ),
-                settingsPreferencesRepository = com.example.filemanagementapp.data.local.profile.SettingsPreferencesRepository(requireContext())
+                settingsPreferencesRepository = com.example.filemanagementapp.data.local.profile.SettingsPreferencesRepository(requireContext()),
+                googleDriveRepository = googleDriveRepository,
+                drivePreferencesRepository = drivePreferencesRepository
             )
         )[ExplorerViewModel::class.java]
+
+        val driveAccount = driveAuthManager.getSignedInAccount()
+        if (driveAccount != null) {
+            val service = driveAuthManager.getDriveService(driveAccount)
+            viewModel.setDriveService(service)
+        }
 
         homeIcon = view.findViewById(R.id.homeBreadcrumbIcon)
         homeSeparator = view.findViewById(R.id.homeBreadcrumbSeparator)
@@ -316,7 +360,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         )
 
         breadcrumbAdapter = ExplorerBreadcrumbAdapter { breadcrumb ->
-            viewModel.loadDirectory(breadcrumb.path)
+            viewModel.loadDirectory(breadcrumb.path, breadcrumb.title)
         }
         breadcrumbRecyclerView.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
@@ -325,19 +369,33 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         explorerAdapter = ExplorerAdapter(
             onItemClick = { item -> onOpen(item) },
             onMoreClick = { item -> 
-                actionSheetController.show(
-                    item = item,
-                    config = FileActionSheetController.ActionConfig(
-                        showOpen = item.type == ExplorerItem.Type.FOLDER,
-                        showDownload = true, // Cho phép tải xuống cả file và folder
-                        showRename = true,
-                        showMove = true,
-                        showFavorite = true,
-                        showDelete = true,
-                        showAi = item.isImagePreviewable,
-                        showExtract = true
+                if (item.isGoogleDriveItem) {
+                    if (item.type == ExplorerItem.Type.FILE) {
+                        showDriveFileActionsSheet(item)
+                    } else if (item.id != "gdrive_root") {
+                        showDriveFolderActionsSheet(item)
+                    } else {
+                        if (driveAuthManager.getSignedInAccount() != null) {
+                            showDriveAccountSheet()
+                        } else {
+                            showDriveConnectSheet()
+                        }
+                    }
+                } else {
+                    actionSheetController.show(
+                        item = item,
+                        config = FileActionSheetController.ActionConfig(
+                            showOpen = item.type == ExplorerItem.Type.FOLDER,
+                            showDownload = true, // Cho phép tải xuống cả file và folder
+                            showRename = true,
+                            showMove = true,
+                            showFavorite = true,
+                            showDelete = true,
+                            showAi = item.isImagePreviewable,
+                            showExtract = true
+                        )
                     )
-                )
+                }
             },
             onItemSelectionToggle = { item -> viewModel.toggleItemSelection(item) },
             onItemLongPress = { item -> viewModel.startSelection(item) }
@@ -411,6 +469,10 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                                     showAiPanel = event.showAiPanel
                                 )
                             )
+                        }
+
+                        is ExplorerUiEvent.ConnectGoogleDrive -> {
+                            showDriveConnectSheet()
                         }
                     }
                 }
@@ -588,8 +650,25 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         viewLifecycleOwner.lifecycleScope.launch {
             recentOpenLocalRepository.recordOpen(username, item.path)
         }
+        if (item.id == "gdrive_root") {
+            if (driveAuthManager.getSignedInAccount() != null) {
+                viewModel.loadDirectory("gdrive://root", "Google Drive")
+            } else {
+                showDriveConnectSheet()
+            }
+            return
+        }
+
+        if (item.isGoogleDriveItem) {
+            when (item.type) {
+                ExplorerItem.Type.FOLDER -> viewModel.loadDirectory(item.path, item.name)
+                ExplorerItem.Type.FILE -> showDriveFileActionsSheet(item)
+            }
+            return
+        }
+
         when (item.type) {
-            ExplorerItem.Type.FOLDER -> viewModel.loadDirectory(item.path)
+            ExplorerItem.Type.FOLDER -> viewModel.loadDirectory(item.path, item.name)
             ExplorerItem.Type.FILE -> openFilePreview(item, showAiPanel = false)
         }
     }
@@ -630,6 +709,11 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
 
     override fun onAnalyzeAi(item: ExplorerItem) {
         viewModel.analyzeItem(item)
+    }
+
+    override fun onAskAi(item: ExplorerItem) {
+        AiChatBottomSheetFragment.newInstance(username, item.path)
+            .show(parentFragmentManager, AiChatBottomSheetFragment.TAG)
     }
 
     override fun onConvert(item: ExplorerItem, targetFormat: String) {
@@ -885,6 +969,10 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         val dialog = BottomSheetDialog(requireContext())
         dialog.setContentView(contentView)
 
+        if (viewModel.uiState.value.currentFolder.startsWith("gdrive://")) {
+            contentView.findViewById<View>(R.id.actionUploadFolder)?.visibility = View.GONE
+        }
+
         contentView.findViewById<View>(R.id.actionCreateFolder).setOnClickListener {
             dialog.dismiss()
             showCreateFolderDialog()
@@ -896,6 +984,220 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         contentView.findViewById<View>(R.id.actionUploadFolder).setOnClickListener {
             dialog.dismiss()
             uploadFolderLauncher.launch(null)
+        }
+
+        dialog.show()
+    }
+
+    private fun showDriveConnectSheet() {
+        val contentView = layoutInflater.inflate(R.layout.bottom_sheet_drive_connect, null)
+        val dialog = BottomSheetDialog(requireContext())
+        dialog.setContentView(contentView)
+
+        contentView.findViewById<View>(R.id.btnConnectDrive).setOnClickListener {
+            dialog.dismiss()
+            googleDriveSignInLauncher.launch(driveAuthManager.getSignInIntent())
+        }
+        contentView.findViewById<View>(R.id.btnCancelDriveConnect).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun showDriveAccountSheet() {
+        val account = driveAuthManager.getSignedInAccount() ?: run {
+            showDriveConnectSheet()
+            return
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Tài khoản Google Drive")
+            .setMessage("Đang liên kết với: ${account.email}")
+            .setPositiveButton("Mở Google Drive") { _, _ ->
+                viewModel.loadDirectory("gdrive://root", "Google Drive")
+            }
+            .setNeutralButton("Đăng xuất Drive") { _, _ ->
+                driveAuthManager.signOut {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        drivePreferencesRepository.clearAccount()
+                        viewModel.setDriveService(null)
+                        Toast.makeText(requireContext(), "Đã ngắt kết nối Google Drive", Toast.LENGTH_SHORT).show()
+                        viewModel.loadRootDirectory()
+                    }
+                }
+            }
+            .setNegativeButton("Đóng", null)
+            .show()
+    }
+
+    private fun showDriveFolderActionsSheet(item: ExplorerItem) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(item.name)
+            .setItems(arrayOf("Mở thư mục", "Xóa thư mục khỏi Drive")) { _, which ->
+                when (which) {
+                    0 -> viewModel.loadDirectory(item.path, item.name)
+                    1 -> {
+                        MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("Xác nhận xóa")
+                            .setMessage("Bạn có chắc muốn xóa thư mục '${item.name}' khỏi Google Drive không?")
+                            .setPositiveButton("Xóa") { _, _ ->
+                                viewModel.deleteDriveItem(item)
+                            }
+                            .setNegativeButton("Hủy", null)
+                            .show()
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun showDriveFileActionsSheet(item: ExplorerItem) {
+        val contentView = layoutInflater.inflate(R.layout.bottom_sheet_drive_file_actions, null)
+        val dialog = BottomSheetDialog(requireContext())
+        dialog.setContentView(contentView)
+
+        val nameView = contentView.findViewById<TextView>(R.id.driveActionFileName)
+        val metaView = contentView.findViewById<TextView>(R.id.driveActionFileMeta)
+        nameView.text = item.name
+        metaView.text = item.size ?: "Google Drive"
+
+        // Action 1: Xem trước tệp
+        contentView.findViewById<View>(R.id.actionDrivePreview).setOnClickListener {
+            dialog.dismiss()
+            val service = viewModel.getDriveService() ?: run {
+                showDriveConnectSheet()
+                return@setOnClickListener
+            }
+            val fileId = item.driveFileId ?: return@setOnClickListener
+            Toast.makeText(requireContext(), "Đang chuẩn bị tệp xem trước...", Toast.LENGTH_SHORT).show()
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val result = googleDriveRepository.downloadFile(
+                    drive = service,
+                    fileId = fileId,
+                    fileName = item.name,
+                    mimeType = item.driveMimeType,
+                    context = requireContext()
+                )
+                result.onSuccess { cachedFile ->
+                    val previewItem = item.copy(
+                        previewUrl = "file://${cachedFile.absolutePath}"
+                    )
+                    previewLauncher.launch(
+                        FilePreviewActivity.newIntent(
+                            context = requireContext(),
+                            item = previewItem,
+                            username = username,
+                            analyzedImagePath = null,
+                            ocrText = null,
+                            aiTags = emptyList(),
+                            showAiPanel = false
+                        )
+                    )
+                }.onFailure { e ->
+                    Toast.makeText(requireContext(), "Lỗi tải tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        // Action 2: Sao chép sang bộ nhớ ứng dụng
+        contentView.findViewById<View>(R.id.actionDriveImport).setOnClickListener {
+            dialog.dismiss()
+            val service = viewModel.getDriveService() ?: run {
+                showDriveConnectSheet()
+                return@setOnClickListener
+            }
+            val fileId = item.driveFileId ?: return@setOnClickListener
+            Toast.makeText(requireContext(), "Đang tải tệp từ Google Drive về...", Toast.LENGTH_SHORT).show()
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val result = googleDriveRepository.downloadFile(
+                    drive = service,
+                    fileId = fileId,
+                    fileName = item.name,
+                    mimeType = item.driveMimeType,
+                    context = requireContext()
+                )
+                result.onSuccess { cachedFile ->
+                    com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
+                        context = requireContext(),
+                        fileUri = Uri.fromFile(cachedFile),
+                        targetPath = "",
+                        username = username
+                    )
+                    Toast.makeText(requireContext(), "Đã bắt đầu sao chép '${cachedFile.name}' sang bộ nhớ ứng dụng", Toast.LENGTH_SHORT).show()
+                }.onFailure { e ->
+                    Toast.makeText(requireContext(), "Lỗi sao chép tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        // Action 3: Hỏi AI về tệp này
+        contentView.findViewById<View>(R.id.actionDriveAskAi).setOnClickListener {
+            dialog.dismiss()
+            val service = viewModel.getDriveService() ?: run {
+                showDriveConnectSheet()
+                return@setOnClickListener
+            }
+            val fileId = item.driveFileId ?: return@setOnClickListener
+            Toast.makeText(requireContext(), "Đang chuẩn bị tệp từ Google Drive...", Toast.LENGTH_SHORT).show()
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val result = googleDriveRepository.downloadFile(
+                    drive = service,
+                    fileId = fileId,
+                    fileName = item.name,
+                    mimeType = item.driveMimeType,
+                    context = requireContext()
+                )
+                result.onSuccess { cachedFile ->
+                    Toast.makeText(requireContext(), "Đang nạp tệp vào trợ lý AI...", Toast.LENGTH_SHORT).show()
+                    val uploadResult = explorerRepository.uploadDirectFile(
+                        username = username,
+                        targetPath = "",
+                        file = cachedFile,
+                        overrideFileName = cachedFile.name
+                    )
+                    uploadResult.onSuccess { pair ->
+                        val serverRelativePath = pair.second
+                        AiChatBottomSheetFragment.newInstance(username, serverRelativePath)
+                            .show(parentFragmentManager, AiChatBottomSheetFragment.TAG)
+                    }.onFailure { uploadErr ->
+                        Toast.makeText(requireContext(), "Không thể đồng bộ tệp lên server AI: ${uploadErr.message}", Toast.LENGTH_LONG).show()
+                    }
+                }.onFailure { e ->
+                    Toast.makeText(requireContext(), "Lỗi chuẩn bị tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        // Action 4: Mở trong Google Drive
+        contentView.findViewById<View>(R.id.actionDriveOpenExternal).setOnClickListener {
+            dialog.dismiss()
+            val webLink = item.driveWebViewLink
+            if (!webLink.isNullOrBlank()) {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(webLink))
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), "Không thể mở liên kết: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(requireContext(), "Không có liên kết xem trực tuyến cho tệp này", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Action 5: Xóa khỏi Drive
+        contentView.findViewById<View>(R.id.actionDriveDelete).setOnClickListener {
+            dialog.dismiss()
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Xóa khỏi Google Drive")
+                .setMessage("Bạn có chắc chắn muốn xóa '${item.name}' khỏi Google Drive không?")
+                .setPositiveButton("Xóa") { _, _ ->
+                    viewModel.deleteDriveItem(item)
+                }
+                .setNegativeButton("Hủy", null)
+                .show()
         }
 
         dialog.show()

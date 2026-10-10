@@ -160,14 +160,18 @@ def _build_file_input_part(abs_path: str) -> dict:
     with open(abs_path, "rb") as f:
         data = f.read()
 
-    if mime_type.startswith("image/"):
+    filename  = os.path.basename(abs_path)
+    ext       = os.path.splitext(filename)[1].lower()
+    text_exts = {".txt", ".md", ".json", ".xml", ".csv", ".html", ".css", ".js", ".ts", ".py", ".kt", ".java", ".log", ".sql"}
+
+    if mime_type.startswith("image/") or ext in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}:
         return {
             "type":      "inline_data",
             "mime_type": mime_type,
             "data":      base64.b64encode(data).decode("utf-8"),
         }
 
-    if mime_type == "application/pdf":
+    if mime_type == "application/pdf" or ext == ".pdf":
         # Thử dùng pdfplumber để lấy text trước
         try:
             import pdfplumber
@@ -176,7 +180,7 @@ def _build_file_input_part(abs_path: str) -> dict:
                 for page in pdf.pages:
                     text += (page.extract_text() or "") + "\n"
             if text.strip():
-                return {"type": "text", "text": f"[Nội dung PDF - {os.path.basename(abs_path)}]\n{text}"}
+                return {"type": "text", "text": f"[Nội dung PDF - {filename}]\n{text}"}
         except ImportError:
             pass
         # Fallback: gửi file PDF dạng document
@@ -186,10 +190,53 @@ def _build_file_input_part(abs_path: str) -> dict:
             "data":      base64.b64encode(data).decode("utf-8"),
         }
 
-    if mime_type.startswith("text/"):
-        return {"type": "text", "text": f"[Nội dung file - {os.path.basename(abs_path)}]\n{data.decode('utf-8', errors='replace')}"}
+    # Hỗ trợ đọc tài liệu Word DOCX
+    if ext == ".docx":
+        try:
+            import zipfile
+            import xml.etree.ElementTree as ET
+            with zipfile.ZipFile(abs_path) as docx_zip:
+                xml_content = docx_zip.read("word/document.xml")
+            tree = ET.fromstring(xml_content)
+            texts = [
+                node.text for node in tree.iter()
+                if node.tag.endswith("}t") and node.text
+            ]
+            extracted_text = " ".join(texts)
+            if extracted_text.strip():
+                return {
+                    "type": "text",
+                    "text": f"[Nội dung tài liệu Word - {filename}]\n{extracted_text}",
+                }
+        except Exception as e:
+            print(f"Lỗi khi đọc file DOCX {filename}: {e}")
 
-    return {"type": "text", "text": f"[File đính kèm: {os.path.basename(abs_path)}, loại: {mime_type}]"}
+    # Hỗ trợ đọc bảng tính Excel XLSX
+    if ext == ".xlsx":
+        try:
+            import zipfile
+            import xml.etree.ElementTree as ET
+            with zipfile.ZipFile(abs_path) as xlsx_zip:
+                if "xl/sharedStrings.xml" in xlsx_zip.namelist():
+                    xml_content = xlsx_zip.read("xl/sharedStrings.xml")
+                    tree = ET.fromstring(xml_content)
+                    texts = [
+                        node.text for node in tree.iter()
+                        if node.tag.endswith("}t") and node.text
+                    ]
+                    extracted_text = "\n".join(texts)
+                    if extracted_text.strip():
+                        return {
+                            "type": "text",
+                            "text": f"[Nội dung bảng tính Excel - {filename}]\n{extracted_text}",
+                        }
+        except Exception as e:
+            print(f"Lỗi khi đọc file XLSX {filename}: {e}")
+
+    if mime_type.startswith("text/") or ext in text_exts:
+        return {"type": "text", "text": f"[Nội dung file - {filename}]\n{data.decode('utf-8', errors='replace')}"}
+
+    return {"type": "text", "text": f"[File đính kèm: {filename}, loại: {mime_type}]"}
 
 
 # ─────────────────────────────────────────────
@@ -431,23 +478,46 @@ def chat_with_gemini(
     if file_path:
         abs_path    = os.path.normpath(os.path.join(user_data_path, file_path))
         file_exists = abs_path.startswith(user_data_path) and os.path.isfile(abs_path)
+        is_folder   = abs_path.startswith(user_data_path) and os.path.isdir(abs_path)
 
-        want_read = any(kw in prompt.lower() for kw in _READ_KEYWORDS)
-
-        if want_read and file_exists:
+        if file_exists:
             try:
                 file_part     = _build_file_input_part(abs_path)
                 current_input = [
-                    {"type": "text", "text": context_prefix + f"Câu hỏi: {prompt}"},
+                    {"type": "text", "text": context_prefix + f"Câu hỏi của người dùng về file '{file_path}': {prompt}"},
                     file_part,
                 ]
             except Exception as e:
                 current_input = context_prefix + f"[File '{file_path}' không đọc được: {e}]\n\nYêu cầu: {prompt}"
+        elif is_folder:
+            folder_items = []
+            try:
+                for root, dirs, files in os.walk(abs_path):
+                    dirs[:] = [d for d in dirs if d not in (".AI", "AI", "trash")]
+                    rel = os.path.relpath(root, abs_path).replace("\\", "/")
+                    prefix = "" if rel == "." else f"{rel}/"
+                    for d in sorted(dirs):
+                        folder_items.append(f"  [folder] {prefix}{d}")
+                    for f in sorted(files):
+                        if not f.endswith(".meta.json"):
+                            folder_items.append(f"  [file]   {prefix}{f}")
+                folder_tree = "\n".join(folder_items) if folder_items else "  (thư mục trống)"
+            except Exception as e:
+                folder_tree = f"  (lỗi đọc thư mục: {e})"
+
+            folder_note = (
+                f"[Thư mục được chỉ định: '{file_path}']\n"
+                f"- Danh sách tệp/thư mục con bên trong thư mục '{file_path}':\n"
+                f"{folder_tree}\n\n"
+            )
+            current_input = (
+                context_prefix
+                + folder_note
+                + f"Câu hỏi/yêu cầu của người dùng về thư mục '{file_path}': {prompt}"
+            )
         else:
             file_note     = (
-                f"[File được đề cập: '{file_path}'"
-                + (" — tồn tại." if file_exists else " — không tìm thấy.")
-                + "]\n\n"
+                f"[Mục được đề cập: '{file_path}' — không tìm thấy trên hệ thống lưu trữ máy chủ.]\n\n"
             )
             current_input = context_prefix + file_note + prompt
 

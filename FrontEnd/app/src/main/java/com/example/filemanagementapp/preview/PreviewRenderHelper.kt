@@ -83,7 +83,8 @@ class PreviewRenderHelper(
         onAiDataChanged: (String, List<String>) -> Unit = { _, _ -> },
         onEditImage: (String) -> Unit = {},
         onSaveTextContent: (String) -> Unit = {},
-        onConvertPdfRequested: () -> Unit = {}
+        onConvertPdfRequested: () -> Unit = {},
+        onRestoreOriginal: (() -> Unit)? = null
     ) {
         titleText.text = fileName.ifBlank { activity.getString(R.string.preview_file_name) }
         previewInfoNameValue.text = fileName.ifBlank { activity.getString(R.string.preview_file_name) }
@@ -153,9 +154,22 @@ class PreviewRenderHelper(
                     popupWindow.dismiss()
                     onEditImage("draw")
                 }
+                popupView.findViewById<View>(R.id.menuRestoreOriginal)?.setOnClickListener {
+                    popupWindow.dismiss()
+                    onRestoreOriginal?.invoke()
+                }
 
-                val xOffset = (-150 * activity.resources.displayMetrics.density).toInt()
-                popupWindow.showAsDropDown(anchor, xOffset, 0)
+                popupView.measure(
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                )
+                val popupHeight = popupView.measuredHeight
+                val popupWidth = popupView.measuredWidth
+
+                // Canh lề phải khớp với nút FAB và hiển thị phía TRÊN nút FAB để không bị tràn đáy màn hình
+                val xOffset = -(popupWidth - anchor.width)
+                val yOffset = -(anchor.height + popupHeight + (8 * activity.resources.displayMetrics.density).toInt())
+                popupWindow.showAsDropDown(anchor, xOffset, yOffset)
             }
             
             fun loadImage(sourceUri: Uri?) {
@@ -471,13 +485,18 @@ class PreviewRenderHelper(
                 try {
                     val content = withContext(Dispatchers.IO) {
                         if (previewUrl == null) throw Exception("Preview URL is missing")
-                        val request = okhttp3.Request.Builder()
-                            .url(previewUrl)
-                            .addHeader("ngrok-skip-browser-warning", "69420")
-                            .build()
-                        val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
-                        if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${response.message}")
-                        response.body?.string() ?: throw Exception("Empty response body")
+                        if (previewUrl.startsWith("file://")) {
+                            val filePath = Uri.parse(previewUrl).path ?: previewUrl.removePrefix("file://")
+                            File(filePath).readText()
+                        } else {
+                            val request = okhttp3.Request.Builder()
+                                .url(previewUrl)
+                                .addHeader("ngrok-skip-browser-warning", "69420")
+                                .build()
+                            val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
+                            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${response.message}")
+                            response.body?.string() ?: throw Exception("Empty response body")
+                        }
                     }
                     val finalHtml = if (extension == "html" || content.contains("<html") || content.contains("<body") || content.contains("<p>")) {
                         content
@@ -533,13 +552,18 @@ class PreviewRenderHelper(
             activity.lifecycleScope.launch {
                 try {
                     val fileBytes = withContext(Dispatchers.IO) {
-                        val request = okhttp3.Request.Builder()
-                            .url(previewUrl)
-                            .addHeader("ngrok-skip-browser-warning", "69420")
-                            .build()
-                        val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
-                        if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${response.message}")
-                        response.body?.bytes() ?: throw Exception("Empty response body")
+                        if (previewUrl.startsWith("file://")) {
+                            val filePath = Uri.parse(previewUrl).path ?: previewUrl.removePrefix("file://")
+                            File(filePath).readBytes()
+                        } else {
+                            val request = okhttp3.Request.Builder()
+                                .url(previewUrl)
+                                .addHeader("ngrok-skip-browser-warning", "69420")
+                                .build()
+                            val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
+                            if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${response.message}")
+                            response.body?.bytes() ?: throw Exception("Empty response body")
+                        }
                     }
                     
                     val tempFile = File(activity.cacheDir, "temp_preview.${if(isPdfType) "pdf" else "docx"}")

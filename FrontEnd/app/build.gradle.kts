@@ -49,6 +49,20 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0"
+            )
+        }
+    }
 }
 
 dependencies {
@@ -93,4 +107,16 @@ dependencies {
     implementation("com.github.yalantis:ucrop:2.2.8")
     implementation("com.burhanrashid52:photoeditor:3.0.2")
     implementation("androidx.documentfile:documentfile:1.0.1")
+
+    // Google Play Services Auth & Google Drive REST API
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.api-client:google-api-client-android:2.6.0") {
+        exclude(group = "org.apache.httpcomponents")
+    }
+    implementation("com.google.apis:google-api-services-drive:v3-rev20220815-2.0.0") {
+        exclude(group = "org.apache.httpcomponents")
+    }
+
+    // Markdown renderer for AI Chat
+    implementation("io.noties.markwon:core:4.6.2")
 }

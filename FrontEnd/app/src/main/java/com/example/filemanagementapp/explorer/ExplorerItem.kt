@@ -23,7 +23,11 @@ data class ExplorerItem(
     val analyzedImagePath: String? = null,
     val isFavorite: Boolean = false,
     val ownerUsername: String? = null,
-    val permission: String? = null
+    val permission: String? = null,
+    val isGoogleDriveItem: Boolean = false,
+    val driveFileId: String? = null,
+    val driveMimeType: String? = null,
+    val driveWebViewLink: String? = null
 ) : Serializable {
     enum class Type {
         FOLDER,

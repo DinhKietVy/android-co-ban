@@ -187,7 +187,8 @@ class AiChatBottomSheetFragment : BottomSheetDialogFragment() {
                     viewModel.attachedFilePath.collect { path ->
                         if (!path.isNullOrBlank()) {
                             attachedFileBar.visibility = View.VISIBLE
-                            attachedFileNameText.text = "Đang hỏi về file: ${path.substringAfterLast('/')}"
+                            val name = path.trimEnd('/').substringAfterLast('/')
+                            attachedFileNameText.text = "Đang hỏi về: $name"
                         } else {
                             attachedFileBar.visibility = View.GONE
                         }

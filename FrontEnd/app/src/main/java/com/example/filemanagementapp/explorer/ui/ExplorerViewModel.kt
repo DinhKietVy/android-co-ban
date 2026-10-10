@@ -16,6 +16,10 @@ import com.example.filemanagementapp.explorer.ExplorerAdapter
 import com.example.filemanagementapp.explorer.ExplorerItem
 import com.example.filemanagementapp.util.UiText
 import com.example.filemanagementapp.R
+import com.example.filemanagementapp.data.drive.local.DrivePreferencesRepository
+import com.example.filemanagementapp.data.drive.repository.GoogleDriveRepository
+import com.example.filemanagementapp.explorer.ExplorerBreadcrumbItem
+import com.google.api.services.drive.Drive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -33,7 +37,9 @@ class ExplorerViewModel(
     private val aiAnalysisLocalRepository: AiAnalysisLocalRepository,
     private val favoriteLocalRepository: FavoriteLocalRepository,
     private val directoryCacheLocalRepository: DirectoryCacheLocalRepository,
-    private val settingsPreferencesRepository: SettingsPreferencesRepository
+    private val settingsPreferencesRepository: SettingsPreferencesRepository,
+    private val googleDriveRepository: GoogleDriveRepository = GoogleDriveRepository(),
+    private val drivePreferencesRepository: DrivePreferencesRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExplorerUiState(isLoading = true))
@@ -42,7 +48,29 @@ class ExplorerViewModel(
     val events: SharedFlow<ExplorerUiEvent> = _events.asSharedFlow()
     private var currentDirectoryItems: List<ExplorerItem> = emptyList()
 
+    private var driveService: Drive? = null
+    private var isDriveConnected: Boolean = false
+    private val driveBreadcrumbs = mutableListOf<ExplorerBreadcrumbItem>()
+
+    init {
+        drivePreferencesRepository?.let { repo ->
+            viewModelScope.launch {
+                repo.accountInfoFlow.collect { info ->
+                    isDriveConnected = info.isConnected
+                }
+            }
+        }
+    }
+
+    fun setDriveService(drive: Drive?) {
+        this.driveService = drive
+    }
+
+    fun getDriveService(): Drive? = driveService
+    fun isDriveConnected(): Boolean = isDriveConnected
+
     fun loadRootDirectory() {
+        driveBreadcrumbs.clear()
         loadDirectory("")
     }
 
@@ -53,12 +81,17 @@ class ExplorerViewModel(
         )
     }
 
-    fun loadDirectory(folderPath: String) {
-        loadDirectory(folderPath = folderPath, isRefresh = false)
+    fun loadDirectory(folderPath: String, folderName: String? = null) {
+        loadDirectory(folderPath = folderPath, folderName = folderName, isRefresh = false)
     }
 
-    private fun loadDirectory(folderPath: String, isRefresh: Boolean) {
+    private fun loadDirectory(folderPath: String, folderName: String? = null, isRefresh: Boolean) {
         viewModelScope.launch {
+            if (folderPath.startsWith("gdrive://")) {
+                loadGoogleDriveDirectory(folderPath = folderPath, folderName = folderName, isRefresh = isRefresh)
+                return@launch
+            }
+            driveBreadcrumbs.clear()
             val normalizedFolderPath = folderPath.trim().trim('/')
             _uiState.update {
                 it.copy(
@@ -112,6 +145,135 @@ class ExplorerViewModel(
         }
     }
 
+    private fun loadGoogleDriveDirectory(folderPath: String, folderName: String?, isRefresh: Boolean) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoading = !isRefresh,
+                    isRefreshing = isRefresh,
+                    errorMessage = null
+                )
+            }
+
+            val service = driveService
+            if (service == null) {
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
+                _events.emit(ExplorerUiEvent.ConnectGoogleDrive)
+                return@launch
+            }
+
+            val driveFolderId = if (folderPath == "gdrive://root" || folderPath == "gdrive://") {
+                "root"
+            } else {
+                folderPath.removePrefix("gdrive://").trim('/')
+            }
+
+            if (driveFolderId == "root") {
+                driveBreadcrumbs.clear()
+                driveBreadcrumbs.add(ExplorerBreadcrumbItem(title = "Google Drive", path = "gdrive://root"))
+            } else {
+                val existingIndex = driveBreadcrumbs.indexOfFirst { it.path == folderPath }
+                if (existingIndex >= 0) {
+                    while (driveBreadcrumbs.size > existingIndex + 1) {
+                        driveBreadcrumbs.removeAt(driveBreadcrumbs.lastIndex)
+                    }
+                } else if (!folderName.isNullOrBlank()) {
+                    driveBreadcrumbs.add(ExplorerBreadcrumbItem(title = folderName, path = folderPath))
+                } else {
+                    driveBreadcrumbs.add(ExplorerBreadcrumbItem(title = "Thư mục", path = folderPath))
+                }
+            }
+
+            googleDriveRepository.listFiles(drive = service, parentFolderId = driveFolderId)
+                .onSuccess { items ->
+                    currentDirectoryItems = items
+                    _uiState.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            isShowingCachedData = false,
+                            currentFolder = folderPath,
+                            breadcrumbs = driveBreadcrumbs.toList(),
+                            items = applySorting(items, state.sortOption),
+                            selectedPaths = emptySet(),
+                            isSelectionMode = false,
+                            storageSummary = "Google Drive (${items.size} mục)"
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            errorMessage = throwable.message ?: "Không thể tải tệp từ Google Drive"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun deleteDriveItem(item: ExplorerItem) {
+        val service = driveService ?: return
+        val fileId = item.driveFileId ?: return
+        viewModelScope.launch {
+            googleDriveRepository.deleteFile(drive = service, fileId = fileId)
+                .onSuccess {
+                    emitMessage(UiText.DynamicString("Đã xóa khỏi Google Drive"))
+                    refreshCurrentDirectory()
+                }
+                .onFailure { throwable ->
+                    emitMessage(UiText.DynamicString("Lỗi xóa tệp: ${throwable.message}"))
+                }
+        }
+    }
+
+    fun uploadToDrive(fileUri: Uri, context: android.content.Context) {
+        val service = driveService ?: return
+        val currentFolder = _uiState.value.currentFolder
+        val parentFolderId = if (currentFolder == "gdrive://root" || currentFolder == "gdrive://" || currentFolder == "gdrive://shared-with-me") "root" else currentFolder.removePrefix("gdrive://").trim('/')
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                var fileName = "upload_file"
+                context.contentResolver.query(fileUri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0 && cursor.moveToFirst()) {
+                        fileName = cursor.getString(nameIndex)
+                    }
+                }
+                val mimeType = context.contentResolver.getType(fileUri) ?: "application/octet-stream"
+
+                val tempFile = java.io.File(context.cacheDir, "upload_gdrive_$fileName")
+                context.contentResolver.openInputStream(fileUri)?.use { input ->
+                    java.io.FileOutputStream(tempFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                googleDriveRepository.uploadFile(
+                    drive = service,
+                    localFile = tempFile,
+                    fileName = fileName,
+                    mimeType = mimeType,
+                    parentFolderId = parentFolderId
+                ).onSuccess {
+                    tempFile.delete()
+                    emitMessage(UiText.DynamicString("Đã tải tệp lên Google Drive thành công"))
+                    refreshCurrentDirectory()
+                }.onFailure {
+                    tempFile.delete()
+                    emitMessage(UiText.DynamicString("Lỗi tải lên Google Drive: ${it.message}"))
+                }
+            } catch (e: Exception) {
+                emitMessage(UiText.DynamicString("Lỗi xử lý tệp: ${e.message}"))
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
     fun renameItem(item: ExplorerItem, newName: String) {
         val sanitizedName = newName.trim()
         if (sanitizedName.isBlank()) {
@@ -158,6 +320,28 @@ class ExplorerViewModel(
         val sanitizedName = folderName.trim()
         if (sanitizedName.isBlank()) {
             emitMessage(UiText.StringResource(R.string.error_empty_folder_name))
+            return
+        }
+
+        if (_uiState.value.currentFolder.startsWith("gdrive://")) {
+            val service = driveService
+            if (service == null) {
+                emitMessage(UiText.DynamicString("Chưa kết nối Google Drive"))
+                return
+            }
+            val parentFolderId = if (_uiState.value.currentFolder == "gdrive://root" || _uiState.value.currentFolder == "gdrive://" || _uiState.value.currentFolder == "gdrive://shared-with-me") "root" else _uiState.value.currentFolder.removePrefix("gdrive://").trim('/')
+            viewModelScope.launch {
+                googleDriveRepository.createFolder(
+                    drive = service,
+                    folderName = sanitizedName,
+                    parentFolderId = parentFolderId
+                ).onSuccess {
+                    emitMessage(UiText.DynamicString("Đã tạo thư mục trên Google Drive"))
+                    refreshCurrentDirectory()
+                }.onFailure { throwable ->
+                    emitMessage(UiText.DynamicString("Lỗi tạo thư mục: ${throwable.message}"))
+                }
+            }
             return
         }
 
@@ -548,6 +732,29 @@ class ExplorerViewModel(
             return
         }
 
+        if (_uiState.value.currentFolder.startsWith("gdrive://")) {
+            val service = driveService
+            if (service != null) {
+                viewModelScope.launch {
+                    var deletedCount = 0
+                    selectedItems.forEach { item ->
+                        item.driveFileId?.let { id ->
+                            googleDriveRepository.deleteFile(service, id)
+                                .onSuccess { deletedCount++ }
+                        }
+                    }
+                    _uiState.update { state ->
+                        state.copy(isSelectionMode = false, selectedPaths = emptySet())
+                    }
+                    if (deletedCount > 0) {
+                        emitMessage(UiText.DynamicString("Đã xóa $deletedCount mục khỏi Google Drive"))
+                    }
+                    refreshCurrentDirectory()
+                }
+            }
+            return
+        }
+
         viewModelScope.launch {
             repository.createFolder(username = username, targetPath = "", folderName = "trash")
             
@@ -756,9 +963,28 @@ class ExplorerViewModel(
         isRefresh: Boolean,
         isShowingCachedData: Boolean
     ) {
+        val finalItems = if (directory.currentFolder.isEmpty()) {
+            val driveRootItem = ExplorerItem(
+                id = "gdrive_root",
+                name = "Google Drive",
+                path = "gdrive://root",
+                type = ExplorerItem.Type.FOLDER,
+                size = null,
+                modified = "",
+                previewUrl = null,
+                isFavorite = false,
+                isGoogleDriveItem = true,
+                driveFileId = "root",
+                driveMimeType = "application/vnd.google-apps.folder"
+            )
+            listOf(driveRootItem) + mergedItems
+        } else {
+            mergedItems
+        }
+
         _uiState.update { state ->
-            currentDirectoryItems = mergedItems
-            val availablePaths = mergedItems.mapTo(linkedSetOf()) { item -> item.path }
+            currentDirectoryItems = finalItems
+            val availablePaths = finalItems.mapTo(linkedSetOf()) { item -> item.path }
             val updatedSelection = state.selectedPaths.filterTo(linkedSetOf()) { path ->
                 path in availablePaths
             }
@@ -768,7 +994,7 @@ class ExplorerViewModel(
                 isShowingCachedData = isShowingCachedData,
                 currentFolder = directory.currentFolder,
                 breadcrumbs = directory.breadcrumbs,
-                items = applySorting(mergedItems, state.sortOption),
+                items = applySorting(finalItems, state.sortOption),
                 selectedPaths = updatedSelection,
                 isSelectionMode = updatedSelection.isNotEmpty()
             )
@@ -816,9 +1042,11 @@ class ExplorerViewModel(
         items: List<ExplorerItem>,
         sortOption: SortOption
     ): List<ExplorerItem> {
-        val folders = items.filter { it.type == ExplorerItem.Type.FOLDER }
-        val files = items.filter { it.type == ExplorerItem.Type.FILE }
-        return sortItems(folders, sortOption) + sortItems(files, sortOption)
+        val driveRoot = items.filter { it.id == "gdrive_root" }
+        val normalItems = items.filter { it.id != "gdrive_root" }
+        val folders = normalItems.filter { it.type == ExplorerItem.Type.FOLDER }
+        val files = normalItems.filter { it.type == ExplorerItem.Type.FILE }
+        return driveRoot + sortItems(folders, sortOption) + sortItems(files, sortOption)
     }
 
     private fun sortItems(
@@ -842,7 +1070,9 @@ class ExplorerViewModel(
         private val aiAnalysisLocalRepository: AiAnalysisLocalRepository,
         private val favoriteLocalRepository: FavoriteLocalRepository,
         private val directoryCacheLocalRepository: DirectoryCacheLocalRepository,
-        private val settingsPreferencesRepository: SettingsPreferencesRepository
+        private val settingsPreferencesRepository: SettingsPreferencesRepository,
+        private val googleDriveRepository: GoogleDriveRepository = GoogleDriveRepository(),
+        private val drivePreferencesRepository: DrivePreferencesRepository? = null
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ExplorerViewModel::class.java)) {
@@ -854,7 +1084,9 @@ class ExplorerViewModel(
                     aiAnalysisLocalRepository = aiAnalysisLocalRepository,
                     favoriteLocalRepository = favoriteLocalRepository,
                     directoryCacheLocalRepository = directoryCacheLocalRepository,
-                    settingsPreferencesRepository = settingsPreferencesRepository
+                    settingsPreferencesRepository = settingsPreferencesRepository,
+                    googleDriveRepository = googleDriveRepository,
+                    drivePreferencesRepository = drivePreferencesRepository
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

@@ -530,6 +530,11 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
 
     override fun onExtract(item: ExplorerItem) {}
 
+    override fun onAskAi(item: ExplorerItem) {
+        com.example.filemanagementapp.chat.AiChatBottomSheetFragment.newInstance(username, item.path)
+            .show(supportFragmentManager, com.example.filemanagementapp.chat.AiChatBottomSheetFragment.TAG)
+    }
+
     companion object {
         const val EXTRA_USERNAME = "extra_username"
         const val EXTRA_RESULT_FOLDER_PATH = "extra_result_folder_path"

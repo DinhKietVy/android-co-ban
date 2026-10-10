@@ -477,6 +477,12 @@ class RecentFragment : Fragment(), FileActionSheetController.Callbacks {
 
     override fun onExtract(item: ExplorerItem) {}
 
+    override fun onAskAi(item: ExplorerItem) {
+        val user = arguments?.getString(ARG_USERNAME).orEmpty()
+        com.example.filemanagementapp.chat.AiChatBottomSheetFragment.newInstance(user, item.path)
+            .show(parentFragmentManager, com.example.filemanagementapp.chat.AiChatBottomSheetFragment.TAG)
+    }
+
     private fun Int.dp(): Int {
         return (this * resources.displayMetrics.density).toInt()
     }

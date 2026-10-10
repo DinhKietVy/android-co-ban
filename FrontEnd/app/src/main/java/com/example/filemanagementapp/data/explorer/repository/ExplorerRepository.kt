@@ -331,6 +331,32 @@ class ExplorerRepository(
         }
     }
 
+    suspend fun uploadDirectFile(
+        username: String,
+        targetPath: String,
+        file: File,
+        overrideFileName: String? = null
+    ): Result<Pair<String, String>> = withContext(Dispatchers.IO) {
+        try {
+            val fileName = overrideFileName ?: file.name
+            val response = explorerApiService.uploadFile(
+                username = username.toRequestBody("text/plain".toMediaTypeOrNull()),
+                targetPath = targetPath.toRequestBody("text/plain".toMediaTypeOrNull()),
+                file = MultipartBody.Part.createFormData(
+                    "file",
+                    fileName,
+                    file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
+                )
+            )
+            val mutationResult = response.toMutationResult()
+            mutationResult.map { message -> Pair(message, fileName) }
+        } catch (ioException: IOException) {
+            Result.failure(Exception("Không thể kết nối tới server. Kiểm tra backend và mạng."))
+        } catch (exception: Exception) {
+            Result.failure(Exception(exception.message ?: "Không thể upload file"))
+        }
+    }
+
     suspend fun moveItem(
         username: String,
         item: ExplorerItem,

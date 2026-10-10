@@ -48,6 +48,7 @@ class FileActionSheetController(
         fun onConvert(item: ExplorerItem, targetFormat: String)
         fun onCompress(item: ExplorerItem)
         fun onExtract(item: ExplorerItem)
+        fun onAskAi(item: ExplorerItem)
     }
 
     data class ActionConfig(
@@ -62,7 +63,8 @@ class FileActionSheetController(
         val showAi: Boolean = true,
         val showConvert: Boolean = true,
         val showCompress: Boolean = true,
-        val showExtract: Boolean = true
+        val showExtract: Boolean = true,
+        val showAskAi: Boolean = true
     )
 
     private val context = rootView.context
@@ -75,6 +77,10 @@ class FileActionSheetController(
     private val bottomSheetTagsContainer: LinearLayout = rootView.findViewById(R.id.bsAiTagsContainer)
     private val actionFavoriteLabel: TextView = rootView.findViewById(R.id.actionFavoriteLabel)
     private val scrim: View? = rootView.findViewById(R.id.fileActionScrim)
+
+    private val cardAskAi: View = rootView.findViewById(R.id.cardAskAi)
+    private val cardAskAiTitle: TextView = rootView.findViewById(R.id.cardAskAiTitle)
+    private val cardAskAiSubtitle: TextView = rootView.findViewById(R.id.cardAskAiSubtitle)
 
     private val actionOpen: View = rootView.findViewById(R.id.actionOpen)
     private val actionDownload: View = rootView.findViewById(R.id.actionDownload)
@@ -117,6 +123,7 @@ class FileActionSheetController(
         scrim?.setOnClickListener { hide() }
         rootView.findViewById<ImageButton>(R.id.bsCloseButton).setOnClickListener { hide() }
 
+        cardAskAi.setOnClickListener { dispatch { callbacks.onAskAi(it) } }
         actionOpen.setOnClickListener { dispatch { callbacks.onOpen(it) } }
         actionDownload.setOnClickListener { dispatch { callbacks.onDownload(it) } }
         actionRename.setOnClickListener { dispatch { showRenameDialog(it) } }
@@ -135,6 +142,15 @@ class FileActionSheetController(
 
         bottomSheetFileName.text = item.name
         bottomSheetFileMeta.text = buildMeta(item)
+        
+        if (item.type == ExplorerItem.Type.FOLDER) {
+            cardAskAiTitle.text = "Hỏi AI về thư mục này"
+            cardAskAiSubtitle.text = "Tra cứu tệp con, thống kê hoặc quản lý thư mục"
+        } else {
+            cardAskAiTitle.text = "Hỏi AI về tệp này"
+            cardAskAiSubtitle.text = "Tóm tắt, đọc nội dung hoặc đặt câu hỏi về tệp"
+        }
+        cardAskAi.visibility = if (config.showAskAi) View.VISIBLE else View.GONE
         
         if (item.isImagePreviewable && !item.previewUrl.isNullOrEmpty()) {
             bottomSheetFilePreviewImage.load(item.previewUrl) {

@@ -93,6 +93,7 @@ class ExplorerAdapter(
         private val metaText: TextView = itemView.findViewById(R.id.itemMetaText)
         private val dateText: TextView? = itemView.findViewById(R.id.itemDateText)
         private val moreButton: ImageButton = itemView.findViewById(R.id.moreButton)
+        private val folderIconImageView: ImageView? = itemView.findViewById(R.id.folderIconImageView)
 
         fun bind(
             item: ExplorerItem,
@@ -106,19 +107,47 @@ class ExplorerAdapter(
             val context = itemView.context
             nameText.text = item.name
             favoriteBadge.visibility = if (item.isFavorite) View.VISIBLE else View.GONE
-            val count = context.getString(R.string.explorer_item_count, item.itemCount ?: 0)
-            
-            if (dateText != null) {
-                metaText.text = count
-                dateText.text = item.modified
-                dateText.visibility = if (item.modified.isBlank()) View.GONE else View.VISIBLE
+
+            if (item.isGoogleDriveItem && item.id == "gdrive_root") {
+                folderIconImageView?.setImageResource(R.drawable.ic_google_drive)
+                folderIconImageView?.imageTintList = null
+                val subtitle = item.modified.ifBlank { "Google Drive" }
+                if (dateText != null) {
+                    metaText.text = item.size ?: "Đám mây"
+                    dateText.text = subtitle
+                    dateText.visibility = View.VISIBLE
+                } else {
+                    metaText.text = "${item.size ?: "Đám mây"} • $subtitle"
+                }
+            } else if (item.isGoogleDriveItem && item.id == "gdrive_shared_with_me") {
+                folderIconImageView?.setImageResource(R.drawable.share_2)
+                folderIconImageView?.imageTintList = android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(context, R.color.explorer_primary)
+                )
+                if (dateText != null) {
+                    metaText.text = "Thư mục chia sẻ"
+                    dateText.visibility = View.GONE
+                } else {
+                    metaText.text = "Thư mục chia sẻ"
+                }
             } else {
-                metaText.text = context.getString(R.string.explorer_file_meta, count, item.modified)
+                folderIconImageView?.setImageResource(item.fallbackIconRes ?: R.drawable.folder)
+                if (item.isGoogleDriveItem) {
+                    folderIconImageView?.imageTintList = null
+                }
+                val count = context.getString(R.string.explorer_item_count, item.itemCount ?: 0)
+                if (dateText != null) {
+                    metaText.text = count
+                    dateText.text = item.modified
+                    dateText.visibility = if (item.modified.isBlank()) View.GONE else View.VISIBLE
+                } else {
+                    metaText.text = context.getString(R.string.explorer_file_meta, count, item.modified)
+                }
             }
             
             selectionCheckBox.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
             selectionCheckBox.isChecked = isSelected
-            moreButton.visibility = if (isSelectionMode) View.GONE else View.VISIBLE
+            moreButton.visibility = if (isSelectionMode || item.id == "gdrive_shared_with_me") View.GONE else View.VISIBLE
             moreButton.setOnClickListener { onMoreClick(item) }
             itemView.setOnClickListener {
                 if (isSelectionMode) {

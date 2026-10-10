@@ -1,5 +1,6 @@
 package com.example.filemanagementapp.chat
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,8 +9,15 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.filemanagementapp.R
+import io.noties.markwon.Markwon
 
 class AiChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(DiffCallback) {
+
+    private var markwon: Markwon? = null
+
+    private fun getMarkwon(context: Context): Markwon {
+        return markwon ?: Markwon.create(context).also { markwon = it }
+    }
 
     companion object {
         private const val VIEW_TYPE_USER = 1
@@ -39,7 +47,7 @@ class AiChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(DiffCall
             }
             else -> {
                 val view = inflater.inflate(R.layout.item_chat_ai, parent, false)
-                AiViewHolder(view)
+                AiViewHolder(view, getMarkwon(parent.context))
             }
         }
     }
@@ -69,13 +77,16 @@ class AiChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(DiffCall
         }
     }
 
-    class AiViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class AiViewHolder(
+        itemView: View,
+        private val markwon: Markwon
+    ) : RecyclerView.ViewHolder(itemView) {
         private val messageText: TextView = itemView.findViewById(R.id.aiMessageText)
         private val actionsContainer: View = itemView.findViewById(R.id.actionsContainer)
         private val actionDetailsText: TextView = itemView.findViewById(R.id.actionDetailsText)
 
         fun bind(item: ChatMessage) {
-            messageText.text = item.text
+            markwon.setMarkdown(messageText, item.text)
 
             val actions = item.actionsExecuted.orEmpty()
             val affected = item.affectedItems.orEmpty()

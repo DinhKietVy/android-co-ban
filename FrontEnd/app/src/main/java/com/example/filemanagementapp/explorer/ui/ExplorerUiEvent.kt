@@ -12,4 +12,5 @@ sealed interface ExplorerUiEvent {
         val aiTags: List<String>,
         val showAiPanel: Boolean
     ) : ExplorerUiEvent
+    data object ConnectGoogleDrive : ExplorerUiEvent
 }
