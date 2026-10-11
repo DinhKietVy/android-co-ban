@@ -492,8 +492,9 @@ def chat_with_gemini(
     current_input = context_prefix + prompt
 
     if file_path:
+        clean_file_path = file_path.replace("\\", "/").lstrip("/")
         abs_path = os.path.normpath(
-            os.path.join(user_data_path, file_path)
+            os.path.join(user_data_path, clean_file_path)
         )
         file_exists = (
             abs_path.startswith(user_data_path)

@@ -228,6 +228,7 @@ class FilePreviewActivity : AppCompatActivity() {
         } else {
             hidePanel()
         }
+        checkForOriginalBackup()
     }
 
     private fun convertFileToPdf() {
@@ -984,6 +985,7 @@ class FilePreviewActivity : AppCompatActivity() {
                     if (uploadResult.isSuccess) {
                         isModified = true
                         setResult(RESULT_OK)
+                        previewRenderHelper.hasOriginalBackup = true
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
                             "Đã ghi đè ảnh thành công. Ảnh gốc đã được sao lưu vào Thùng rác để bạn khôi phục khi cần.",
@@ -1115,6 +1117,8 @@ class FilePreviewActivity : AppCompatActivity() {
                     if (restoreResult.isSuccess) {
                         isModified = true
                         setResult(RESULT_OK)
+                        previewRenderHelper.hasOriginalBackup = false
+                        checkForOriginalBackup()
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
                             "Đã khôi phục ảnh gốc thành công!",
@@ -1138,6 +1142,32 @@ class FilePreviewActivity : AppCompatActivity() {
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
+            }
+        }
+    }
+
+    private fun checkForOriginalBackup() {
+        val item = explorerItem ?: return
+        if (item.isGoogleDriveItem) {
+            previewRenderHelper.hasOriginalBackup = false
+            return
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val trashDirectory = explorerRepository.listDirectory(username, "trash").getOrNull()
+                val hasBackup = trashDirectory?.items?.any { trashItem ->
+                    val cleanName = if (trashItem.name.matches(Regex("^\\d{13}_.*"))) {
+                        trashItem.name.substringAfter('_')
+                    } else {
+                        trashItem.name
+                    }
+                    cleanName == item.name
+                } == true
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.hasOriginalBackup = hasBackup
+                }
+            } catch (e: Exception) {
+                // Ignore
             }
         }
     }

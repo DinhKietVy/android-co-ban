@@ -215,7 +215,7 @@ class ExplorerViewModel(
 
     fun deleteDriveItem(item: ExplorerItem) {
         val service = driveService ?: return
-        val fileId = item.driveFileId ?: return
+        val fileId = item.driveShortcutId ?: item.driveFileId ?: return
         viewModelScope.launch {
             googleDriveRepository.deleteFile(drive = service, fileId = fileId)
                 .onSuccess {

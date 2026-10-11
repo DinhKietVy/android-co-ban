@@ -120,7 +120,7 @@ class ExplorerAdapter(
                     metaText.text = "${item.size ?: "Đám mây"} • $subtitle"
                 }
             } else if (item.isGoogleDriveItem && item.id == "gdrive_shared_with_me") {
-                folderIconImageView?.setImageResource(R.drawable.share_2)
+                folderIconImageView?.setImageResource(R.drawable.users)
                 folderIconImageView?.imageTintList = android.content.res.ColorStateList.valueOf(
                     androidx.core.content.ContextCompat.getColor(context, R.color.explorer_primary)
                 )

@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import coil.load
 import androidx.core.content.ContextCompat
+import android.content.Intent
+import com.example.filemanagementapp.widget.QuickHubWidgetProvider
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
@@ -45,16 +47,51 @@ class MainActivity : AppCompatActivity() {
         }
 
         username = intent.getStringExtra(LoginActivity.EXTRA_USERNAME).orEmpty()
+        if (username.isEmpty()) {
+            val prefs = getSharedPreferences(QuickHubWidgetProvider.PREFS_NAME, MODE_PRIVATE)
+            username = prefs.getString(QuickHubWidgetProvider.KEY_USERNAME, "").orEmpty()
+        }
+
         setupPagerAndNavigation()
         observeNavigationRequests()
+        handleWidgetNavigation(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleWidgetNavigation(intent)
+    }
+
+    private fun handleWidgetNavigation(intent: Intent?) {
+        if (intent == null) return
+        val navigateAi = intent.getBooleanExtra(QuickHubWidgetProvider.EXTRA_NAVIGATE_AI, false)
+        val navigateDrive = intent.getBooleanExtra(QuickHubWidgetProvider.EXTRA_NAVIGATE_DRIVE, false)
+        val navigateUpload = intent.getBooleanExtra(QuickHubWidgetProvider.EXTRA_NAVIGATE_UPLOAD, false)
+
+        if (navigateAi) {
+            intent.removeExtra(QuickHubWidgetProvider.EXTRA_NAVIGATE_AI)
+            com.example.filemanagementapp.chat.AiChatBottomSheetFragment.newInstance(username)
+                .show(supportFragmentManager, com.example.filemanagementapp.chat.AiChatBottomSheetFragment.TAG)
+        } else if (navigateDrive) {
+            intent.removeExtra(QuickHubWidgetProvider.EXTRA_NAVIGATE_DRIVE)
+            viewPager.setCurrentItem(EXPLORER_PAGE_INDEX, false)
+            navigationViewModel.requestOpenDrive()
+        } else if (navigateUpload) {
+            intent.removeExtra(QuickHubWidgetProvider.EXTRA_NAVIGATE_UPLOAD)
+            viewPager.setCurrentItem(EXPLORER_PAGE_INDEX, false)
+            navigationViewModel.requestTriggerCreateFab()
+        }
     }
 
     private fun observeNavigationRequests() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                navigationViewModel.openFolderRequests.collect {
-                    if (viewPager.currentItem != EXPLORER_PAGE_INDEX) {
-                        viewPager.setCurrentItem(EXPLORER_PAGE_INDEX, false)
+                navigationViewModel.openFolderRequests.collect { folderPath ->
+                    if (!folderPath.isNullOrBlank()) {
+                        if (viewPager.currentItem != EXPLORER_PAGE_INDEX) {
+                            viewPager.setCurrentItem(EXPLORER_PAGE_INDEX, false)
+                        }
                     }
                 }
             }

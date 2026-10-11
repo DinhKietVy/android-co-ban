@@ -438,7 +438,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         observeUiState()
 
         if (savedInstanceState == null) {
-            viewModel.loadRootDirectory()
+            if (!navigationViewModel.openDriveRequests.value) {
+                viewModel.loadRootDirectory()
+            }
         }
     }
 
@@ -482,7 +484,43 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 navigationViewModel.openFolderRequests.collect { folderPath ->
-                    viewModel.loadDirectory(folderPath)
+                    if (!folderPath.isNullOrBlank()) {
+                        navigationViewModel.consumeOpenFolderRequest()
+                        viewModel.loadDirectory(folderPath)
+                    }
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                navigationViewModel.openDriveRequests.collect { shouldOpenDrive ->
+                    if (shouldOpenDrive) {
+                        navigationViewModel.consumeOpenDriveRequest()
+                        val driveAccount = driveAuthManager.getSignedInAccount()
+                        if (driveAccount != null) {
+                            val service = driveAuthManager.getDriveService(driveAccount)
+                            viewModel.setDriveService(service)
+                            viewModel.loadDirectory("gdrive://root", "Google Drive")
+                        } else {
+                            showDriveConnectSheet()
+                        }
+                    }
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                navigationViewModel.triggerCreateFabRequests.collect { shouldTrigger ->
+                    if (shouldTrigger) {
+                        navigationViewModel.consumeCreateFabRequest()
+                        createFab.post {
+                            if (isAdded && !isDetached) {
+                                showCreateActionsSheet()
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -600,6 +638,13 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         swipeRefreshLayout.isRefreshing = state.isRefreshing
         swipeRefreshLayout.isEnabled = !state.isAnalyzingAi && !state.isSelectionMode
         storageValueText.text = state.storageSummary
+        if (state.storageSummary.isNotBlank() && !state.currentFolder.startsWith("gdrive://")) {
+            com.example.filemanagementapp.widget.QuickHubWidgetProvider.updateStorageSummary(
+                context = requireContext().applicationContext,
+                storageSummary = state.storageSummary,
+                username = username
+            )
+        }
         val isListEmpty = state.items.isEmpty()
         
         emptyStateContainer.visibility = if (isListEmpty && !state.isLoading) View.VISIBLE else View.GONE
@@ -662,7 +707,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         if (item.isGoogleDriveItem) {
             when (item.type) {
                 ExplorerItem.Type.FOLDER -> viewModel.loadDirectory(item.path, item.name)
-                ExplorerItem.Type.FILE -> showDriveFileActionsSheet(item)
+                ExplorerItem.Type.FILE -> openDriveFile(item)
             }
             return
         }
@@ -856,22 +901,29 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
 
         downloadProgressCard.visibility = View.VISIBLE
 
-        downloadProgressRing.max = 100
-        downloadProgressRing.progress = progress.progressPercent
-        downloadProgressPercentText.text = getString(
-            R.string.explorer_download_progress_percent,
-            progress.progressPercent
-        )
-        downloadProgressFileName.text = progress.fileName
-        downloadProgressMetaText.text = if (progress.totalBytes != null && progress.totalBytes > 0L) {
-            getString(
+        if (progress.totalBytes != null && progress.totalBytes > 0L) {
+            downloadProgressRing.isIndeterminate = false
+            downloadProgressRing.max = 100
+            downloadProgressRing.progress = progress.progressPercent
+            downloadProgressPercentText.text = getString(
+                R.string.explorer_download_progress_percent,
+                progress.progressPercent
+            )
+            downloadProgressMetaText.text = getString(
                 R.string.explorer_download_progress_meta,
                 Formatter.formatShortFileSize(requireContext(), progress.downloadedBytes),
                 Formatter.formatShortFileSize(requireContext(), progress.totalBytes)
             )
         } else {
-            getString(R.string.explorer_download_preparing)
+            downloadProgressRing.isIndeterminate = true
+            downloadProgressPercentText.text = if (progress.downloadedBytes > 0L) {
+                Formatter.formatShortFileSize(requireContext(), progress.downloadedBytes)
+            } else {
+                "..."
+            }
+            downloadProgressMetaText.text = getString(R.string.explorer_download_preparing)
         }
+        downloadProgressFileName.text = progress.fileName
     }
 
     private fun openFilePreview(item: ExplorerItem, showAiPanel: Boolean) {
@@ -1051,35 +1103,54 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             .show()
     }
 
-    private fun showDriveFileActionsSheet(item: ExplorerItem) {
-        val contentView = layoutInflater.inflate(R.layout.bottom_sheet_drive_file_actions, null)
-        val dialog = BottomSheetDialog(requireContext())
-        dialog.setContentView(contentView)
+    private fun openDriveFile(item: ExplorerItem) {
+        val service = viewModel.getDriveService() ?: run {
+            showDriveConnectSheet()
+            return
+        }
+        val fileId = item.driveFileId ?: return
 
-        val nameView = contentView.findViewById<TextView>(R.id.driveActionFileName)
-        val metaView = contentView.findViewById<TextView>(R.id.driveActionFileMeta)
-        nameView.text = item.name
-        metaView.text = item.size ?: "Google Drive"
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                    com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                        fileName = item.name,
+                        progressPercent = 0,
+                        downloadedBytes = 0L,
+                        totalBytes = item.sizeBytes
+                    )
+                )
 
-        // Action 1: Xem trước tệp
-        contentView.findViewById<View>(R.id.actionDrivePreview).setOnClickListener {
-            dialog.dismiss()
-            val service = viewModel.getDriveService() ?: run {
-                showDriveConnectSheet()
-                return@setOnClickListener
-            }
-            val fileId = item.driveFileId ?: return@setOnClickListener
-            Toast.makeText(requireContext(), "Đang chuẩn bị tệp xem trước...", Toast.LENGTH_SHORT).show()
-
-            viewLifecycleOwner.lifecycleScope.launch {
                 val result = googleDriveRepository.downloadFile(
                     drive = service,
                     fileId = fileId,
                     fileName = item.name,
                     mimeType = item.driveMimeType,
+                    totalBytes = item.sizeBytes,
                     context = requireContext()
-                )
+                ) { downloaded, total, percent ->
+                    com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                        com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                            fileName = item.name,
+                            progressPercent = percent,
+                            downloadedBytes = downloaded,
+                            totalBytes = total
+                        )
+                    )
+                }
+
                 result.onSuccess { cachedFile ->
+                    com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                        com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                            fileName = item.name,
+                            progressPercent = 100,
+                            downloadedBytes = cachedFile.length(),
+                            totalBytes = cachedFile.length()
+                        )
+                    )
+                    kotlinx.coroutines.delay(300)
+                    com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
+
                     val previewItem = item.copy(
                         previewUrl = "file://${cachedFile.absolutePath}"
                     )
@@ -1095,9 +1166,30 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                         )
                     )
                 }.onFailure { e ->
+                    com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
                     Toast.makeText(requireContext(), "Lỗi tải tệp: ${e.message}", Toast.LENGTH_LONG).show()
                 }
+            } catch (e: Exception) {
+                com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
+                Toast.makeText(requireContext(), "Lỗi tải tệp: ${e.message}", Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    private fun showDriveFileActionsSheet(item: ExplorerItem) {
+        val contentView = layoutInflater.inflate(R.layout.bottom_sheet_drive_file_actions, null)
+        val dialog = BottomSheetDialog(requireContext())
+        dialog.setContentView(contentView)
+
+        val nameView = contentView.findViewById<TextView>(R.id.driveActionFileName)
+        val metaView = contentView.findViewById<TextView>(R.id.driveActionFileMeta)
+        nameView.text = item.name
+        metaView.text = item.size ?: "Google Drive"
+
+        // Action 1: Xem trước tệp
+        contentView.findViewById<View>(R.id.actionDrivePreview).setOnClickListener {
+            dialog.dismiss()
+            openDriveFile(item)
         }
 
         // Action 2: Sao chép sang bộ nhớ ứng dụng
@@ -1108,25 +1200,61 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 return@setOnClickListener
             }
             val fileId = item.driveFileId ?: return@setOnClickListener
-            Toast.makeText(requireContext(), "Đang tải tệp từ Google Drive về...", Toast.LENGTH_SHORT).show()
 
             viewLifecycleOwner.lifecycleScope.launch {
-                val result = googleDriveRepository.downloadFile(
-                    drive = service,
-                    fileId = fileId,
-                    fileName = item.name,
-                    mimeType = item.driveMimeType,
-                    context = requireContext()
-                )
-                result.onSuccess { cachedFile ->
-                    com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
-                        context = requireContext(),
-                        fileUri = Uri.fromFile(cachedFile),
-                        targetPath = "",
-                        username = username
+                try {
+                    com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                        com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                            fileName = item.name,
+                            progressPercent = 0,
+                            downloadedBytes = 0L,
+                            totalBytes = item.sizeBytes
+                        )
                     )
-                    Toast.makeText(requireContext(), "Đã bắt đầu sao chép '${cachedFile.name}' sang bộ nhớ ứng dụng", Toast.LENGTH_SHORT).show()
-                }.onFailure { e ->
+
+                    val result = googleDriveRepository.downloadFile(
+                        drive = service,
+                        fileId = fileId,
+                        fileName = item.name,
+                        mimeType = item.driveMimeType,
+                        totalBytes = item.sizeBytes,
+                        context = requireContext()
+                    ) { downloaded, total, percent ->
+                        com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                            com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                                fileName = item.name,
+                                progressPercent = percent,
+                                downloadedBytes = downloaded,
+                                totalBytes = total
+                            )
+                        )
+                    }
+
+                    result.onSuccess { cachedFile ->
+                        com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                            com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                                fileName = item.name,
+                                progressPercent = 100,
+                                downloadedBytes = cachedFile.length(),
+                                totalBytes = cachedFile.length()
+                            )
+                        )
+                        kotlinx.coroutines.delay(300)
+                        com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
+
+                        com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
+                            context = requireContext(),
+                            fileUri = Uri.fromFile(cachedFile),
+                            targetPath = "",
+                            username = username
+                        )
+                        Toast.makeText(requireContext(), "Đã bắt đầu sao chép '${cachedFile.name}' sang bộ nhớ ứng dụng", Toast.LENGTH_SHORT).show()
+                    }.onFailure { e ->
+                        com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
+                        Toast.makeText(requireContext(), "Lỗi sao chép tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                } catch (e: Exception) {
+                    com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
                     Toast.makeText(requireContext(), "Lỗi sao chép tệp: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
@@ -1140,32 +1268,68 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 return@setOnClickListener
             }
             val fileId = item.driveFileId ?: return@setOnClickListener
-            Toast.makeText(requireContext(), "Đang chuẩn bị tệp từ Google Drive...", Toast.LENGTH_SHORT).show()
 
             viewLifecycleOwner.lifecycleScope.launch {
-                val result = googleDriveRepository.downloadFile(
-                    drive = service,
-                    fileId = fileId,
-                    fileName = item.name,
-                    mimeType = item.driveMimeType,
-                    context = requireContext()
-                )
-                result.onSuccess { cachedFile ->
-                    Toast.makeText(requireContext(), "Đang nạp tệp vào trợ lý AI...", Toast.LENGTH_SHORT).show()
-                    val uploadResult = explorerRepository.uploadDirectFile(
-                        username = username,
-                        targetPath = "",
-                        file = cachedFile,
-                        overrideFileName = cachedFile.name
+                try {
+                    com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                        com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                            fileName = item.name,
+                            progressPercent = 0,
+                            downloadedBytes = 0L,
+                            totalBytes = item.sizeBytes
+                        )
                     )
-                    uploadResult.onSuccess { pair ->
-                        val serverRelativePath = pair.second
-                        AiChatBottomSheetFragment.newInstance(username, serverRelativePath)
-                            .show(parentFragmentManager, AiChatBottomSheetFragment.TAG)
-                    }.onFailure { uploadErr ->
-                        Toast.makeText(requireContext(), "Không thể đồng bộ tệp lên server AI: ${uploadErr.message}", Toast.LENGTH_LONG).show()
+
+                    val result = googleDriveRepository.downloadFile(
+                        drive = service,
+                        fileId = fileId,
+                        fileName = item.name,
+                        mimeType = item.driveMimeType,
+                        totalBytes = item.sizeBytes,
+                        context = requireContext()
+                    ) { downloaded, total, percent ->
+                        com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                            com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                                fileName = item.name,
+                                progressPercent = percent,
+                                downloadedBytes = downloaded,
+                                totalBytes = total
+                            )
+                        )
                     }
-                }.onFailure { e ->
+
+                    result.onSuccess { cachedFile ->
+                        com.example.filemanagementapp.download.ExplorerDownloadProgressStore.update(
+                            com.example.filemanagementapp.download.ExplorerDownloadProgress(
+                                fileName = item.name,
+                                progressPercent = 100,
+                                downloadedBytes = cachedFile.length(),
+                                totalBytes = cachedFile.length()
+                            )
+                        )
+                        kotlinx.coroutines.delay(300)
+                        com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
+
+                        Toast.makeText(requireContext(), "Đang nạp tệp vào trợ lý AI...", Toast.LENGTH_SHORT).show()
+                        val uploadResult = explorerRepository.uploadDirectFile(
+                            username = username,
+                            targetPath = "",
+                            file = cachedFile,
+                            overrideFileName = cachedFile.name
+                        )
+                        uploadResult.onSuccess { pair ->
+                            val serverRelativePath = pair.second
+                            AiChatBottomSheetFragment.newInstance(username, serverRelativePath)
+                                .show(parentFragmentManager, AiChatBottomSheetFragment.TAG)
+                        }.onFailure { uploadErr ->
+                            Toast.makeText(requireContext(), "Không thể đồng bộ tệp lên server AI: ${uploadErr.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }.onFailure { e ->
+                        com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
+                        Toast.makeText(requireContext(), "Lỗi chuẩn bị tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                } catch (e: Exception) {
+                    com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
                     Toast.makeText(requireContext(), "Lỗi chuẩn bị tệp: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
