@@ -21,7 +21,7 @@
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:paddingBottom="4dp"
-        android:text="Lưu ảnh đã chỉnh sửa"
+        android:text="@string/save_image_title"
         android:textColor="@color/explorer_text_primary"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -32,7 +32,7 @@
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:paddingBottom="14dp"
-        android:text="Chọn phương thức lưu kết quả chỉnh sửa của bạn"
+        android:text="@string/save_image_subtitle"
         android:textColor="@color/explorer_text_secondary"
         android:textSize="13sp" />
 
@@ -80,7 +80,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Lưu bản sao mới"
+                    android:text="@string/save_image_as_copy"
                     android:textColor="@color/explorer_text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -92,7 +92,7 @@
                     android:background="@drawable/badge_bg_blue"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="2dp"
-                    android:text="Khuyên dùng"
+                    android:text="@string/save_image_recommended"
                     android:textColor="@color/explorer_primary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
@@ -103,7 +103,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Giữ nguyên 100% ảnh gốc, tạo một tệp ảnh mới riêng biệt"
+                android:text="@string/save_image_as_copy_desc"
                 android:textColor="@color/explorer_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -159,7 +159,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ghi đè ảnh gốc"
+                android:text="@string/save_image_overwrite"
                 android:textColor="@color/explorer_text_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
@@ -168,7 +168,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Thay thế ảnh hiện tại. Bản gốc được chuyển vào Thùng rác để bạn có thể khôi phục."
+                android:text="@string/save_image_overwrite_desc"
                 android:textColor="@color/explorer_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -201,7 +201,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Hủy bỏ (Không lưu thay đổi)"
+            android:text="@string/save_image_cancel"
             android:textColor="@color/grey_600"
             android:textSize="14sp"
             android:textStyle="bold" />

@@ -16,7 +16,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Quản lý truy cập"
+            android:text="@string/share_manage_title"
             android:textColor="@color/explorer_text_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -42,7 +42,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Thêm người dùng"
+            android:text="@string/share_manage_add_user"
             android:textColor="@color/explorer_text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -65,7 +65,7 @@
                     android:id="@+id/shareUsernameInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Nhập username"
+                    android:hint="@string/share_manage_username_hint"
                     android:inputType="text"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="12dp"
@@ -78,7 +78,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:backgroundTint="@color/purple_600"
-                android:text="Thêm"
+                android:text="@string/share_manage_add_button"
                 android:textColor="@color/white"
                 app:cornerRadius="8dp" />
         </LinearLayout>
@@ -96,14 +96,14 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="16dp"
                 android:checked="true"
-                android:text="Người xem"
+                android:text="@string/share_role_viewer"
                 android:textSize="13sp" />
 
             <RadioButton
                 android:id="@+id/sharePermissionWrite"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Người chỉnh sửa"
+                android:text="@string/share_role_editor"
                 android:textSize="13sp" />
         </RadioGroup>
 
@@ -124,7 +124,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Những người có quyền truy cập"
+                android:text="@string/share_manage_access_list_title"
                 android:textColor="@color/explorer_text_primary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -143,7 +143,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Chưa chia sẻ với ai"
+            android:text="@string/share_manage_empty_users"
             android:textColor="@color/explorer_text_secondary"
             android:textSize="13sp"
             android:visibility="gone" />
@@ -165,7 +165,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Quyền truy cập chung"
+            android:text="@string/share_general_access_title"
             android:textColor="@color/explorer_text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -198,7 +198,7 @@
                     android:id="@+id/generalAccessTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Bị hạn chế"
+                    android:text="@string/share_general_restricted"
                     android:textColor="@color/explorer_text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -207,7 +207,7 @@
                     android:id="@+id/generalAccessSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Chỉ những người được thêm mới có thể mở bằng liên kết này"
+                    android:text="@string/share_general_restricted_desc"
                     android:textColor="@color/explorer_text_secondary"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -218,7 +218,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:padding="8dp"
-                android:text="Thay đổi"
+                android:text="@string/share_general_change"
                 android:textColor="@color/purple_600"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -252,7 +252,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:text="Sao chép liên kết"
+                android:text="@string/share_copy_link"
                 android:textColor="@color/explorer_text_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />

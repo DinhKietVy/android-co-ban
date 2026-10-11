@@ -18,14 +18,14 @@
         <ImageView
             android:layout_width="18dp"
             android:layout_height="18dp"
-            android:contentDescription="Bộ nhớ"
+            android:contentDescription="@string/widget_quick_hub_header"
             android:src="@drawable/ic_widget_storage" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:text="Quản lý tệp"
+            android:text="@string/widget_quick_hub_header"
             android:textColor="#1E293B"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -51,7 +51,7 @@
                 android:id="@+id/widgetStorageText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Đã dùng: --"
+                android:text="@string/widget_quick_hub_used_default"
                 android:textColor="#2563EB"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -92,7 +92,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_gravity="center"
-                    android:contentDescription="Tìm kiếm"
+                    android:contentDescription="@string/widget_action_search"
                     android:src="@drawable/ic_widget_search" />
             </FrameLayout>
 
@@ -102,7 +102,7 @@
                 android:layout_marginTop="4dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="Tìm kiếm"
+                android:text="@string/widget_action_search"
                 android:textColor="#475569"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -125,7 +125,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_gravity="center"
-                    android:contentDescription="Tải lên"
+                    android:contentDescription="@string/widget_action_upload"
                     android:src="@drawable/ic_widget_upload" />
             </FrameLayout>
 
@@ -135,7 +135,7 @@
                 android:layout_marginTop="4dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="Tải lên"
+                android:text="@string/widget_action_upload"
                 android:textColor="#475569"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -158,7 +158,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_gravity="center"
-                    android:contentDescription="Trợ lý AI"
+                    android:contentDescription="@string/widget_action_ai"
                     android:src="@drawable/ic_widget_ai" />
             </FrameLayout>
 
@@ -168,7 +168,7 @@
                 android:layout_marginTop="4dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="Trợ lý AI"
+                android:text="@string/widget_action_ai"
                 android:textColor="#475569"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -191,7 +191,7 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:layout_gravity="center"
-                    android:contentDescription="Google Drive"
+                    android:contentDescription="@string/widget_action_drive"
                     android:src="@drawable/ic_google_drive" />
             </FrameLayout>
 
@@ -201,7 +201,7 @@
                 android:layout_marginTop="4dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="Drive"
+                android:text="@string/widget_action_drive"
                 android:textColor="#475569"
                 android:textSize="11sp" />
         </LinearLayout>

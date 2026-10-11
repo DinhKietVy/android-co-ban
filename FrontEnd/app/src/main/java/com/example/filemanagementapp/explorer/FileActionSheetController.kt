@@ -144,11 +144,11 @@ class FileActionSheetController(
         bottomSheetFileMeta.text = buildMeta(item)
         
         if (item.type == ExplorerItem.Type.FOLDER) {
-            cardAskAiTitle.text = "Hỏi AI về thư mục này"
-            cardAskAiSubtitle.text = "Tra cứu tệp con, thống kê hoặc quản lý thư mục"
+            cardAskAiTitle.text = context.getString(R.string.action_sheet_ask_ai_folder_title)
+            cardAskAiSubtitle.text = context.getString(R.string.action_sheet_ask_ai_folder_subtitle)
         } else {
-            cardAskAiTitle.text = "Hỏi AI về tệp này"
-            cardAskAiSubtitle.text = "Tóm tắt, đọc nội dung hoặc đặt câu hỏi về tệp"
+            cardAskAiTitle.text = context.getString(R.string.action_sheet_ask_ai_file_title)
+            cardAskAiSubtitle.text = context.getString(R.string.action_sheet_ask_ai_file_subtitle)
         }
         cardAskAi.visibility = if (config.showAskAi) View.VISIBLE else View.GONE
         

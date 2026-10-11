@@ -669,20 +669,20 @@ class PreviewRenderHelper(
             val dialogView = activity.layoutInflater.inflate(R.layout.dialog_input, null)
             val inputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
             val input = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
-            inputLayout.hint = "Nội dung văn bản (OCR)"
+            inputLayout.hint = activity.getString(R.string.preview_ocr_input_hint)
             input.isSingleLine = false
             input.maxLines = 8
             input.setText(ocrText)
             
             com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
-                .setTitle("Chỉnh sửa văn bản trích xuất")
+                .setTitle(R.string.preview_ocr_edit_title)
                 .setView(dialogView)
-                .setPositiveButton("Lưu") { _, _ ->
+                .setPositiveButton(R.string.action_save) { _, _ ->
                     ocrText = input.text.toString()
                     ocrTextView.text = ocrText.ifBlank { activity.getString(R.string.preview_ai_empty) }
                     onAiDataChanged(ocrText, aiTags)
                 }
-                .setNegativeButton("Hủy", null)
+                .setNegativeButton(R.string.action_cancel, null)
                 .show()
         }
 
@@ -712,12 +712,12 @@ class PreviewRenderHelper(
             val dialogView = activity.layoutInflater.inflate(R.layout.dialog_input, null)
             val inputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
             val input = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
-            inputLayout.hint = "Tên nhãn (Tag)"
+            inputLayout.hint = activity.getString(R.string.preview_tag_input_hint)
             
             com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
-                .setTitle("Thêm nhãn mới")
+                .setTitle(R.string.preview_tag_add_title)
                 .setView(dialogView)
-                .setPositiveButton("Thêm") { _, _ ->
+                .setPositiveButton(R.string.action_add) { _, _ ->
                     val newTag = input.text.toString().trim()
                     if (newTag.isNotBlank() && !aiTags.contains(newTag)) {
                         val mutableTags = aiTags.toMutableList()
@@ -727,7 +727,7 @@ class PreviewRenderHelper(
                         onAiDataChanged(ocrText, aiTags)
                     }
                 }
-                .setNegativeButton("Hủy", null)
+                .setNegativeButton(R.string.action_cancel, null)
                 .show()
         }
     }

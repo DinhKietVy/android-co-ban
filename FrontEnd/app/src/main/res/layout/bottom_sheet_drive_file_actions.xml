@@ -110,7 +110,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="Xem trước tệp"
+            android:text="@string/drive_action_preview"
             android:textColor="@color/search_text_primary"
             android:textSize="15sp" />
     </LinearLayout>
@@ -140,7 +140,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="Sao chép sang bộ nhớ ứng dụng"
+            android:text="@string/drive_action_import"
             android:textColor="@color/search_text_primary"
             android:textSize="15sp" />
     </LinearLayout>
@@ -170,7 +170,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="Hỏi AI về tệp này"
+            android:text="@string/drive_action_ask_ai"
             android:textColor="@color/search_primary"
             android:textSize="15sp"
             android:textStyle="bold" />
@@ -201,7 +201,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="Mở trong Google Drive"
+            android:text="@string/drive_action_open_external"
             android:textColor="@color/search_text_primary"
             android:textSize="15sp" />
     </LinearLayout>
@@ -231,7 +231,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="Xóa tệp khỏi Google Drive"
+            android:text="@string/drive_action_delete"
             android:textColor="@color/trash_delete"
             android:textSize="15sp" />
     </LinearLayout>

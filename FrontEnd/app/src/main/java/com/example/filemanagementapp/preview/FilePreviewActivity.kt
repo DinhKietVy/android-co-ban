@@ -84,7 +84,7 @@ class FilePreviewActivity : AppCompatActivity() {
             }
         } else if (result.resultCode == com.yalantis.ucrop.UCrop.RESULT_ERROR && result.data != null) {
             val cropError = com.yalantis.ucrop.UCrop.getError(result.data!!)
-            android.widget.Toast.makeText(this, "Lỗi khi cắt ảnh: ${cropError?.message}", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this, getString(R.string.preview_toast_crop_error, cropError?.message.orEmpty()), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -242,11 +242,11 @@ class FilePreviewActivity : AppCompatActivity() {
                 targetFormat = "pdf"
             ).onSuccess { response ->
                 previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
-                android.widget.Toast.makeText(this@FilePreviewActivity, "Chuyển đổi thành công! Vui lòng quay lại thư mục để xem bản PDF.", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(this@FilePreviewActivity, getString(R.string.preview_toast_pdf_convert_success), android.widget.Toast.LENGTH_SHORT).show()
                 finish()
             }.onFailure {
                 previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
-                android.widget.Toast.makeText(this@FilePreviewActivity, "Lỗi chuyển đổi: ${it.message}", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(this@FilePreviewActivity, getString(R.string.preview_toast_pdf_convert_error, it.message.orEmpty()), android.widget.Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -777,9 +777,9 @@ class FilePreviewActivity : AppCompatActivity() {
             if (result.isSuccess) {
                 isModified = true
                 setResult(RESULT_OK)
-                android.widget.Toast.makeText(this@FilePreviewActivity, "Đã lưu thành công", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(this@FilePreviewActivity, getString(R.string.preview_toast_save_success), android.widget.Toast.LENGTH_SHORT).show()
             } else {
-                android.widget.Toast.makeText(this@FilePreviewActivity, "Lỗi khi lưu: ${result.exceptionOrNull()?.message}", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(this@FilePreviewActivity, getString(R.string.preview_toast_save_failed, result.exceptionOrNull()?.message ?: ""), android.widget.Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -876,7 +876,7 @@ class FilePreviewActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
-                    android.widget.Toast.makeText(this@FilePreviewActivity, "Không thể tải ảnh: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(this@FilePreviewActivity, getString(R.string.preview_toast_cannot_load_image, e.message ?: ""), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -892,7 +892,7 @@ class FilePreviewActivity : AppCompatActivity() {
         val baseName = item.name.substringBeforeLast('.', "")
         val sampleNewName = if (ext.isNotEmpty()) "${baseName}_edited.$ext" else "${baseName}_edited"
         view.findViewById<TextView>(R.id.tvSaveAsCopyDesc)?.text =
-            "Giữ nguyên 100% ảnh gốc, lưu kết quả thành tệp mới: $sampleNewName"
+            getString(R.string.save_image_as_copy_format, sampleNewName)
 
         view.findViewById<View>(R.id.actionSaveAsCopy)?.setOnClickListener {
             dialog.dismiss()
@@ -936,13 +936,13 @@ class FilePreviewActivity : AppCompatActivity() {
                         setResult(RESULT_OK)
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
-                            "Đã lưu bản sao mới: $newFileName (ảnh gốc vẫn giữ nguyên)",
+                            getString(R.string.preview_toast_saved_copy, newFileName),
                             android.widget.Toast.LENGTH_LONG
                         ).show()
                     } else {
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
-                            "Lỗi khi lưu bản sao: ${result.exceptionOrNull()?.message}",
+                            getString(R.string.preview_error_save_copy, result.exceptionOrNull()?.message ?: ""),
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -952,7 +952,7 @@ class FilePreviewActivity : AppCompatActivity() {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                     android.widget.Toast.makeText(
                         this@FilePreviewActivity,
-                        "Lỗi khi lưu: ${e.message}",
+                        getString(R.string.preview_toast_save_failed, e.message ?: ""),
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -1028,14 +1028,14 @@ class FilePreviewActivity : AppCompatActivity() {
                         previewRenderHelper.hasOriginalBackup = true
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
-                            "Đã ghi đè ảnh thành công. Ảnh gốc đã được sao lưu vào Thùng rác để bạn khôi phục khi cần.",
+                            getString(R.string.preview_toast_overwrite_success),
                             android.widget.Toast.LENGTH_LONG
                         ).show()
                         previewRenderHelper.reloadImage()
                     } else {
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
-                            "Lỗi khi upload: ${uploadResult.exceptionOrNull()?.message}",
+                            getString(R.string.preview_toast_upload_failed, uploadResult.exceptionOrNull()?.message ?: ""),
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -1045,7 +1045,7 @@ class FilePreviewActivity : AppCompatActivity() {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                     android.widget.Toast.makeText(
                         this@FilePreviewActivity,
-                        "Lỗi khi ghi đè: ${e.message}",
+                        getString(R.string.preview_toast_overwrite_failed, e.message ?: ""),
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -1086,7 +1086,7 @@ class FilePreviewActivity : AppCompatActivity() {
                         previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
-                            "Không thể tải danh sách Thùng rác để tìm ảnh gốc",
+                            getString(R.string.preview_error_cannot_load_trash),
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -1106,9 +1106,9 @@ class FilePreviewActivity : AppCompatActivity() {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                     if (candidates.isEmpty()) {
                         MaterialAlertDialogBuilder(this@FilePreviewActivity)
-                            .setTitle("Khôi phục ảnh gốc")
-                            .setMessage("Không tìm thấy bản sao lưu ảnh gốc nào của '${item.name}' trong Thùng rác.\n\nNếu bạn chưa từng ghi đè ảnh này hoặc đã dọn sạch Thùng rác, bản sao lưu gốc không có sẵn.")
-                            .setPositiveButton("Đã hiểu", null)
+                            .setTitle(R.string.preview_edit_restore_original)
+                            .setMessage(getString(R.string.preview_restore_not_found_message, item.name))
+                            .setPositiveButton(R.string.preview_restore_got_it, null)
                             .show()
                         return@withContext
                     }
@@ -1118,12 +1118,12 @@ class FilePreviewActivity : AppCompatActivity() {
                     } ?: candidates.first()
 
                     MaterialAlertDialogBuilder(this@FilePreviewActivity)
-                        .setTitle("Khôi phục ảnh gốc")
-                        .setMessage("Đã tìm thấy bản sao lưu gốc của '${item.name}' trong Thùng rác.\n\nBạn có muốn khôi phục ảnh gốc và hoàn tác các chỉnh sửa trước đó không?")
-                        .setPositiveButton("Khôi phục") { _, _ ->
+                        .setTitle(R.string.preview_edit_restore_original)
+                        .setMessage(getString(R.string.preview_restore_confirm_message, item.name))
+                        .setPositiveButton(R.string.preview_restore_action) { _, _ ->
                             executeRestore(bestCandidate)
                         }
-                        .setNegativeButton("Hủy", null)
+                        .setNegativeButton(R.string.action_cancel, null)
                         .show()
                 }
             } catch (e: Exception) {
@@ -1131,7 +1131,7 @@ class FilePreviewActivity : AppCompatActivity() {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                     android.widget.Toast.makeText(
                         this@FilePreviewActivity,
-                        "Lỗi khi tìm ảnh gốc: ${e.message}",
+                        getString(R.string.preview_toast_restore_find_failed, e.message ?: ""),
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -1164,14 +1164,14 @@ class FilePreviewActivity : AppCompatActivity() {
                         checkForOriginalBackup()
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
-                            "Đã khôi phục ảnh gốc thành công!",
+                            getString(R.string.preview_toast_restore_success),
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                         previewRenderHelper.reloadImage()
                     } else {
                         android.widget.Toast.makeText(
                             this@FilePreviewActivity,
-                            "Khôi phục thất bại: ${restoreResult.exceptionOrNull()?.message}",
+                            getString(R.string.preview_toast_restore_failed, restoreResult.exceptionOrNull()?.message ?: ""),
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -1181,7 +1181,7 @@ class FilePreviewActivity : AppCompatActivity() {
                     previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
                     android.widget.Toast.makeText(
                         this@FilePreviewActivity,
-                        "Lỗi khôi phục: ${e.message}",
+                        getString(R.string.preview_toast_restore_error, e.message ?: ""),
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }

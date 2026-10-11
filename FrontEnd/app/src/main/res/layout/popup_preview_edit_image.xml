@@ -40,7 +40,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
-                android:text="Cắt &amp; Xoay"
+                android:text="@string/preview_edit_crop_rotate"
                 android:textColor="@color/search_text_primary"
                 android:textSize="14sp" />
         </LinearLayout>
@@ -75,7 +75,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
-                android:text="Vẽ &amp; Ghi chú"
+                android:text="@string/preview_edit_draw_annotate"
                 android:textColor="@color/search_text_primary"
                 android:textSize="14sp" />
         </LinearLayout>
@@ -113,7 +113,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
-                android:text="Khôi phục ảnh gốc"
+                android:text="@string/preview_edit_restore_original"
                 android:textColor="@color/trash_restore"
                 android:textSize="14sp" />
         </LinearLayout>

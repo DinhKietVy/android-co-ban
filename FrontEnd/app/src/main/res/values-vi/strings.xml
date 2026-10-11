@@ -57,6 +57,8 @@
     <string name="error_cannot_move_selected">Không thể di chuyển các mục đã chọn</string>
     <string name="error_cannot_delete_selected">Không thể xóa các mục đã chọn</string>
     <string name="msg_moved_items">Đã di chuyển %1$d mục</string>
+    <string name="msg_moved_to_trash">Đã chuyển vào thùng rác thành công</string>
+    <string name="msg_moved_multiple_to_trash">Đã chuyển %1$d mục vào thùng rác</string>
     <string name="msg_deleted_items">Đã xóa %1$d mục</string>
     <string name="error_ai_only_file">Phân tích AI chỉ hỗ trợ cho tệp tin</string>
     <string name="error_ai_no_file_path">Không tìm thấy đường dẫn tệp để phân tích AI</string>
@@ -454,6 +456,7 @@
     <string name="explorer_dot_separator">•</string>
 
     <!-- Quên mật khẩu - bổ sung -->
+    <string name="forgot_email_emoji">📬</string>
     <!-- Các string bổ sung -->
     <string name="preview_open_externally">Mở bằng ứng dụng khác</string>
     <string name="preview_unsupported_file">Không thể xem trước định dạng này</string>
@@ -469,4 +472,211 @@
     <string name="explorer_upload_notification_failed_message">Không thể tải file %1$s</string>
     <string name="explorer_upload_channel_name">Tiến trình tải lên</string>
     <string name="explorer_upload_channel_description">Hiển thị thông báo tiến trình tải file lên</string>
+
+    <!-- Thao tác chia sẻ -->
+    <string name="action_share">Chia sẻ</string>
+    <string name="dialog_share_title">Chia sẻ tập tin</string>
+    <string name="dialog_share_hint">Nhập tên đăng nhập của người nhận</string>
+    <string name="dialog_share_button">Chia sẻ</string>
+    <string name="toast_share_success">Chia sẻ tập tin thành công</string>
+    <string name="toast_share_failed">Chia sẻ thất bại: %1$s</string>
+    <string name="action_public_link">Sao chép Public Link</string>
+    <string name="action_internal_share">Quản lý quyền truy cập</string>
+
+    <!-- Chuyển đổi định dạng -->
+    <string name="action_convert">Chuyển đổi định dạng</string>
+    <string name="dialog_converting_title">Đang chuyển đổi...</string>
+    <string name="dialog_converting_subtitle">Vui lòng chờ trong giây lát...</string>
+    <string name="dialog_choose_format_title">Chọn định dạng</string>
+    <string name="msg_convert_success">Chuyển đổi thành công</string>
+    <string name="error_convert_failed">Chuyển đổi thất bại</string>
+
+    <!-- Nén và Giải nén -->
+    <string name="preview_action_compress">Nén</string>
+    <string name="preview_action_extract">Giải nén</string>
+    <string name="dialog_compressing_title">Đang nén...</string>
+    <string name="dialog_compressing_subtitle">Vui lòng chờ trong khi nén tệp</string>
+    <string name="dialog_extracting_title">Đang giải nén...</string>
+    <string name="dialog_extracting_subtitle">Vui lòng chờ trong khi giải nén tệp</string>
+    <string name="dialog_compress_name_title">Đặt tên tệp nén</string>
+    <string name="dialog_compress_name_hint">Nhập tên tệp zip (ví dụ: archive.zip)</string>
+    <string name="dialog_compress_button">Nén</string>
+    <string name="dialog_extract_button">Giải nén tại đây</string>
+
+    <!-- Điều hướng -->
+    <string name="nav_shared">Được chia sẻ với tôi</string>
+    <string name="nav_public_links">Liên kết công khai</string>
+
+    <!-- Widget Quick Hub -->
+    <string name="widget_quick_hub_name">Quản lý tệp: Thao tác nhanh</string>
+    <string name="widget_quick_hub_description">Truy cập nhanh tìm kiếm, tải lên, trợ lý AI và Google Drive cùng thông tin dung lượng đã dùng.</string>
+    <string name="widget_quick_hub_header">Quản lý tệp</string>
+    <string name="widget_quick_hub_used_default">Đã dùng: --</string>
+    <string name="widget_quick_hub_used_format">Đã dùng: %1$s</string>
+    <string name="widget_action_search">Tìm kiếm</string>
+    <string name="widget_action_upload">Tải lên</string>
+    <string name="widget_action_ai">Trợ lý AI</string>
+    <string name="widget_action_drive">Drive</string>
+
+    <!-- Quản lý truy cập & Chia sẻ -->
+    <string name="share_manage_title">Quản lý truy cập</string>
+    <string name="share_manage_add_user">Thêm người dùng</string>
+    <string name="share_manage_username_hint">Nhập username</string>
+    <string name="share_manage_add_button">Thêm</string>
+    <string name="share_role_viewer">Người xem</string>
+    <string name="share_role_editor">Người chỉnh sửa</string>
+    <string name="share_role_owner">Chủ sở hữu</string>
+    <string name="share_user_you">%1$s (Bạn)</string>
+    <string name="share_perm_read_only">Chỉ xem</string>
+    <string name="share_perm_can_edit">Có thể xem &amp; chỉnh sửa</string>
+    <string name="share_menu_viewer">Người xem (Chỉ xem)</string>
+    <string name="share_menu_editor">Người chỉnh sửa (Chỉnh sửa)</string>
+    <string name="share_menu_remove_access">Xoá quyền truy cập</string>
+    <string name="share_remove_access_confirm_message">Bạn có chắc muốn xoá quyền truy cập của \'%1$s\' đối với file này?</string>
+    <string name="share_manage_access_list_title">Những người có quyền truy cập</string>
+    <string name="share_manage_empty_users">Chưa chia sẻ với ai</string>
+    <string name="share_general_access_title">Quyền truy cập chung</string>
+    <string name="share_general_restricted">Bị hạn chế</string>
+    <string name="share_general_restricted_desc">Chỉ những người được thêm mới có thể mở bằng liên kết này</string>
+    <string name="share_general_restricted_short_desc">Chỉ người được thêm mới mở được</string>
+    <string name="share_general_anyone_with_link">Bất kỳ ai có liên kết</string>
+    <string name="share_general_anyone_with_link_short_desc">Bất kỳ ai có link đều có thể xem</string>
+    <string name="share_general_anyone_with_link_desc">Bất kỳ ai trên Internet có liên kết này đều có thể xem</string>
+    <string name="share_general_change">Thay đổi</string>
+    <string name="share_copy_link">Sao chép liên kết</string>
+    <string name="share_toast_internal_link_copied">Đã copy link nội bộ (Yêu cầu đăng nhập &amp; có quyền)</string>
+    <string name="share_toast_public_link_copied">Đã copy link công khai: %1$s</string>
+    <string name="share_toast_restricted_success">Đã chuyển về quyền Bị hạn chế</string>
+    <string name="share_toast_public_success">Đã bật chia sẻ công khai</string>
+
+    <!-- Chỉnh sửa ảnh, Ghi đè & Khôi phục -->
+    <string name="save_image_title">Lưu ảnh đã chỉnh sửa</string>
+    <string name="save_image_subtitle">Chọn phương thức lưu kết quả chỉnh sửa của bạn</string>
+    <string name="save_image_as_copy">Lưu bản sao mới</string>
+    <string name="save_image_recommended">Khuyên dùng</string>
+    <string name="save_image_as_copy_desc">Giữ nguyên 100%% ảnh gốc, tạo một tệp ảnh mới riêng biệt</string>
+    <string name="save_image_as_copy_format">Giữ nguyên 100%% ảnh gốc, lưu kết quả thành tệp mới: %1$s</string>
+    <string name="save_image_overwrite">Ghi đè ảnh gốc</string>
+    <string name="save_image_overwrite_desc">Thay thế ảnh hiện tại. Bản gốc được chuyển vào Thùng rác để bạn có thể khôi phục.</string>
+    <string name="save_image_cancel">Hủy bỏ (Không lưu thay đổi)</string>
+    <string name="preview_edit_crop_rotate">Cắt &amp; Xoay</string>
+    <string name="preview_edit_draw_annotate">Vẽ &amp; Ghi chú</string>
+    <string name="preview_edit_restore_original">Khôi phục ảnh gốc</string>
+    <string name="preview_toast_saved_copy">Đã lưu bản sao mới: %1$s (ảnh gốc vẫn giữ nguyên)</string>
+    <string name="preview_error_save_copy">Lỗi khi lưu bản sao: %1$s</string>
+    <string name="preview_toast_overwrite_success">Đã ghi đè ảnh thành công. Ảnh gốc đã được sao lưu vào Thùng rác để bạn khôi phục khi cần.</string>
+    <string name="preview_error_cannot_load_trash">Không thể tải danh sách Thùng rác để tìm ảnh gốc</string>
+    <string name="preview_restore_not_found_message">Không tìm thấy bản sao lưu ảnh gốc nào của \'%1$s\' trong Thùng rác.\n\nNếu bạn chưa từng ghi đè ảnh này hoặc đã dọn sạch Thùng rác, bản sao lưu gốc không có sẵn.</string>
+    <string name="preview_restore_got_it">Đã hiểu</string>
+    <string name="preview_restore_confirm_message">Đã tìm thấy bản sao lưu gốc của \'%1$s\' trong Thùng rác.\n\nBạn có muốn khôi phục ảnh gốc và hoàn tác các chỉnh sửa trước đó không?</string>
+    <string name="preview_restore_action">Khôi phục</string>
+    <string name="preview_toast_restore_success">Đã khôi phục ảnh gốc thành công!</string>
+    <string name="preview_toast_restore_failed">Khôi phục thất bại: %1$s</string>
+    <string name="preview_toast_restore_find_failed">Lỗi khi tìm ảnh gốc: %1$s</string>
+    <string name="preview_toast_save_failed">Lỗi khi lưu: %1$s</string>
+    <string name="preview_toast_upload_failed">Lỗi khi upload: %1$s</string>
+    <string name="preview_toast_overwrite_failed">Lỗi khi ghi đè: %1$s</string>
+    <string name="preview_toast_restore_error">Lỗi khôi phục: %1$s</string>
+    <string name="preview_toast_cannot_load_image">Không thể tải ảnh: %1$s</string>
+    <string name="preview_toast_crop_error">Lỗi khi cắt ảnh: %1$s</string>
+    <string name="preview_toast_pdf_convert_success">Chuyển đổi thành công! Vui lòng quay lại thư mục để xem bản PDF.</string>
+    <string name="preview_toast_pdf_convert_error">Lỗi chuyển đổi: %1$s</string>
+    <string name="preview_toast_save_success">Đã lưu thành công</string>
+
+    <!-- Xem trước OCR & Thao tác nhãn -->
+    <string name="preview_ocr_input_hint">Nội dung văn bản (OCR)</string>
+    <string name="preview_ocr_edit_title">Chỉnh sửa văn bản trích xuất</string>
+    <string name="preview_tag_input_hint">Tên nhãn (Tag)</string>
+    <string name="preview_tag_add_title">Thêm nhãn mới</string>
+    <string name="action_save">Lưu</string>
+    <string name="action_add">Thêm</string>
+    <string name="action_cancel">Hủy</string>
+    <string name="action_convert_to_pdf">Chuyển đổi sang PDF</string>
+
+    <!-- Trình chỉnh sửa ảnh -->
+    <string name="photo_editor_text_hint">Nhập văn bản</string>
+    <string name="photo_editor_text_color">Màu chữ</string>
+    <string name="photo_editor_add_text_title">Thêm Chữ</string>
+    <string name="photo_editor_missing_path">Thiếu đường dẫn ảnh</string>
+    <string name="photo_editor_save_error">Lỗi khi lưu: %1$s</string>
+    <string name="photo_editor_permission_error">Lỗi quyền: %1$s</string>
+
+    <!-- Trợ lý AI & Action Sheet -->
+    <string name="chat_sheet_title">Trợ lý AI</string>
+    <string name="chat_sheet_subtitle">Quản lý và thao tác tệp thông minh</string>
+    <string name="chat_new_chat_desc">Tạo đoạn chat mới</string>
+    <string name="chat_history_desc">Lịch sử đoạn chat</string>
+    <string name="chat_empty_title">Tôi có thể giúp gì cho bạn?</string>
+    <string name="chat_empty_subtitle">Hỏi về tệp tin, yêu cầu tạo thư mục, di chuyển hoặc dọn dẹp file tự động.</string>
+    <string name="chat_suggestions_header">Gợi ý thao tác nhanh:</string>
+    <string name="chat_suggestion_1">Tạo cho tôi một thư mục tên \'Báo cáo\'</string>
+    <string name="chat_suggestion_2">Liệt kê danh sách các tệp tin hiện có</string>
+    <string name="chat_suggestion_3">Tôi đang có những tệp nào trong thùng rác?</string>
+    <string name="chat_input_hint">Hỏi AI hoặc yêu cầu thao tác tệp...</string>
+    <string name="chat_ai_typing">AI đang xử lý...</string>
+    <string name="chat_action_title">Thao tác hệ thống đã thực hiện:</string>
+    <string name="action_sheet_ask_ai_folder_title">Hỏi AI về thư mục này</string>
+    <string name="action_sheet_ask_ai_folder_subtitle">Tra cứu tệp con, thống kê hoặc quản lý thư mục</string>
+    <string name="action_sheet_ask_ai_file_title">Hỏi AI về tệp này</string>
+    <string name="action_sheet_ask_ai_file_subtitle">Tóm tắt, đọc nội dung hoặc đặt câu hỏi về tệp</string>
+
+    <!-- Tích hợp Google Drive -->
+    <string name="drive_connect_title">Kết nối Google Drive</string>
+    <string name="drive_connect_subtitle">Duyệt, xem trước và quản lý toàn bộ tệp Google Drive của bạn trực tiếp trong ứng dụng mà không cần chuyển đổi ứng dụng.</string>
+    <string name="drive_connect_feature_1">Xem trước Google Docs, Sheets, PDF và Ảnh</string>
+    <string name="drive_connect_feature_2">Sao chép nhanh (Import) tệp từ Drive sang Cloud nội bộ</string>
+    <string name="drive_connect_feature_3">Trợ lý AI đọc và tóm tắt trực tiếp tệp trên Drive</string>
+    <string name="drive_connect_button">Đăng nhập &amp; Liên kết Google Drive</string>
+    <string name="drive_connect_later">Để sau</string>
+    <string name="drive_action_preview">Xem trước tệp</string>
+    <string name="drive_action_import">Sao chép sang bộ nhớ ứng dụng</string>
+    <string name="drive_action_ask_ai">Hỏi AI về tệp này</string>
+    <string name="drive_action_open_external">Mở trong Google Drive</string>
+    <string name="drive_action_delete">Xóa tệp khỏi Google Drive</string>
+    <string name="drive_toast_connected">Đã kết nối Google Drive (%1$s)</string>
+    <string name="drive_toast_connect_failed">Kết nối Google Drive thất bại: %1$s</string>
+    <string name="drive_toast_uploading">Đang tải tệp lên Google Drive...</string>
+    <string name="drive_toast_copy_started">Đã bắt đầu sao chép \'%1$s\' sang bộ nhớ ứng dụng</string>
+    <string name="drive_toast_copy_failed">Lỗi sao chép tệp: %1$s</string>
+    <string name="drive_toast_loading_ai">Đang nạp tệp vào trợ lý AI...</string>
+    <string name="drive_toast_sync_ai_failed">Không thể đồng bộ tệp lên server AI: %1$s</string>
+    <string name="drive_toast_prepare_file_failed">Lỗi chuẩn bị tệp: %1$s</string>
+    <string name="drive_toast_cannot_open_link">Không thể mở liên kết: %1$s</string>
+    <string name="drive_toast_no_web_link">Không có liên kết xem trực tuyến cho tệp này</string>
+    <string name="drive_dialog_delete_title">Xóa khỏi Google Drive</string>
+    <string name="drive_dialog_delete_message">Bạn có chắc chắn muốn xóa \'%1$s\' khỏi Google Drive không?</string>
+    <string name="drive_dialog_account_title">Tài khoản Google Drive</string>
+    <string name="drive_dialog_account_linked_with">Đang liên kết với: %1$s</string>
+    <string name="drive_dialog_account_open">Mở Google Drive</string>
+    <string name="drive_dialog_account_signout">Đăng xuất Drive</string>
+    <string name="drive_toast_disconnected">Đã ngắt kết nối Google Drive</string>
+    <string name="drive_dialog_folder_open">Mở thư mục</string>
+    <string name="drive_dialog_folder_delete">Xóa thư mục khỏi Drive</string>
+    <string name="drive_dialog_confirm_delete_title">Xác nhận xóa</string>
+    <string name="drive_dialog_confirm_delete_folder_message">Bạn có chắc muốn xóa thư mục \'%1$s\' khỏi Google Drive không?</string>
+
+    <!-- Tìm kiếm với AI -->
+    <string name="search_ai_empty_query">Vui lòng nhập từ khóa để tìm kiếm với AI</string>
+    <string name="search_ai_loading">Đang tìm kiếm thông minh bằng AI...</string>
+    <string name="search_ai_results_banner">Tìm kiếm AI: %1$d kết quả cho \"%2$s\"</string>
+
+    <!-- Thông báo Explorer bổ sung -->
+    <string name="explorer_folder_title">Thư mục</string>
+    <string name="explorer_drive_summary_format">Google Drive (%1$d mục)</string>
+    <string name="explorer_drive_load_failed">Không thể tải tệp từ Google Drive</string>
+    <string name="explorer_shared_summary_format">Được chia sẻ (%1$d tệp)</string>
+    <string name="explorer_shared_load_failed">Không thể tải danh sách tệp được chia sẻ</string>
+    <string name="explorer_drive_deleted_success">Đã xóa khỏi Google Drive</string>
+    <string name="explorer_drive_upload_success">Đã tải tệp lên Google Drive thành công</string>
+    <string name="explorer_drive_not_connected">Chưa kết nối Google Drive</string>
+    <string name="explorer_drive_folder_created">Đã tạo thư mục trên Google Drive</string>
+    <string name="explorer_drive_deleted_count">Đã xóa %1$d mục khỏi Google Drive</string>
+    <string name="explorer_shared_breadcrumb">Được chia sẻ</string>
+    <string name="explorer_shared_with_me_breadcrumb">Được chia sẻ với tôi</string>
+    <string name="explorer_storage_used_format">%1$s đã dùng</string>
+    <string name="explorer_load_directory_failed">Không thể tải danh sách thư mục</string>
+    <string name="explorer_drive_delete_file_failed">Lỗi xóa tệp: %1$s</string>
+    <string name="explorer_drive_upload_failed">Lỗi tải lên Google Drive: %1$s</string>
+    <string name="explorer_drive_file_processing_error">Lỗi xử lý tệp: %1$s</string>
+    <string name="explorer_drive_create_folder_failed">Lỗi tạo thư mục: %1$s</string>
 </resources>

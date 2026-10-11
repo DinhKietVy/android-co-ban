@@ -31,7 +31,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:text="Kết nối Google Drive"
+        android:text="@string/drive_connect_title"
         android:textColor="@color/search_text_primary"
         android:textSize="20sp"
         android:textStyle="bold" />
@@ -44,7 +44,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginBottom="20dp"
         android:gravity="center"
-        android:text="Duyệt, xem trước và quản lý toàn bộ tệp Google Drive của bạn trực tiếp trong ứng dụng mà không cần chuyển đổi ứng dụng."
+        android:text="@string/drive_connect_subtitle"
         android:textColor="@color/search_text_secondary"
         android:textSize="14sp" />
 
@@ -73,7 +73,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="Xem trước Google Docs, Sheets, PDF và Ảnh"
+                android:text="@string/drive_connect_feature_1"
                 android:textColor="@color/search_text_primary"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -95,7 +95,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="Sao chép nhanh (Import) tệp từ Drive sang Cloud nội bộ"
+                android:text="@string/drive_connect_feature_2"
                 android:textColor="@color/search_text_primary"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -117,7 +117,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="Trợ lý AI đọc và tóm tắt trực tiếp tệp trên Drive"
+                android:text="@string/drive_connect_feature_3"
                 android:textColor="@color/search_text_primary"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -129,7 +129,7 @@
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:backgroundTint="@color/search_primary"
-        android:text="Đăng nhập &amp; Liên kết Google Drive"
+        android:text="@string/drive_connect_button"
         android:textAllCaps="false"
         android:textColor="@android:color/white"
         android:textSize="15sp"
@@ -147,7 +147,7 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="6dp"
-        android:text="Để sau"
+        android:text="@string/drive_connect_later"
         android:textAllCaps="false"
         android:textColor="@color/search_text_secondary"
         android:textSize="14sp" />

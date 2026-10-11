@@ -22,7 +22,7 @@ class QuickHubWidgetProvider : AppWidgetProvider() {
         val rawSummary = prefs.getString(KEY_STORAGE_SUMMARY, null)
         val username = prefs.getString(KEY_USERNAME, "") ?: ""
 
-        val storageDisplay = formatStorageDisplay(rawSummary)
+        val storageDisplay = formatStorageDisplay(context, rawSummary)
 
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.widget_quick_hub)
@@ -101,12 +101,12 @@ class QuickHubWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun formatStorageDisplay(summary: String?): String {
+    private fun formatStorageDisplay(context: Context, summary: String?): String {
         if (summary.isNullOrBlank()) {
-            return "Đã dùng: --"
+            return context.getString(R.string.widget_quick_hub_used_default)
         }
         val cleaned = summary.replace("used", "", ignoreCase = true).trim()
-        return "Đã dùng: $cleaned"
+        return context.getString(R.string.widget_quick_hub_used_format, cleaned)
     }
 
     companion object {

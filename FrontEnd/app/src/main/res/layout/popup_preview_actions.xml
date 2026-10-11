@@ -190,7 +190,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:text="Convert to PDF"
+            android:text="@string/action_convert_to_pdf"
             android:textColor="@color/explorer_text_primary"
             android:textSize="14sp" />
     </LinearLayout>

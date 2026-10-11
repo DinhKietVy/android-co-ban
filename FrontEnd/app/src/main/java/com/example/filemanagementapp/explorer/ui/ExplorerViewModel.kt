@@ -322,11 +322,11 @@ class ExplorerViewModel(
         viewModelScope.launch {
             googleDriveRepository.deleteFile(drive = service, fileId = fileId)
                 .onSuccess {
-                    emitMessage(UiText.DynamicString("Đã xóa khỏi Google Drive"))
+                    emitMessage(UiText.StringResource(R.string.explorer_drive_deleted_success))
                     refreshCurrentDirectory()
                 }
                 .onFailure { throwable ->
-                    emitMessage(UiText.DynamicString("Lỗi xóa tệp: ${throwable.message}"))
+                    emitMessage(UiText.StringResource(R.string.explorer_drive_delete_file_failed, throwable.message ?: ""))
                 }
         }
     }
@@ -363,14 +363,14 @@ class ExplorerViewModel(
                     parentFolderId = parentFolderId
                 ).onSuccess {
                     tempFile.delete()
-                    emitMessage(UiText.DynamicString("Đã tải tệp lên Google Drive thành công"))
+                    emitMessage(UiText.StringResource(R.string.explorer_drive_upload_success))
                     refreshCurrentDirectory()
                 }.onFailure {
                     tempFile.delete()
-                    emitMessage(UiText.DynamicString("Lỗi tải lên Google Drive: ${it.message}"))
+                    emitMessage(UiText.StringResource(R.string.explorer_drive_upload_failed, it.message ?: ""))
                 }
             } catch (e: Exception) {
-                emitMessage(UiText.DynamicString("Lỗi xử lý tệp: ${e.message}"))
+                emitMessage(UiText.StringResource(R.string.explorer_drive_file_processing_error, e.message ?: ""))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -429,7 +429,7 @@ class ExplorerViewModel(
         if (_uiState.value.currentFolder.startsWith("gdrive://")) {
             val service = driveService
             if (service == null) {
-                emitMessage(UiText.DynamicString("Chưa kết nối Google Drive"))
+                emitMessage(UiText.StringResource(R.string.explorer_drive_not_connected))
                 return
             }
             val parentFolderId = if (_uiState.value.currentFolder == "gdrive://root" || _uiState.value.currentFolder == "gdrive://" || _uiState.value.currentFolder == "gdrive://shared-with-me") "root" else _uiState.value.currentFolder.removePrefix("gdrive://").trim('/')
@@ -439,10 +439,10 @@ class ExplorerViewModel(
                     folderName = sanitizedName,
                     parentFolderId = parentFolderId
                 ).onSuccess {
-                    emitMessage(UiText.DynamicString("Đã tạo thư mục trên Google Drive"))
+                    emitMessage(UiText.StringResource(R.string.explorer_drive_folder_created))
                     refreshCurrentDirectory()
                 }.onFailure { throwable ->
-                    emitMessage(UiText.DynamicString("Lỗi tạo thư mục: ${throwable.message}"))
+                    emitMessage(UiText.StringResource(R.string.explorer_drive_create_folder_failed, throwable.message ?: ""))
                 }
             }
             return
@@ -892,7 +892,7 @@ class ExplorerViewModel(
                         state.copy(isSelectionMode = false, selectedPaths = emptySet())
                     }
                     if (deletedCount > 0) {
-                        emitMessage(UiText.DynamicString("Đã xóa $deletedCount mục khỏi Google Drive"))
+                        emitMessage(UiText.StringResource(R.string.explorer_drive_deleted_count, deletedCount))
                     }
                     refreshCurrentDirectory()
                 }

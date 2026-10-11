@@ -45,7 +45,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Bị hạn chế"
+                    android:text="@string/share_general_restricted"
                     android:textColor="@color/search_text_primary"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -54,7 +54,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Chỉ người được thêm mới mở được"
+                    android:text="@string/share_general_restricted_short_desc"
                     android:textColor="@color/search_text_secondary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -95,7 +95,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Bất kỳ ai có liên kết"
+                    android:text="@string/share_general_anyone_with_link"
                     android:textColor="@color/search_text_primary"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -104,7 +104,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Bất kỳ ai có link đều có thể xem"
+                    android:text="@string/share_general_anyone_with_link_short_desc"
                     android:textColor="@color/search_text_secondary"
                     android:textSize="11sp" />
             </LinearLayout>

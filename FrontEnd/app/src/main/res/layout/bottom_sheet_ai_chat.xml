@@ -51,7 +51,7 @@
                 android:id="@+id/chatSheetTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Trợ lý AI"
+                android:text="@string/chat_sheet_title"
                 android:textColor="@color/search_text_primary"
                 android:textSize="17sp"
                 android:textStyle="bold" />
@@ -60,7 +60,7 @@
                 android:id="@+id/chatSheetSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Quản lý và thao tác tệp thông minh"
+                android:text="@string/chat_sheet_subtitle"
                 android:textColor="@color/search_text_secondary"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -71,7 +71,7 @@
             android:layout_height="36dp"
             android:layout_marginEnd="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Tạo đoạn chat mới"
+            android:contentDescription="@string/chat_new_chat_desc"
             android:padding="7dp"
             android:src="@drawable/plus"
             android:tint="@color/search_text_primary" />
@@ -82,7 +82,7 @@
             android:layout_height="36dp"
             android:layout_marginEnd="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Lịch sử đoạn chat"
+            android:contentDescription="@string/chat_history_desc"
             android:padding="7dp"
             android:src="@drawable/clock"
             android:tint="@color/search_text_primary" />
@@ -92,7 +92,7 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Đóng"
+            android:contentDescription="@string/action_close"
             android:padding="7dp"
             android:src="@drawable/x_close"
             android:tint="@color/search_text_primary" />
@@ -193,7 +193,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="Tôi có thể giúp gì cho bạn?"
+                    android:text="@string/chat_empty_title"
                     android:textColor="@color/search_text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -203,7 +203,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:gravity="center"
-                    android:text="Hỏi về tệp tin, yêu cầu tạo thư mục, di chuyển hoặc dọn dẹp file tự động."
+                    android:text="@string/chat_empty_subtitle"
                     android:textColor="@color/search_text_secondary"
                     android:textSize="13sp" />
 
@@ -212,7 +212,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="28dp"
                     android:layout_marginBottom="8dp"
-                    android:text="Gợi ý thao tác nhanh:"
+                    android:text="@string/chat_suggestions_header"
                     android:textColor="@color/search_text_secondary"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -241,7 +241,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:layout_weight="1"
-                        android:text="Tạo cho tôi một thư mục tên 'Báo cáo'"
+                        android:text="@string/chat_suggestion_1"
                         android:textColor="@color/search_text_primary"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -270,7 +270,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:layout_weight="1"
-                        android:text="Liệt kê danh sách các tệp tin hiện có"
+                        android:text="@string/chat_suggestion_2"
                         android:textColor="@color/search_text_primary"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -299,7 +299,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:layout_weight="1"
-                        android:text="Tôi đang có những tệp nào trong thùng rác?"
+                        android:text="@string/chat_suggestion_3"
                         android:textColor="@color/search_text_primary"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -329,7 +329,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/bg_chat_input"
-            android:hint="Hỏi AI hoặc yêu cầu thao tác tệp..."
+            android:hint="@string/chat_input_hint"
             android:inputType="textMultiLine|textCapSentences"
             android:maxLines="4"
             android:minHeight="48dp"

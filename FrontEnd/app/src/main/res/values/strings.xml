@@ -194,7 +194,7 @@
     <string name="profile_avatar">Profile Avatar</string>
     <string name="profile_name">Alex Morgan</string>
     <string name="profile_email">alex.morgan@email.com</string>
-    <string name="profile_username">@alexmorgan</string>
+    <string name="profile_username">alexmorgan</string>
     <string name="profile_pro">Pro</string>
     <string name="profile_storage_title">Storage Usage</string>
     <string name="profile_storage_value">12.4 GB</string>
@@ -452,14 +452,14 @@
     <string name="action_open">Open</string>
     <string name="action_download">Download</string>
     <string name="action_rename">Rename</string>
-    <string name="action_share">Chia sẻ</string>
-    <string name="dialog_share_title">Chia sẻ tập tin</string>
-    <string name="dialog_share_hint">Nhập tên đăng nhập của người nhận</string>
-    <string name="dialog_share_button">Chia sẻ</string>
-    <string name="toast_share_success">Chia sẻ tập tin thành công</string>
-    <string name="toast_share_failed">Chia sẻ thất bại: %1$s</string>
-    <string name="action_public_link">Sao chép Public Link</string>
-    <string name="action_internal_share">Grant access</string>
+    <string name="action_share">Share</string>
+    <string name="dialog_share_title">Share file</string>
+    <string name="dialog_share_hint">Enter recipient\'s username</string>
+    <string name="dialog_share_button">Share</string>
+    <string name="toast_share_success">File shared successfully</string>
+    <string name="toast_share_failed">Share failed: %1$s</string>
+    <string name="action_public_link">Copy Public Link</string>
+    <string name="action_internal_share">Manage access</string>
     <string name="action_move">Move</string>
     <string name="action_favorite">Favorite</string>
     <string name="action_delete">Delete</string>
@@ -472,7 +472,7 @@
     <string name="explorer_dot_separator">•</string>
 
     <!-- Forgot Password module - additional -->
-    <string name="forgot_email_emoji">📬</string>
+    <string name="forgot_email_emoji" translatable="false">📬</string>
     <string name="explorer_upload_notification_title">Uploading...</string>
     <string name="explorer_upload_notification_progress">%1$d%% • %2$s / %3$s</string>
     <string name="explorer_upload_notification_running">Preparing to upload %1$s</string>
@@ -503,9 +503,180 @@
     <string name="dialog_compress_button">Compress</string>
     <string name="dialog_extract_button">Extract here</string>
 
-    <string name="nav_shared">Được chia sẻ với tôi</string>
-    <string name="nav_public_links">Liên kết công khai</string>
+    <string name="nav_shared">Shared with me</string>
+    <string name="nav_public_links">Public links</string>
 
-    <string name="widget_quick_hub_name">Quản lý tệp: Thao tác nhanh</string>
-    <string name="widget_quick_hub_description">Truy cập nhanh tìm kiếm, tải lên, trợ lý AI và Google Drive cùng thông tin dung lượng đã dùng.</string>
+    <string name="widget_quick_hub_name">File Manager: Quick Hub</string>
+    <string name="widget_quick_hub_description">Quick access to search, upload, AI assistant, and Google Drive with storage usage information.</string>
+
+    <!-- Access Management & Sharing -->
+    <string name="share_manage_title">Manage Access</string>
+    <string name="share_manage_add_user">Add user</string>
+    <string name="share_manage_username_hint">Enter username</string>
+    <string name="share_manage_add_button">Add</string>
+    <string name="share_role_viewer">Viewer</string>
+    <string name="share_role_editor">Editor</string>
+    <string name="share_role_owner">Owner</string>
+    <string name="share_user_you">%1$s (You)</string>
+    <string name="share_perm_read_only">View only</string>
+    <string name="share_perm_can_edit">Can view &amp; edit</string>
+    <string name="share_menu_viewer">Viewer (View only)</string>
+    <string name="share_menu_editor">Editor (Edit)</string>
+    <string name="share_menu_remove_access">Remove access</string>
+    <string name="share_remove_access_confirm_message">Are you sure you want to remove access for \'%1$s\' to this file?</string>
+    <string name="share_manage_access_list_title">People with access</string>
+    <string name="share_manage_empty_users">Not shared with anyone yet</string>
+    <string name="share_general_access_title">General access</string>
+    <string name="share_general_restricted">Restricted</string>
+    <string name="share_general_restricted_desc">Only people with access can open with this link</string>
+    <string name="share_general_restricted_short_desc">Only added people can open</string>
+    <string name="share_general_anyone_with_link">Anyone with the link</string>
+    <string name="share_general_anyone_with_link_short_desc">Anyone with the link can view</string>
+    <string name="share_general_anyone_with_link_desc">Anyone on the Internet with this link can view</string>
+    <string name="share_general_change">Change</string>
+    <string name="share_copy_link">Copy link</string>
+    <string name="share_toast_internal_link_copied">Internal link copied (Requires login &amp; permission)</string>
+    <string name="share_toast_public_link_copied">Public link copied: %1$s</string>
+    <string name="share_toast_restricted_success">Changed to Restricted access</string>
+    <string name="share_toast_public_success">Public sharing enabled</string>
+
+    <!-- Image Edit, Overwrite & Restore -->
+    <string name="save_image_title">Save Edited Image</string>
+    <string name="save_image_subtitle">Choose how you want to save your edited image</string>
+    <string name="save_image_as_copy">Save as new copy</string>
+    <string name="save_image_recommended">Recommended</string>
+    <string name="save_image_as_copy_desc">Keep original image 100%% intact, create a separate new file</string>
+    <string name="save_image_as_copy_format">Keep original image 100%% intact, save result as: %1$s</string>
+    <string name="save_image_overwrite">Overwrite original image</string>
+    <string name="save_image_overwrite_desc">Replace current image. Original is backed up to Trash so you can restore anytime.</string>
+    <string name="save_image_cancel">Cancel (Discard changes)</string>
+    <string name="preview_edit_crop_rotate">Crop &amp; Rotate</string>
+    <string name="preview_edit_draw_annotate">Draw &amp; Annotate</string>
+    <string name="preview_edit_restore_original">Restore original photo</string>
+    <string name="preview_toast_saved_copy">New copy saved: %1$s (original preserved)</string>
+    <string name="preview_error_save_copy">Error saving copy: %1$s</string>
+    <string name="preview_toast_overwrite_success">Image overwritten successfully. Original backed up to Trash for recovery.</string>
+    <string name="preview_error_cannot_load_trash">Cannot load Trash to find original photo</string>
+    <string name="preview_restore_not_found_message">No backup of \'%1$s\' found in Trash.\n\nIf you haven\'t overwritten this image or have emptied Trash, no backup is available.</string>
+    <string name="preview_restore_got_it">Got it</string>
+    <string name="preview_restore_confirm_message">Original backup of \'%1$s\' was found in Trash.\n\nDo you want to restore the original photo and undo previous edits?</string>
+    <string name="preview_restore_action">Restore</string>
+    <string name="preview_toast_restore_success">Original photo restored successfully!</string>
+    <string name="preview_toast_restore_failed">Restore failed: %1$s</string>
+    <string name="preview_toast_restore_find_failed">Error finding original photo: %1$s</string>
+    <string name="preview_toast_save_failed">Save error: %1$s</string>
+    <string name="preview_toast_upload_failed">Upload error: %1$s</string>
+    <string name="preview_toast_overwrite_failed">Overwrite error: %1$s</string>
+    <string name="preview_toast_restore_error">Restore error: %1$s</string>
+    <string name="preview_toast_cannot_load_image">Cannot load image: %1$s</string>
+    <string name="preview_toast_crop_error">Error cropping image: %1$s</string>
+    <string name="preview_toast_pdf_convert_success">Converted successfully! Please return to folder to view the PDF.</string>
+    <string name="preview_toast_pdf_convert_error">Conversion error: %1$s</string>
+    <string name="preview_toast_save_success">Saved successfully</string>
+
+    <!-- Preview OCR & Tag Editing -->
+    <string name="preview_ocr_input_hint">Extracted text (OCR)</string>
+    <string name="preview_ocr_edit_title">Edit Extracted Text</string>
+    <string name="preview_tag_input_hint">Tag name</string>
+    <string name="preview_tag_add_title">Add New Tag</string>
+    <string name="action_save">Save</string>
+    <string name="action_add">Add</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_convert_to_pdf">Convert to PDF</string>
+
+    <!-- Photo Editor -->
+    <string name="photo_editor_text_hint">Enter text</string>
+    <string name="photo_editor_text_color">Text color</string>
+    <string name="photo_editor_add_text_title">Add Text</string>
+    <string name="photo_editor_missing_path">Missing image path</string>
+    <string name="photo_editor_save_error">Error saving: %1$s</string>
+    <string name="photo_editor_permission_error">Permission error: %1$s</string>
+
+    <!-- Quick Hub Widget -->
+    <string name="widget_quick_hub_header">File Manager</string>
+    <string name="widget_quick_hub_used_default">Used: --</string>
+    <string name="widget_quick_hub_used_format">Used: %1$s</string>
+    <string name="widget_action_search">Search</string>
+    <string name="widget_action_upload">Upload</string>
+    <string name="widget_action_ai">AI Assistant</string>
+    <string name="widget_action_drive">Drive</string>
+
+    <!-- AI Chat & Action Sheet -->
+    <string name="chat_sheet_title">AI Assistant</string>
+    <string name="chat_sheet_subtitle">Smart file management &amp; actions</string>
+    <string name="chat_new_chat_desc">Start new chat</string>
+    <string name="chat_history_desc">Chat history</string>
+    <string name="chat_empty_title">How can I help you today?</string>
+    <string name="chat_empty_subtitle">Ask about files, create folders, move items, or organize files automatically.</string>
+    <string name="chat_suggestions_header">Quick suggestions:</string>
+    <string name="chat_suggestion_1">Create a folder named \'Reports\' for me</string>
+    <string name="chat_suggestion_2">List all existing files</string>
+    <string name="chat_suggestion_3">What files are currently in my trash?</string>
+    <string name="chat_input_hint">Ask AI or request file operations...</string>
+    <string name="chat_ai_typing">AI is thinking...</string>
+    <string name="chat_action_title">System actions executed:</string>
+    <string name="action_sheet_ask_ai_folder_title">Ask AI about this folder</string>
+    <string name="action_sheet_ask_ai_folder_subtitle">Lookup child files, get summary or organize folder</string>
+    <string name="action_sheet_ask_ai_file_title">Ask AI about this file</string>
+    <string name="action_sheet_ask_ai_file_subtitle">Summarize, read content or ask questions about file</string>
+
+    <!-- Google Drive Integration -->
+    <string name="drive_connect_title">Connect Google Drive</string>
+    <string name="drive_connect_subtitle">Browse, preview, and manage all your Google Drive files right inside the app without switching apps.</string>
+    <string name="drive_connect_feature_1">Preview Google Docs, Sheets, PDFs, and Photos</string>
+    <string name="drive_connect_feature_2">Fast copy (Import) files from Drive to local Cloud</string>
+    <string name="drive_connect_feature_3">AI assistant directly reads and summarizes Drive files</string>
+    <string name="drive_connect_button">Sign In &amp; Link Google Drive</string>
+    <string name="drive_connect_later">Maybe later</string>
+    <string name="drive_action_preview">Preview file</string>
+    <string name="drive_action_import">Copy to app storage</string>
+    <string name="drive_action_ask_ai">Ask AI about this file</string>
+    <string name="drive_action_open_external">Open in Google Drive</string>
+    <string name="drive_action_delete">Delete from Google Drive</string>
+    <string name="drive_toast_connected">Google Drive connected (%1$s)</string>
+    <string name="drive_toast_connect_failed">Google Drive connection failed: %1$s</string>
+    <string name="drive_toast_uploading">Uploading file to Google Drive...</string>
+    <string name="drive_toast_copy_started">Started copying \'%1$s\' to app storage</string>
+    <string name="drive_toast_copy_failed">Failed to copy file: %1$s</string>
+    <string name="drive_toast_loading_ai">Loading file into AI assistant...</string>
+    <string name="drive_toast_sync_ai_failed">Cannot sync file to AI server: %1$s</string>
+    <string name="drive_toast_prepare_file_failed">File preparation error: %1$s</string>
+    <string name="drive_toast_cannot_open_link">Cannot open link: %1$s</string>
+    <string name="drive_toast_no_web_link">No web link available for this file</string>
+    <string name="drive_dialog_delete_title">Delete from Google Drive</string>
+    <string name="drive_dialog_delete_message">Are you sure you want to delete \'%1$s\' from Google Drive?</string>
+    <string name="drive_dialog_account_title">Google Drive Account</string>
+    <string name="drive_dialog_account_linked_with">Linked with: %1$s</string>
+    <string name="drive_dialog_account_open">Open Google Drive</string>
+    <string name="drive_dialog_account_signout">Disconnect Drive</string>
+    <string name="drive_toast_disconnected">Google Drive disconnected</string>
+    <string name="drive_dialog_folder_open">Open folder</string>
+    <string name="drive_dialog_folder_delete">Delete folder from Drive</string>
+    <string name="drive_dialog_confirm_delete_title">Confirm delete</string>
+    <string name="drive_dialog_confirm_delete_folder_message">Are you sure you want to delete folder \'%1$s\' from Google Drive?</string>
+
+    <!-- Search with AI -->
+    <string name="search_ai_empty_query">Please enter keywords to search with AI</string>
+    <string name="search_ai_loading">Searching smartly with AI...</string>
+    <string name="search_ai_results_banner">AI Search: %1$d results for \"%2$s\"</string>
+
+    <!-- Additional Explorer Messages -->
+    <string name="explorer_folder_title">Folder</string>
+    <string name="explorer_drive_summary_format">Google Drive (%1$d items)</string>
+    <string name="explorer_drive_load_failed">Cannot load files from Google Drive</string>
+    <string name="explorer_shared_summary_format">Shared (%1$d files)</string>
+    <string name="explorer_shared_load_failed">Cannot load shared files</string>
+    <string name="explorer_drive_deleted_success">Deleted from Google Drive</string>
+    <string name="explorer_drive_upload_success">File uploaded to Google Drive successfully</string>
+    <string name="explorer_drive_not_connected">Google Drive not connected</string>
+    <string name="explorer_drive_folder_created">Folder created on Google Drive</string>
+    <string name="explorer_drive_deleted_count">Deleted %1$d items from Google Drive</string>
+    <string name="explorer_shared_breadcrumb">Shared</string>
+    <string name="explorer_shared_with_me_breadcrumb">Shared with me</string>
+    <string name="explorer_storage_used_format">%1$s used</string>
+    <string name="explorer_load_directory_failed">Cannot load directory</string>
+    <string name="explorer_drive_delete_file_failed">Failed to delete file: %1$s</string>
+    <string name="explorer_drive_upload_failed">Google Drive upload failed: %1$s</string>
+    <string name="explorer_drive_file_processing_error">File processing error: %1$s</string>
+    <string name="explorer_drive_create_folder_failed">Failed to create folder: %1$s</string>
 </resources>

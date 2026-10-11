@@ -45,7 +45,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="AI đang xử lý..."
+            android:text="@string/chat_ai_typing"
             android:textColor="@color/search_text_secondary"
             android:textSize="13sp"
             android:textStyle="italic" />

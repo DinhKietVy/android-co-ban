@@ -195,14 +195,14 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
         aiSearchButton.setOnClickListener {
             val query = searchEditText.text.toString().trim()
             if (query.isBlank()) {
-                Toast.makeText(this, "Vui lòng nhập từ khóa để tìm kiếm với AI", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.search_ai_empty_query, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             imm.hideSoftInputFromWindow(it.windowToken, 0)
 
             viewModel.addRecentSearch(query)
-            Toast.makeText(this, "Đang tìm kiếm thông minh bằng AI...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.search_ai_loading, Toast.LENGTH_SHORT).show()
             viewModel.performAiSearch(query)
         }
     }
@@ -245,7 +245,7 @@ class SearchActivity : AppCompatActivity(), FileActionSheetController.Callbacks 
                             else -> ""
                         }
                         val bannerText = if (state.isAiSearchActive) {
-                            "Tìm kiếm AI: ${state.filteredItems.size} kết quả cho \"$bannerSuffix\""
+                            getString(R.string.search_ai_results_banner, state.filteredItems.size, bannerSuffix)
                         } else {
                             getString(R.string.search_results_banner, state.filteredItems.size, bannerSuffix)
                         }

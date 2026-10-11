@@ -129,12 +129,12 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                     )
                     val driveService = driveAuthManager.getDriveService(account)
                     viewModel.setDriveService(driveService)
-                    Toast.makeText(requireContext(), "Đã kết nối Google Drive (${account.email})", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.drive_toast_connected, account.email ?: ""), Toast.LENGTH_SHORT).show()
                     viewModel.loadDirectory("gdrive://root", "Google Drive")
                 }
             }
             .onFailure { error ->
-                Toast.makeText(requireContext(), "Kết nối Google Drive thất bại: ${error.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), getString(R.string.drive_toast_connect_failed, error.message ?: ""), Toast.LENGTH_LONG).show()
             }
     }
 
@@ -149,7 +149,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 )
             }
             if (viewModel.uiState.value.currentFolder.startsWith("gdrive://")) {
-                Toast.makeText(requireContext(), "Đang tải tệp lên Google Drive...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.drive_toast_uploading), Toast.LENGTH_SHORT).show()
                 viewModel.uploadToDrive(it, requireContext())
             } else {
                 com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
@@ -541,7 +541,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                     if (!folderPath.isNullOrBlank()) {
                         navigationViewModel.consumeOpenFolderRequest()
                         if (folderPath == "shared://root") {
-                            viewModel.loadDirectory("shared://root", "Được chia sẻ")
+                            viewModel.loadDirectory("shared://root", getString(R.string.explorer_shared_breadcrumb))
                         } else {
                             viewModel.loadDirectory(folderPath)
                         }
@@ -772,7 +772,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             recentOpenLocalRepository.recordOpen(username, item.path)
         }
         if (item.id == "shared_root" || item.path.startsWith("shared://")) {
-            viewModel.loadDirectory("shared://root", "Được chia sẻ")
+            viewModel.loadDirectory("shared://root", getString(R.string.explorer_shared_breadcrumb))
             return
         }
         if (item.id == "gdrive_root") {
@@ -890,9 +890,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
 
                 // Luôn hiển thị chủ sở hữu (user hiện tại) ở đầu danh sách
                 val ownerView = layoutInflater.inflate(R.layout.item_shared_user, llSharedUsersContainer, false)
-                ownerView.findViewById<TextView>(R.id.tvSharedUsername).text = "$username (Bạn)"
-                ownerView.findViewById<TextView>(R.id.tvSharedUserSub).text = "Chủ sở hữu"
-                ownerView.findViewById<TextView>(R.id.tvPermissionRole).text = "Chủ sở hữu"
+                ownerView.findViewById<TextView>(R.id.tvSharedUsername).text = getString(R.string.share_user_you, username)
+                ownerView.findViewById<TextView>(R.id.tvSharedUserSub).text = getString(R.string.share_role_owner)
+                ownerView.findViewById<TextView>(R.id.tvPermissionRole).text = getString(R.string.share_role_owner)
                 ownerView.findViewById<View>(R.id.ivDropdownArrow).visibility = View.GONE
                 val ownerBtn = ownerView.findViewById<View>(R.id.btnChangePermission)
                 ownerBtn.isClickable = false
@@ -910,8 +910,8 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                         userView.findViewById<TextView>(R.id.tvSharedUsername).text = targetUser
 
                         val isWrite = sharedUser.permission.equals("WRITE", ignoreCase = true)
-                        val roleText = if (isWrite) "Người chỉnh sửa" else "Người xem"
-                        userView.findViewById<TextView>(R.id.tvSharedUserSub).text = if (isWrite) "Có thể xem & chỉnh sửa" else "Chỉ xem"
+                        val roleText = if (isWrite) getString(R.string.share_role_editor) else getString(R.string.share_role_viewer)
+                        userView.findViewById<TextView>(R.id.tvSharedUserSub).text = if (isWrite) getString(R.string.share_perm_can_edit) else getString(R.string.share_perm_read_only)
 
                         val tvRole = userView.findViewById<TextView>(R.id.tvPermissionRole)
                         tvRole.text = roleText
@@ -919,9 +919,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                         val btnPermission = userView.findViewById<View>(R.id.btnChangePermission)
                         btnPermission.setOnClickListener { anchor ->
                             val popup = androidx.appcompat.widget.PopupMenu(requireContext(), anchor)
-                            popup.menu.add(0, 1, 0, "Người xem (Chỉ xem)")
-                            popup.menu.add(0, 2, 1, "Người chỉnh sửa (Chỉnh sửa)")
-                            popup.menu.add(0, 3, 2, "Xoá quyền truy cập")
+                            popup.menu.add(0, 1, 0, getString(R.string.share_menu_viewer))
+                            popup.menu.add(0, 2, 1, getString(R.string.share_menu_editor))
+                            popup.menu.add(0, 3, 2, getString(R.string.share_menu_remove_access))
 
                             popup.setOnMenuItemClickListener { menuItem ->
                                 when (menuItem.itemId) {
@@ -941,14 +941,14 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                                     }
                                     3 -> {
                                         MaterialAlertDialogBuilder(requireContext())
-                                            .setTitle("Xoá quyền truy cập")
-                                            .setMessage("Bạn có chắc muốn xoá quyền truy cập của '$targetUser' đối với file này?")
-                                            .setPositiveButton("Xoá") { _, _ ->
+                                            .setTitle(R.string.share_menu_remove_access)
+                                            .setMessage(getString(R.string.share_remove_access_confirm_message, targetUser))
+                                            .setPositiveButton(R.string.action_delete) { _, _ ->
                                                 viewModel.unshareItem(item, targetUser) { success ->
                                                     if (success) refreshSharedUsers()
                                                 }
                                             }
-                                            .setNegativeButton("Huỷ", null)
+                                            .setNegativeButton(R.string.action_cancel, null)
                                             .show()
                                     }
                                 }
@@ -990,7 +990,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 val clip = android.content.ClipData.newPlainText("Internal Link", internalLinkUrl)
                 clipboard.setPrimaryClip(clip)
-                android.widget.Toast.makeText(requireContext(), "Đã copy link nội bộ (Yêu cầu đăng nhập & có quyền)", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(requireContext(), getString(R.string.share_toast_internal_link_copied), android.widget.Toast.LENGTH_LONG).show()
             } else {
                 viewModel.createPublicLink(item) { token ->
                     if (!token.isNullOrEmpty()) {
@@ -998,7 +998,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                         val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         val clip = android.content.ClipData.newPlainText("Public Link", publicLinkUrl)
                         clipboard.setPrimaryClip(clip)
-                        android.widget.Toast.makeText(requireContext(), "Đã copy link công khai: $publicLinkUrl", android.widget.Toast.LENGTH_LONG).show()
+                        android.widget.Toast.makeText(requireContext(), getString(R.string.share_toast_public_link_copied, publicLinkUrl), android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -1012,8 +1012,8 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         
         // Cập nhật giao diện tạm thời nếu có public link (nếu API có trả về)
         if (!isRestricted) {
-            generalAccessTitle.text = "Bất kỳ ai có liên kết"
-            generalAccessSubtitle.text = "Bất kỳ ai trên Internet có liên kết này đều có thể xem"
+            generalAccessTitle.text = getString(R.string.share_general_anyone_with_link)
+            generalAccessSubtitle.text = getString(R.string.share_general_anyone_with_link_desc)
             generalAccessIcon.setImageResource(R.drawable.ic_link)
         }
         
@@ -1031,13 +1031,13 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             popupView.findViewById<View>(R.id.menuRestricted).setOnClickListener {
                 popupWindow.dismiss()
                 isRestricted = true
-                generalAccessTitle.text = "Bị hạn chế"
-                generalAccessSubtitle.text = "Chỉ những người được thêm mới có thể mở bằng liên kết này"
+                generalAccessTitle.text = getString(R.string.share_general_restricted)
+                generalAccessSubtitle.text = getString(R.string.share_general_restricted_desc)
                 generalAccessIcon.setImageResource(R.drawable.lock)
 
                 viewModel.deletePublicLink(item) { success ->
                     if (success) {
-                        android.widget.Toast.makeText(requireContext(), "Đã chuyển về quyền Bị hạn chế", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(requireContext(), getString(R.string.share_toast_restricted_success), android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -1045,13 +1045,13 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             popupView.findViewById<View>(R.id.menuAnyoneWithLink).setOnClickListener {
                 popupWindow.dismiss()
                 isRestricted = false
-                generalAccessTitle.text = "Bất kỳ ai có liên kết"
-                generalAccessSubtitle.text = "Bất kỳ ai trên Internet có liên kết này đều có thể xem"
+                generalAccessTitle.text = getString(R.string.share_general_anyone_with_link)
+                generalAccessSubtitle.text = getString(R.string.share_general_anyone_with_link_desc)
                 generalAccessIcon.setImageResource(R.drawable.ic_link)
 
                 viewModel.createPublicLink(item) { token -> 
                     if (!token.isNullOrEmpty()) {
-                        android.widget.Toast.makeText(requireContext(), "Đã bật chia sẻ công khai", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(requireContext(), getString(R.string.share_toast_public_success), android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -1246,39 +1246,39 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             return
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Tài khoản Google Drive")
-            .setMessage("Đang liên kết với: ${account.email}")
-            .setPositiveButton("Mở Google Drive") { _, _ ->
+            .setTitle(R.string.drive_dialog_account_title)
+            .setMessage(getString(R.string.drive_dialog_account_linked_with, account.email ?: ""))
+            .setPositiveButton(R.string.drive_dialog_account_open) { _, _ ->
                 viewModel.loadDirectory("gdrive://root", "Google Drive")
             }
-            .setNeutralButton("Đăng xuất Drive") { _, _ ->
+            .setNeutralButton(R.string.drive_dialog_account_signout) { _, _ ->
                 driveAuthManager.signOut {
                     viewLifecycleOwner.lifecycleScope.launch {
                         drivePreferencesRepository.clearAccount()
                         viewModel.setDriveService(null)
-                        Toast.makeText(requireContext(), "Đã ngắt kết nối Google Drive", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), getString(R.string.drive_toast_disconnected), Toast.LENGTH_SHORT).show()
                         viewModel.loadRootDirectory()
                     }
                 }
             }
-            .setNegativeButton("Đóng", null)
+            .setNegativeButton(R.string.action_close, null)
             .show()
     }
 
     private fun showDriveFolderActionsSheet(item: ExplorerItem) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(item.name)
-            .setItems(arrayOf("Mở thư mục", "Xóa thư mục khỏi Drive")) { _, which ->
+            .setItems(arrayOf(getString(R.string.drive_dialog_folder_open), getString(R.string.drive_dialog_folder_delete))) { _, which ->
                 when (which) {
                     0 -> viewModel.loadDirectory(item.path, item.name)
                     1 -> {
                         MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("Xác nhận xóa")
-                            .setMessage("Bạn có chắc muốn xóa thư mục '${item.name}' khỏi Google Drive không?")
-                            .setPositiveButton("Xóa") { _, _ ->
+                            .setTitle(R.string.drive_dialog_confirm_delete_title)
+                            .setMessage(getString(R.string.drive_dialog_confirm_delete_folder_message, item.name))
+                            .setPositiveButton(R.string.action_delete) { _, _ ->
                                 viewModel.deleteDriveItem(item)
                             }
-                            .setNegativeButton("Hủy", null)
+                            .setNegativeButton(R.string.action_cancel, null)
                             .show()
                     }
                 }
@@ -1431,14 +1431,14 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                             targetPath = "",
                             username = username
                         )
-                        Toast.makeText(requireContext(), "Đã bắt đầu sao chép '${cachedFile.name}' sang bộ nhớ ứng dụng", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), getString(R.string.drive_toast_copy_started, cachedFile.name), Toast.LENGTH_SHORT).show()
                     }.onFailure { e ->
                         com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
-                        Toast.makeText(requireContext(), "Lỗi sao chép tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), getString(R.string.drive_toast_copy_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                     }
                 } catch (e: Exception) {
                     com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
-                    Toast.makeText(requireContext(), "Lỗi sao chép tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), getString(R.string.drive_toast_copy_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -1493,7 +1493,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                         kotlinx.coroutines.delay(300)
                         com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
 
-                        Toast.makeText(requireContext(), "Đang nạp tệp vào trợ lý AI...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), getString(R.string.drive_toast_loading_ai), Toast.LENGTH_SHORT).show()
                         val uploadResult = explorerRepository.uploadDirectFile(
                             username = username,
                             targetPath = "",
@@ -1505,15 +1505,15 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                             AiChatBottomSheetFragment.newInstance(username, serverRelativePath)
                                 .show(parentFragmentManager, AiChatBottomSheetFragment.TAG)
                         }.onFailure { uploadErr ->
-                            Toast.makeText(requireContext(), "Không thể đồng bộ tệp lên server AI: ${uploadErr.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(requireContext(), getString(R.string.drive_toast_sync_ai_failed, uploadErr.message ?: ""), Toast.LENGTH_LONG).show()
                         }
                     }.onFailure { e ->
                         com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
-                        Toast.makeText(requireContext(), "Lỗi chuẩn bị tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), getString(R.string.drive_toast_prepare_file_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                     }
                 } catch (e: Exception) {
                     com.example.filemanagementapp.download.ExplorerDownloadProgressStore.clear()
-                    Toast.makeText(requireContext(), "Lỗi chuẩn bị tệp: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), getString(R.string.drive_toast_prepare_file_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -1527,10 +1527,10 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(webLink))
                     startActivity(intent)
                 } catch (e: Exception) {
-                    Toast.makeText(requireContext(), "Không thể mở liên kết: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.drive_toast_cannot_open_link, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             } else {
-                Toast.makeText(requireContext(), "Không có liên kết xem trực tuyến cho tệp này", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.drive_toast_no_web_link), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -1538,12 +1538,12 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         contentView.findViewById<View>(R.id.actionDriveDelete).setOnClickListener {
             dialog.dismiss()
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Xóa khỏi Google Drive")
-                .setMessage("Bạn có chắc chắn muốn xóa '${item.name}' khỏi Google Drive không?")
-                .setPositiveButton("Xóa") { _, _ ->
+                .setTitle(R.string.drive_dialog_delete_title)
+                .setMessage(getString(R.string.drive_dialog_delete_message, item.name))
+                .setPositiveButton(R.string.action_delete) { _, _ ->
                     viewModel.deleteDriveItem(item)
                 }
-                .setNegativeButton("Hủy", null)
+                .setNegativeButton(R.string.action_cancel, null)
                 .show()
         }
 

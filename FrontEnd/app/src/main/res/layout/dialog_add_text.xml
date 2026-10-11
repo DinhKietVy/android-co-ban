@@ -8,7 +8,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Nhập văn bản">
+        android:hint="@string/photo_editor_text_hint">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editTextInput"
@@ -22,7 +22,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Màu chữ"
+        android:text="@string/photo_editor_text_color"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="8dp" />
 

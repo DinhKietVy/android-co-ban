@@ -81,7 +81,7 @@ class PhotoEditorActivity : AppCompatActivity() {
         destUri = intent.getParcelableExtra(EXTRA_DEST_URI)
 
         if (sourceUri == null || destUri == null) {
-            Toast.makeText(this, "Thiếu đường dẫn ảnh", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.photo_editor_missing_path, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -202,15 +202,15 @@ class PhotoEditorActivity : AppCompatActivity() {
         }
 
         MaterialAlertDialogBuilder(this)
-            .setTitle("Thêm Chữ")
+            .setTitle(R.string.photo_editor_add_text_title)
             .setView(dialogView)
-            .setPositiveButton("Thêm") { _, _ ->
+            .setPositiveButton(R.string.action_add) { _, _ ->
                 val text = editTextInput.text?.toString() ?: ""
                 if (text.isNotBlank()) {
                     photoEditor.addText(text, selectedTextColor)
                 }
             }
-            .setNegativeButton("Hủy", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
@@ -235,11 +235,11 @@ class PhotoEditorActivity : AppCompatActivity() {
                     }
 
                     override fun onFailure(exception: Exception) {
-                        Toast.makeText(this@PhotoEditorActivity, "Lỗi khi lưu: ${exception.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@PhotoEditorActivity, getString(R.string.photo_editor_save_error, exception.message.orEmpty()), Toast.LENGTH_SHORT).show()
                     }
                 })
             } catch (e: SecurityException) {
-                Toast.makeText(this, "Lỗi quyền: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.photo_editor_permission_error, e.message.orEmpty()), Toast.LENGTH_SHORT).show()
             }
         }
     }
