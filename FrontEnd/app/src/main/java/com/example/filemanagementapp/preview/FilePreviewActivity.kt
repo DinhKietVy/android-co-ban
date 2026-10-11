@@ -960,19 +960,29 @@ class FilePreviewActivity : AppCompatActivity() {
         }
     }
 
+    private fun getEffectiveOwner(): String {
+        val item = explorerItem
+        return if (item != null && item.isSharedItem && !item.ownerUsername.isNullOrBlank()) {
+            item.ownerUsername
+        } else {
+            username
+        }
+    }
+
     private fun overwriteOriginalImage(uri: Uri) {
         val item = explorerItem ?: return
+        val targetOwner = getEffectiveOwner()
         previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val targetPath = item.path.substringBeforeLast('/', "")
 
-                // 1. Đảm bảo thư mục trash tồn tại trên server
-                explorerRepository.createFolder(username = username, targetPath = "", folderName = "trash")
+                // 1. Đảm bảo thư mục trash tồn tại trên server của chủ sở hữu
+                explorerRepository.createFolder(username = targetOwner, targetPath = "", folderName = "trash")
 
                 // 2. Chuyển ảnh gốc hiện tại vào Thùng rác để sao lưu (Backend sẽ đặt tên {Date.now()}_{fileName} và tạo .meta.json)
                 val moveResult = explorerRepository.moveItem(
-                    username = username,
+                    username = targetOwner,
                     item = item,
                     targetFolderPath = "trash"
                 )
@@ -982,13 +992,13 @@ class FilePreviewActivity : AppCompatActivity() {
                 val tempBakPath = if (targetPath.isEmpty()) tempBakName else "$targetPath/$tempBakName"
                 if (moveResult.isFailure) {
                     // Fallback đổi tên tạm nếu không di chuyển được vào trash
-                    explorerRepository.renameItem(username, item, tempBakName)
+                    explorerRepository.renameItem(targetOwner, item, tempBakName)
                     usedTempBak = true
                 }
 
                 // 3. Upload ảnh mới với đúng tên gốc
                 val uploadResult = explorerRepository.uploadFile(
-                    username = username,
+                    username = targetOwner,
                     targetPath = targetPath,
                     fileUri = uri,
                     overrideFileName = item.name
@@ -998,13 +1008,13 @@ class FilePreviewActivity : AppCompatActivity() {
                     if (usedTempBak) {
                         // Di chuyển file .bak vào trash để giữ bản sao lưu
                         val bakItem = item.copy(name = tempBakName, path = tempBakPath)
-                        explorerRepository.moveItem(username, bakItem, "trash")
+                        explorerRepository.moveItem(targetOwner, bakItem, "trash")
                     }
                 } else {
                     // Nếu upload thất bại, hoàn tác lại ảnh gốc
                     if (usedTempBak) {
                         val bakItem = item.copy(name = tempBakName, path = tempBakPath)
-                        explorerRepository.renameItem(username, bakItem, item.name)
+                        explorerRepository.renameItem(targetOwner, bakItem, item.name)
                     } else {
                         restoreOriginalFromTrashInternal(item)
                     }
@@ -1045,7 +1055,8 @@ class FilePreviewActivity : AppCompatActivity() {
 
     private suspend fun restoreOriginalFromTrashInternal(item: ExplorerItem) {
         try {
-            val trashDirectory = explorerRepository.listDirectory(username, "trash").getOrNull() ?: return
+            val targetOwner = getEffectiveOwner()
+            val trashDirectory = explorerRepository.listDirectory(targetOwner, "trash").getOrNull() ?: return
             val candidate = trashDirectory.items.filter { trashItem ->
                 val cleanName = if (trashItem.name.matches(Regex("^\\d{13}_.*"))) {
                     trashItem.name.substringAfter('_')
@@ -1056,7 +1067,7 @@ class FilePreviewActivity : AppCompatActivity() {
             }.maxByOrNull { trashItem ->
                 trashItem.name.substringBefore('_').toLongOrNull() ?: 0L
             } ?: return
-            explorerRepository.moveItem(username, candidate, "RESTORE")
+            explorerRepository.moveItem(targetOwner, candidate, "RESTORE")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -1064,10 +1075,11 @@ class FilePreviewActivity : AppCompatActivity() {
 
     private fun restoreOriginalPhoto() {
         val item = explorerItem ?: return
+        val targetOwner = getEffectiveOwner()
         previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val trashResult = explorerRepository.listDirectory(username, "trash")
+                val trashResult = explorerRepository.listDirectory(targetOwner, "trash")
                 val trashDirectory = trashResult.getOrNull()
                 if (trashDirectory == null) {
                     withContext(Dispatchers.Main) {
@@ -1129,15 +1141,16 @@ class FilePreviewActivity : AppCompatActivity() {
 
     private fun executeRestore(trashedItem: ExplorerItem) {
         val item = explorerItem ?: return
+        val targetOwner = getEffectiveOwner()
         previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // 1. Xóa file đã chỉnh sửa hiện tại để nhường chỗ cho ảnh gốc khôi phục về đúng tên và đường dẫn
-                explorerRepository.deleteItem(username, item)
+                explorerRepository.deleteItem(targetOwner, item)
 
                 // 2. Khôi phục ảnh gốc từ thùng rác
                 val restoreResult = explorerRepository.moveItem(
-                    username = username,
+                    username = targetOwner,
                     item = trashedItem,
                     targetFolderPath = "RESTORE"
                 )
@@ -1182,9 +1195,10 @@ class FilePreviewActivity : AppCompatActivity() {
             previewRenderHelper.hasOriginalBackup = false
             return
         }
+        val targetOwner = getEffectiveOwner()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val trashDirectory = explorerRepository.listDirectory(username, "trash").getOrNull()
+                val trashDirectory = explorerRepository.listDirectory(targetOwner, "trash").getOrNull()
                 val hasBackup = trashDirectory?.items?.any { trashItem ->
                     val cleanName = if (trashItem.name.matches(Regex("^\\d{13}_.*"))) {
                         trashItem.name.substringAfter('_')

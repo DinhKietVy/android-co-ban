@@ -16,14 +16,14 @@ const storage = multer.diskStorage({
     // LƯU Ý: Phía client (frontend) cần gửi 'username' và 'targetPath' TRƯỚC trường 'file' trong form-data
     // Nếu gửi file trước, req.body sẽ trống tại thời điểm này.
     const { username, targetPath } = req.body;
-    
+
     if (!username) {
       return cb(new Error('Thiếu username trong request body (hoặc không được gửi trước file)'), '');
     }
 
     // Đường dẫn gốc của user
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     // Đường dẫn đích nơi muốn upload file (mặc định là thư mục gốc của user nếu không truyền)
     const absoluteTargetPath = path.resolve(userRootPath, targetPath || '');
 
@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
     if (!absoluteTargetPath.startsWith(userRootPath)) {
       return cb(new Error('Đường dẫn upload không hợp lệ'), '');
     }
-    
+
     // Kiểm tra và tạo thư mục nếu chưa tồn tại
     if (!fs.existsSync(absoluteTargetPath)) {
       fs.mkdirSync(absoluteTargetPath, { recursive: true });
@@ -45,12 +45,12 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const absoluteTargetPath = (req as any).uploadDestination;
     let finalName = file.originalname;
-    
+
     if (absoluteTargetPath) {
       let counter = 1;
       const ext = path.extname(file.originalname);
       const baseName = path.basename(file.originalname, ext);
-      
+
       while (fs.existsSync(path.join(absoluteTargetPath, finalName))) {
         finalName = `${baseName} (${counter})${ext}`;
         counter++;
@@ -59,7 +59,7 @@ const storage = multer.diskStorage({
       // Fallback nếu không có absoluteTargetPath
       finalName = Date.now() + '-' + file.originalname;
     }
-    
+
     cb(null, finalName);
   }
 });
@@ -185,7 +185,7 @@ export const createFolder = (req: Request, res: Response) => {
 
     // Đường dẫn thư mục gốc của user
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     // Đường dẫn thư mục cha (nơi muốn tạo folder bên trong)
     // path.resolve sẽ tự động chuẩn hóa các dấu xuyệt và dọn dẹp đường dẫn
     const absoluteTargetPath = path.resolve(userRootPath, targetPath);
@@ -235,7 +235,7 @@ export const moveFile = (req: Request, res: Response) => {
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     // Kiểm tra đường dẫn file nguồn
     const absoluteSourcePath = path.resolve(userRootPath, sourceFilePath);
     if (!absoluteSourcePath.startsWith(userRootPath)) {
@@ -331,7 +331,7 @@ export const moveFolder = (req: Request, res: Response) => {
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     // Kiểm tra đường dẫn thư mục nguồn
     const absoluteSourcePath = path.resolve(userRootPath, sourceFolderPath);
     if (!absoluteSourcePath.startsWith(userRootPath)) {
@@ -437,7 +437,7 @@ export const deleteFile = (req: Request, res: Response) => {
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     // Kiểm tra đường dẫn file
     const absoluteFilePath = path.resolve(userRootPath, filePath);
 
@@ -489,7 +489,7 @@ export const deleteFolder = (req: Request, res: Response) => {
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     // Kiểm tra đường dẫn thư mục
     const absoluteFolderPath = path.resolve(userRootPath, folderPath);
 
@@ -591,10 +591,10 @@ export const listDirectory = (req: Request, res: Response) => {
           } else if (dirItem.isFile()) {
             try {
               totalSize += fs.statSync(childPath).size;
-            } catch (e) {}
+            } catch (e) { }
           }
         }
-      } catch (e) {}
+      } catch (e) { }
       return totalSize;
     };
 
@@ -610,7 +610,7 @@ export const listDirectory = (req: Request, res: Response) => {
       if (item.name.endsWith('.meta.json')) {
         continue;
       }
-      
+
       const itemPath = path.join(absoluteFolderPath, item.name);
       try {
         const stats = fs.statSync(itemPath);
@@ -624,7 +624,7 @@ export const listDirectory = (req: Request, res: Response) => {
               if (meta.deletedAt) {
                 itemModifiedAt = new Date(meta.deletedAt);
               }
-            } catch(e) {}
+            } catch (e) { }
           }
         }
 
@@ -706,14 +706,14 @@ export const downloadFile = async (req: Request, res: Response) => {
             AND target.username = @targetUsername
             AND sf.file_path = @filePath
         `);
-      
+
       if (result.recordset.length === 0) {
         return res.status(403).json({ error: 'Bạn không có quyền tải file này (không được chia sẻ)' });
       }
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username as string);
-    
+
     // Kiểm tra đường dẫn file
     const absoluteFilePath = path.resolve(userRootPath, filePath as string);
 
@@ -731,12 +731,12 @@ export const downloadFile = async (req: Request, res: Response) => {
       // Nếu là thư mục, nén thành file zip tạm thời và gửi về
       const zip = new AdmZip();
       zip.addLocalFolder(absoluteFilePath);
-      
+
       const os = require('os');
       const tempZipPath = path.join(os.tmpdir(), `${Date.now()}_${path.basename(absoluteFilePath)}.zip`);
-      
+
       zip.writeZip(tempZipPath);
-      
+
       return res.download(tempZipPath, `${path.basename(absoluteFilePath)}.zip`, (err) => {
         if (err) {
           console.error('Lỗi khi gửi file zip:', err);
@@ -781,7 +781,7 @@ export const renameFile = (req: Request, res: Response) => {
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     // Kiểm tra đường dẫn file
     const absoluteFilePath = path.resolve(userRootPath, filePath);
 
@@ -802,7 +802,7 @@ export const renameFile = (req: Request, res: Response) => {
     // Lấy thư mục chứa file hiện tại và tạo đường dẫn mới
     const directoryPath = path.dirname(absoluteFilePath);
     const safeNewFileName = path.basename(newFileName); // Chỉ lấy phần tên, loại bỏ đường dẫn nếu có
-    
+
     if (!safeNewFileName) {
       return res.status(400).json({ error: 'Tên file mới không hợp lệ' });
     }
@@ -839,7 +839,7 @@ export const renameFolder = (req: Request, res: Response) => {
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     // Kiểm tra đường dẫn thư mục
     const absoluteFolderPath = path.resolve(userRootPath, folderPath);
 
@@ -865,7 +865,7 @@ export const renameFolder = (req: Request, res: Response) => {
     // Lấy thư mục cha chứa thư mục hiện tại và tạo đường dẫn mới
     const directoryPath = path.dirname(absoluteFolderPath);
     const safeNewFolderName = path.basename(newFolderName); // Chỉ lấy phần tên, loại bỏ đường dẫn nếu có
-    
+
     if (!safeNewFolderName) {
       return res.status(400).json({ error: 'Tên thư mục mới không hợp lệ' });
     }
@@ -902,7 +902,7 @@ export const searchFiles = (req: Request, res: Response) => {
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username);
-    
+
     if (!fs.existsSync(userRootPath)) {
       return res.status(404).json({ error: 'Thư mục người dùng không tồn tại' });
     }
@@ -915,7 +915,7 @@ export const searchFiles = (req: Request, res: Response) => {
       const items = fs.readdirSync(dirPath, { withFileTypes: true });
       for (const item of items) {
         const itemPath = path.join(dirPath, item.name);
-        
+
         // Tạo đường dẫn tương đối so với thư mục gốc của user
         // (Thay thế dấu backslash của Windows bằng xuyệt chuẩn '/' cho dễ dùng trên frontend)
         const relativePath = path.relative(userRootPath, itemPath).replace(/\\/g, '/');
@@ -1364,10 +1364,12 @@ export const unshareFile = async (req: Request, res: Response) => {
     }
     const targetId: number = targetResult.recordset[0].id;
 
+    const normalizedFilePath = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
+
     const deleteResult = await pool.request()
       .input('owner_id', sql.Int, ownerId)
       .input('target_id', sql.Int, targetId)
-      .input('file_path', sql.VarChar(255), filePath)
+      .input('file_path', sql.VarChar(255), normalizedFilePath)
       .query(`
         DELETE FROM share_file
         WHERE owner_id = @owner_id AND target_id = @target_id AND file_path = @file_path
@@ -1489,8 +1491,9 @@ export const getSharedByOwner = async (req: Request, res: Response) => {
     `;
 
     if (filePath) {
+      const normalizedFilePath = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
       query += ' AND sf.file_path = @file_path';
-      request.input('file_path', sql.VarChar(255), filePath);
+      request.input('file_path', sql.VarChar(255), normalizedFilePath);
     }
 
     query += ' ORDER BY sf.file_path, t.username';

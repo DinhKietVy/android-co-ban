@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="8dp">
+
+    <!-- Avatar circle -->
+    <FrameLayout
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:background="@drawable/circle_shape"
+        android:backgroundTint="@color/purple_50">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_gravity="center"
+            android:src="@drawable/user"
+            app:tint="@color/purple_600" />
+    </FrameLayout>
+
+    <!-- User info -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvSharedUsername"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:text="username"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvSharedUserSub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:text="Người xem"
+            android:textColor="@color/explorer_text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Permission Selector Chip / Button -->
+    <LinearLayout
+        android:id="@+id/btnChangePermission"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/explorer_tag_background"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="6dp">
+
+        <TextView
+            android:id="@+id/tvPermissionRole"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Người xem"
+            android:textColor="@color/explorer_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/ivDropdownArrow"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_marginStart="4dp"
+            android:src="@drawable/arrow_up_down"
+            app:tint="@color/explorer_text_secondary" />
+    </LinearLayout>
+
+</LinearLayout>

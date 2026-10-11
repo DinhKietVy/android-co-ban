@@ -482,7 +482,7 @@ class ExplorerRepository(
                             modifiedEpochMillis = parseEpochMillis(file.modifiedAt),
                             size = file.size?.let(::formatSize),
                             sizeBytes = file.size,
-                            previewUrl = buildPreviewUrl(username.orEmpty(), joinPath(normalizedFolder, fileName)),
+                            previewUrl = buildPreviewUrl(username.orEmpty(), joinPath(normalizedFolder, fileName), parseEpochMillis(file.modifiedAt)),
                             isImagePreviewable = isImageFile(fileName),
                             fallbackIconRes = resolveFallbackIcon(fileName),
                             tags = buildFileTags(fileName)
@@ -626,9 +626,10 @@ class ExplorerRepository(
         return "$formatted ${units[unitIndex]}"
     }
 
-    fun buildPreviewUrl(username: String, filePath: String): String {
+    fun buildPreviewUrl(username: String, filePath: String, modifiedEpochMillis: Long? = null): String {
         val normalizedBaseUrl = BuildConfig.API_BASE_URL.trimEnd('/')
-        return "$normalizedBaseUrl/api/data/download?username=${encodeQuery(username)}&filePath=${encodeQuery(filePath)}"
+        val base = "$normalizedBaseUrl/api/data/download?username=${encodeQuery(username)}&filePath=${encodeQuery(filePath)}"
+        return if (modifiedEpochMillis != null && modifiedEpochMillis > 0) "$base&t=$modifiedEpochMillis" else base
     }
 
     private fun encodeQuery(value: String): String {

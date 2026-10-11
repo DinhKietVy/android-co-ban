@@ -453,6 +453,11 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         recyclerView.adapter = explorerAdapter
 
         swipeRefreshLayout.setOnRefreshListener {
+            @OptIn(coil.annotation.ExperimentalCoilApi::class)
+            coil.Coil.imageLoader(requireContext()).let { loader ->
+                loader.memoryCache?.clear()
+                loader.diskCache?.clear()
+            }
             viewModel.refreshCurrentDirectory()
         }
 
@@ -605,6 +610,24 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                     }
                 }
             }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (true) {
+                    kotlinx.coroutines.delay(10000)
+                    if (isAdded && !viewModel.uiState.value.isSelectionMode && !viewModel.uiState.value.isLoading && !viewModel.uiState.value.isRefreshing) {
+                        viewModel.refreshCurrentDirectory()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isAdded && ::viewModel.isInitialized && !viewModel.uiState.value.isSelectionMode) {
+            viewModel.refreshCurrentDirectory()
         }
     }
 
@@ -853,15 +876,108 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.shareUsernameInput)
         val radioGroup = view.findViewById<android.widget.RadioGroup>(R.id.sharePermissionGroup)
         val btnGrantAccess = view.findViewById<android.widget.Button>(R.id.btnGrantAccess)
-        
+        val pbSharedUsers = view.findViewById<ProgressBar>(R.id.pbSharedUsers)
+        val tvEmptySharedUsers = view.findViewById<TextView>(R.id.tvEmptySharedUsers)
+        val llSharedUsersContainer = view.findViewById<LinearLayout>(R.id.llSharedUsersContainer)
+
+        fun refreshSharedUsers() {
+            pbSharedUsers.visibility = View.VISIBLE
+            tvEmptySharedUsers.visibility = View.GONE
+            viewModel.loadSharedUsers(item) { users ->
+                if (!isAdded) return@loadSharedUsers
+                pbSharedUsers.visibility = View.GONE
+                llSharedUsersContainer.removeAllViews()
+
+                // Luôn hiển thị chủ sở hữu (user hiện tại) ở đầu danh sách
+                val ownerView = layoutInflater.inflate(R.layout.item_shared_user, llSharedUsersContainer, false)
+                ownerView.findViewById<TextView>(R.id.tvSharedUsername).text = "$username (Bạn)"
+                ownerView.findViewById<TextView>(R.id.tvSharedUserSub).text = "Chủ sở hữu"
+                ownerView.findViewById<TextView>(R.id.tvPermissionRole).text = "Chủ sở hữu"
+                ownerView.findViewById<View>(R.id.ivDropdownArrow).visibility = View.GONE
+                val ownerBtn = ownerView.findViewById<View>(R.id.btnChangePermission)
+                ownerBtn.isClickable = false
+                ownerBtn.isFocusable = false
+                llSharedUsersContainer.addView(ownerView)
+
+                val filteredUsers = users.filter { !it.targetUsername.isNullOrBlank() }
+                if (filteredUsers.isEmpty()) {
+                    tvEmptySharedUsers.visibility = View.VISIBLE
+                } else {
+                    tvEmptySharedUsers.visibility = View.GONE
+                    for (sharedUser in filteredUsers) {
+                        val targetUser = sharedUser.targetUsername ?: continue
+                        val userView = layoutInflater.inflate(R.layout.item_shared_user, llSharedUsersContainer, false)
+                        userView.findViewById<TextView>(R.id.tvSharedUsername).text = targetUser
+
+                        val isWrite = sharedUser.permission.equals("WRITE", ignoreCase = true)
+                        val roleText = if (isWrite) "Người chỉnh sửa" else "Người xem"
+                        userView.findViewById<TextView>(R.id.tvSharedUserSub).text = if (isWrite) "Có thể xem & chỉnh sửa" else "Chỉ xem"
+
+                        val tvRole = userView.findViewById<TextView>(R.id.tvPermissionRole)
+                        tvRole.text = roleText
+
+                        val btnPermission = userView.findViewById<View>(R.id.btnChangePermission)
+                        btnPermission.setOnClickListener { anchor ->
+                            val popup = androidx.appcompat.widget.PopupMenu(requireContext(), anchor)
+                            popup.menu.add(0, 1, 0, "Người xem (Chỉ xem)")
+                            popup.menu.add(0, 2, 1, "Người chỉnh sửa (Chỉnh sửa)")
+                            popup.menu.add(0, 3, 2, "Xoá quyền truy cập")
+
+                            popup.setOnMenuItemClickListener { menuItem ->
+                                when (menuItem.itemId) {
+                                    1 -> {
+                                        if (isWrite) {
+                                            viewModel.shareItem(item, targetUser, "READ") { success ->
+                                                if (success) refreshSharedUsers()
+                                            }
+                                        }
+                                    }
+                                    2 -> {
+                                        if (!isWrite) {
+                                            viewModel.shareItem(item, targetUser, "WRITE") { success ->
+                                                if (success) refreshSharedUsers()
+                                            }
+                                        }
+                                    }
+                                    3 -> {
+                                        MaterialAlertDialogBuilder(requireContext())
+                                            .setTitle("Xoá quyền truy cập")
+                                            .setMessage("Bạn có chắc muốn xoá quyền truy cập của '$targetUser' đối với file này?")
+                                            .setPositiveButton("Xoá") { _, _ ->
+                                                viewModel.unshareItem(item, targetUser) { success ->
+                                                    if (success) refreshSharedUsers()
+                                                }
+                                            }
+                                            .setNegativeButton("Huỷ", null)
+                                            .show()
+                                    }
+                                }
+                                true
+                            }
+                            popup.show()
+                        }
+
+                        llSharedUsersContainer.addView(userView)
+                    }
+                }
+            }
+        }
+
+        refreshSharedUsers()
+
         btnGrantAccess.setOnClickListener {
             val targetUsername = input.text?.toString().orEmpty().trim()
             if (targetUsername.isNotBlank()) {
                 val permission = if (radioGroup.checkedRadioButtonId == R.id.sharePermissionWrite) "WRITE" else "READ"
                 android.util.Log.d("SHARE_DEBUG", "[ExplorerFragment] Sharing file: '${item.path}', target: '$targetUsername', permission: '$permission'")
-                viewModel.shareItem(item, targetUsername, permission)
-                input.text?.clear()
-                bottomSheet.dismiss()
+                btnGrantAccess.isEnabled = false
+                viewModel.shareItem(item, targetUsername, permission) { success ->
+                    btnGrantAccess.isEnabled = true
+                    if (success) {
+                        input.text?.clear()
+                        refreshSharedUsers()
+                    }
+                }
             }
         }
         

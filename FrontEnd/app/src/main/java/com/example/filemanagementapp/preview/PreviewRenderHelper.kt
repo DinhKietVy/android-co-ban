@@ -194,10 +194,19 @@ class PreviewRenderHelper(
                     previewLoadingIndicator.visibility = View.GONE
                 } else {
                     previewImage.setImageDrawable(null)
-                    previewImage.load(sourceUri) {
+                    val uriToLoad = if (sourceUri.scheme == "http" || sourceUri.scheme == "https") {
+                        sourceUri.buildUpon()
+                            .appendQueryParameter("t", System.currentTimeMillis().toString())
+                            .build()
+                    } else {
+                        sourceUri
+                    }
+                    previewImage.load(uriToLoad) {
                         size(coil.size.Size.ORIGINAL)
                         setHeader("ngrok-skip-browser-warning", "69420")
                         error(R.drawable.explorer_file_preview_placeholder)
+                        memoryCachePolicy(coil.request.CachePolicy.DISABLED)
+                        diskCachePolicy(coil.request.CachePolicy.DISABLED)
                         listener(
                             onSuccess = { _, _ -> previewLoadingIndicator.visibility = View.GONE },
                             onError = { _, _ -> previewLoadingIndicator.visibility = View.GONE }

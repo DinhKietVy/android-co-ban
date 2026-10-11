@@ -241,7 +241,7 @@ class ExplorerViewModel(
                             type = ExplorerItem.Type.FILE,
                             size = null,
                             modified = "",
-                            previewUrl = repository.buildPreviewUrl(sharedFile.ownerUsername.orEmpty(), sharedFile.filePath),
+                            previewUrl = repository.buildPreviewUrl(sharedFile.ownerUsername.orEmpty(), sharedFile.filePath, System.currentTimeMillis()),
                             isImagePreviewable = isImage,
                             fallbackIconRes = repository.resolveFallbackIcon(fileName),
                             tags = repository.buildFileTags(fileName),
@@ -466,7 +466,12 @@ class ExplorerViewModel(
         }
     }
 
-    fun shareItem(item: ExplorerItem, targetUsername: String, permission: String) {
+    fun shareItem(
+        item: ExplorerItem,
+        targetUsername: String,
+        permission: String,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
         viewModelScope.launch {
             repository.shareFile(
                 ownerUsername = username,
@@ -475,8 +480,45 @@ class ExplorerViewModel(
                 permission = permission
             ).onSuccess { message ->
                 emitMessage(UiText.DynamicString(message))
+                onComplete?.invoke(true)
             }.onFailure { throwable ->
                 emitMessage(UiText.DynamicString(throwable.message ?: "Lỗi chia sẻ"))
+                onComplete?.invoke(false)
+            }
+        }
+    }
+
+    fun loadSharedUsers(
+        item: ExplorerItem,
+        onResult: (List<com.example.filemanagementapp.data.explorer.model.ExplorerSharedFile>) -> Unit
+    ) {
+        viewModelScope.launch {
+            repository.getSharedByOwner(ownerUsername = username, filePath = item.path)
+                .onSuccess { response ->
+                    onResult(response.data)
+                }
+                .onFailure {
+                    onResult(emptyList())
+                }
+        }
+    }
+
+    fun unshareItem(
+        item: ExplorerItem,
+        targetUsername: String,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        viewModelScope.launch {
+            repository.unshareFile(
+                ownerUsername = username,
+                targetUsername = targetUsername,
+                filePath = item.path
+            ).onSuccess { message ->
+                emitMessage(UiText.DynamicString(message))
+                onComplete?.invoke(true)
+            }.onFailure { throwable ->
+                emitMessage(UiText.DynamicString(throwable.message ?: "Lỗi hủy chia sẻ"))
+                onComplete?.invoke(false)
             }
         }
     }
