@@ -134,7 +134,12 @@ class PreviewRenderHelper(
 
         if (isImage || (extension.isBlank() && originalPreviewSource != null)) {
             previewImage.visibility = View.VISIBLE
-            editFab.visibility = View.VISIBLE
+            val isShared = item?.isSharedItem == true || !item?.ownerUsername.isNullOrEmpty()
+            val isReadOnly = item?.permission == "PUBLIC_READ" || 
+                             item?.permission == "READ" || 
+                             (isShared && item?.permission != "WRITE")
+            val canEdit = !isReadOnly
+            editFab.visibility = if (canEdit) View.VISIBLE else View.GONE
             editFab.setImageResource(R.drawable.palette)
             editFab.setOnClickListener { anchor ->
                 val popupView = activity.layoutInflater.inflate(R.layout.popup_preview_edit_image, null)
@@ -450,7 +455,12 @@ class PreviewRenderHelper(
             activity.findViewById<View>(R.id.action_bullets).setOnClickListener { richEditor.setBullets() }
             activity.findViewById<View>(R.id.action_numbers).setOnClickListener { richEditor.setNumbers() }
             
-            editFab.visibility = View.VISIBLE
+            val isShared = item?.isSharedItem == true || !item?.ownerUsername.isNullOrEmpty()
+            val isReadOnly = item?.permission == "PUBLIC_READ" || 
+                             item?.permission == "READ" || 
+                             (isShared && item?.permission != "WRITE")
+            val canEdit = !isReadOnly
+            editFab.visibility = if (canEdit) View.VISIBLE else View.GONE
             isRichEditing = false
             editFab.setImageResource(R.drawable.edit_3)
             
@@ -639,6 +649,13 @@ class PreviewRenderHelper(
             activity.getString(R.string.preview_ai_empty)
         }
         
+        val isShared = item?.isSharedItem == true || !item?.ownerUsername.isNullOrEmpty()
+        val isReadOnly = item?.permission == "PUBLIC_READ" || 
+                         item?.permission == "READ" || 
+                         (isShared && item?.permission != "WRITE")
+        val canEdit = !isReadOnly
+
+        editOcrButton.visibility = if (canEdit) View.VISIBLE else View.GONE
         editOcrButton.setOnClickListener {
             val dialogView = activity.layoutInflater.inflate(R.layout.dialog_input, null)
             val inputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
@@ -667,7 +684,7 @@ class PreviewRenderHelper(
             aiTags.forEach { tag ->
                 val chip = com.google.android.material.chip.Chip(activity)
                 chip.text = tag
-                chip.isCloseIconVisible = true
+                chip.isCloseIconVisible = canEdit
                 chip.setOnCloseIconClickListener {
                     val mutableTags = aiTags.toMutableList()
                     mutableTags.remove(tag)
@@ -681,6 +698,7 @@ class PreviewRenderHelper(
 
         renderTags()
 
+        addTagButton.visibility = if (canEdit) View.VISIBLE else View.GONE
         addTagButton.setOnClickListener {
             val dialogView = activity.layoutInflater.inflate(R.layout.dialog_input, null)
             val inputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)

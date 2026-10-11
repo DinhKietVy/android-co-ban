@@ -119,16 +119,17 @@ class ExplorerAdapter(
                 } else {
                     metaText.text = "${item.size ?: "Đám mây"} • $subtitle"
                 }
-            } else if (item.isGoogleDriveItem && item.id == "gdrive_shared_with_me") {
+            } else if (item.id == "shared_root" || (item.isGoogleDriveItem && item.id == "gdrive_shared_with_me")) {
                 folderIconImageView?.setImageResource(R.drawable.users)
                 folderIconImageView?.imageTintList = android.content.res.ColorStateList.valueOf(
                     androidx.core.content.ContextCompat.getColor(context, R.color.explorer_primary)
                 )
+                val subtitle = "Tệp được chia sẻ"
                 if (dateText != null) {
-                    metaText.text = "Thư mục chia sẻ"
+                    metaText.text = subtitle
                     dateText.visibility = View.GONE
                 } else {
-                    metaText.text = "Thư mục chia sẻ"
+                    metaText.text = subtitle
                 }
             } else {
                 folderIconImageView?.setImageResource(item.fallbackIconRes ?: R.drawable.folder)
@@ -147,7 +148,7 @@ class ExplorerAdapter(
             
             selectionCheckBox.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
             selectionCheckBox.isChecked = isSelected
-            moreButton.visibility = if (isSelectionMode || item.id == "gdrive_shared_with_me") View.GONE else View.VISIBLE
+            moreButton.visibility = if (isSelectionMode || item.id == "gdrive_shared_with_me" || item.id == "shared_root") View.GONE else View.VISIBLE
             moreButton.setOnClickListener { onMoreClick(item) }
             itemView.setOnClickListener {
                 if (isSelectionMode) {
@@ -224,7 +225,12 @@ class ExplorerAdapter(
                 }
             }
 
-            metaText.text = item.size.orEmpty()
+            if (item.ownerUsername != null) {
+                val permText = if (item.permission == "WRITE") "Chỉnh sửa" else "Chỉ xem"
+                metaText.text = "Từ: ${item.ownerUsername} • $permText"
+            } else {
+                metaText.text = item.size.orEmpty()
+            }
             if (item.modified.isBlank()) {
                 dateText.visibility = View.GONE
             } else {

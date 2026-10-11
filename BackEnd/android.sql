@@ -14,6 +14,7 @@ CREATE TABLE share_file (
     owner_id INT NOT NULL,
     target_id INT NOT NULL,
     file_path VARCHAR(255) NOT NULL,
+    permission VARCHAR(50) NOT NULL DEFAULT 'READ',
 
     PRIMARY KEY (owner_id, target_id, file_path),
 

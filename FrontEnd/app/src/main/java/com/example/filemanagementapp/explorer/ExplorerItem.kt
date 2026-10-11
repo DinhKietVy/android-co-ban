@@ -25,6 +25,7 @@ data class ExplorerItem(
     val ownerUsername: String? = null,
     val permission: String? = null,
     val isGoogleDriveItem: Boolean = false,
+    val isSharedItem: Boolean = false,
     val driveFileId: String? = null,
     val driveShortcutId: String? = null,
     val driveMimeType: String? = null,

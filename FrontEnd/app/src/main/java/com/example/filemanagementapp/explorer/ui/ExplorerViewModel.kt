@@ -91,6 +91,10 @@ class ExplorerViewModel(
                 loadGoogleDriveDirectory(folderPath = folderPath, folderName = folderName, isRefresh = isRefresh)
                 return@launch
             }
+            if (folderPath.startsWith("shared://")) {
+                loadSharedDirectory(isRefresh = isRefresh)
+                return@launch
+            }
             driveBreadcrumbs.clear()
             val normalizedFolderPath = folderPath.trim().trim('/')
             _uiState.update {
@@ -210,6 +214,105 @@ class ExplorerViewModel(
                         )
                     }
                 }
+        }
+    }
+
+    private fun loadSharedDirectory(isRefresh: Boolean) {
+        viewModelScope.launch {
+            driveBreadcrumbs.clear()
+            _uiState.update {
+                it.copy(
+                    isLoading = !isRefresh,
+                    isRefreshing = isRefresh,
+                    errorMessage = null
+                )
+            }
+
+            repository.getSharedToMe(username)
+                .onSuccess { response ->
+                    android.util.Log.d("SHARE_DEBUG", "[ExplorerViewModel] getSharedToMe count: ${response.data.size}, items: ${response.data.map { "file=${it.filePath}, owner=${it.ownerUsername}, perm=${it.permission}" }}")
+                    val sharedItems = response.data.map { sharedFile ->
+                        val fileName = sharedFile.filePath.substringAfterLast("/")
+                        val isImage = repository.isImageFile(fileName)
+                        ExplorerItem(
+                            id = "shared_${sharedFile.filePath}",
+                            name = fileName,
+                            path = sharedFile.filePath,
+                            type = ExplorerItem.Type.FILE,
+                            size = null,
+                            modified = "",
+                            previewUrl = repository.buildPreviewUrl(sharedFile.ownerUsername.orEmpty(), sharedFile.filePath),
+                            isImagePreviewable = isImage,
+                            fallbackIconRes = repository.resolveFallbackIcon(fileName),
+                            tags = repository.buildFileTags(fileName),
+                            isFavorite = false,
+                            aiAnalyzed = false,
+                            ownerUsername = sharedFile.ownerUsername,
+                            permission = sharedFile.permission?.ifBlank { "READ" } ?: "READ",
+                            isSharedItem = true
+                        )
+                    }
+                    currentDirectoryItems = sharedItems
+                    _uiState.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            isShowingCachedData = false,
+                            currentFolder = "shared://root",
+                            breadcrumbs = listOf(
+                                ExplorerBreadcrumbItem(title = "Được chia sẻ với tôi", path = "shared://root")
+                            ),
+                            items = applySorting(sharedItems, state.sortOption),
+                            selectedPaths = emptySet(),
+                            isSelectionMode = false,
+                            storageSummary = "Được chia sẻ (${sharedItems.size} tệp)"
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            errorMessage = throwable.message ?: "Không thể tải danh sách tệp được chia sẻ"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun renameSharedItem(item: ExplorerItem, newName: String) {
+        val sanitizedName = newName.trim()
+        if (sanitizedName.isBlank()) {
+            emitMessage(UiText.StringResource(R.string.error_empty_new_name))
+            return
+        }
+
+        viewModelScope.launch {
+            repository.renameItem(
+                username = item.ownerUsername ?: username,
+                item = item,
+                newName = sanitizedName
+            ).onSuccess { message ->
+                emitMessage(UiText.DynamicString(message))
+                refreshCurrentDirectory()
+            }.onFailure { throwable ->
+                emitMessage(UiText.DynamicString(throwable.message ?: "Lỗi đổi tên tệp"))
+            }
+        }
+    }
+
+    fun deleteSharedItem(item: ExplorerItem) {
+        viewModelScope.launch {
+            repository.deleteItem(
+                username = item.ownerUsername ?: username,
+                item = item
+            ).onSuccess { message ->
+                emitMessage(UiText.DynamicString(message))
+                refreshCurrentDirectory()
+            }.onFailure { throwable ->
+                emitMessage(UiText.DynamicString(throwable.message ?: "Lỗi xóa tệp"))
+            }
         }
     }
 
@@ -977,7 +1080,18 @@ class ExplorerViewModel(
                 driveFileId = "root",
                 driveMimeType = "application/vnd.google-apps.folder"
             )
-            listOf(driveRootItem) + mergedItems
+            val sharedRootItem = ExplorerItem(
+                id = "shared_root",
+                name = "Được chia sẻ với tôi",
+                path = "shared://root",
+                type = ExplorerItem.Type.FOLDER,
+                size = null,
+                modified = "",
+                previewUrl = null,
+                isFavorite = false,
+                isSharedItem = true
+            )
+            listOf(driveRootItem, sharedRootItem) + mergedItems
         } else {
             mergedItems
         }
@@ -1042,11 +1156,11 @@ class ExplorerViewModel(
         items: List<ExplorerItem>,
         sortOption: SortOption
     ): List<ExplorerItem> {
-        val driveRoot = items.filter { it.id == "gdrive_root" }
-        val normalItems = items.filter { it.id != "gdrive_root" }
+        val rootFolders = items.filter { it.id == "gdrive_root" || it.id == "shared_root" }
+        val normalItems = items.filter { it.id != "gdrive_root" && it.id != "shared_root" }
         val folders = normalItems.filter { it.type == ExplorerItem.Type.FOLDER }
         val files = normalItems.filter { it.type == ExplorerItem.Type.FILE }
-        return driveRoot + sortItems(folders, sortOption) + sortItems(files, sortOption)
+        return rootFolders + sortItems(folders, sortOption) + sortItems(files, sortOption)
     }
 
     private fun sortItems(

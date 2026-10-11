@@ -147,15 +147,18 @@ class MainActivity : AppCompatActivity() {
             item.isChecked = true
 
             when (item.itemId) {
-                R.id.nav_explorer -> viewPager.setCurrentItem(0, false)
-                R.id.nav_shared -> viewPager.setCurrentItem(1, false)
+                R.id.nav_explorer -> viewPager.setCurrentItem(EXPLORER_PAGE_INDEX, false)
+                R.id.nav_shared -> {
+                    viewPager.setCurrentItem(EXPLORER_PAGE_INDEX, false)
+                    navigationViewModel.requestOpenFolder("shared://root")
+                }
                 R.id.nav_ai_chat -> {
                     com.example.filemanagementapp.chat.AiChatBottomSheetFragment.newInstance(username)
                         .show(supportFragmentManager, com.example.filemanagementapp.chat.AiChatBottomSheetFragment.TAG)
                 }
-                R.id.nav_recent -> viewPager.setCurrentItem(2, false)
-                R.id.nav_trash -> viewPager.setCurrentItem(3, false)
-                R.id.nav_profile -> viewPager.setCurrentItem(4, false)
+                R.id.nav_recent -> viewPager.setCurrentItem(1, false)
+                R.id.nav_trash -> viewPager.setCurrentItem(2, false)
+                R.id.nav_profile -> viewPager.setCurrentItem(3, false)
                 R.id.nav_logout -> {
                     lifecycleScope.launch {
                         com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository(applicationContext).clearRememberedLogin()

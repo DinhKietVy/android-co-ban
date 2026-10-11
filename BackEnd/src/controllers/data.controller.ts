@@ -106,12 +106,36 @@ export const uploadData = (req: Request, res: Response) => {
 };
 
 // API cập nhật nội dung file (Ghi đè)
-export const updateFileContent = (req: Request, res: Response) => {
+export const updateFileContent = async (req: Request, res: Response) => {
   try {
-    const { username, filePath, content } = req.body;
+    const { username, filePath, content, callerUsername } = req.body;
 
     if (!username || !filePath || content === undefined) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath, content)' });
+    }
+
+    const caller = callerUsername || (req as any).user?.username;
+    if (caller && caller !== username) {
+      // Người sửa khác người sở hữu: kiểm tra quyền WRITE qua bảng share_file
+      const pool = await connectDB();
+      const normalizedPath = filePath.replace(/\\/g, '/');
+      const permCheck = await pool.request()
+        .input('owner', sql.VarChar(255), username)
+        .input('target', sql.VarChar(255), caller)
+        .input('file_path', sql.VarChar(255), normalizedPath)
+        .query(`
+          SELECT sf.permission
+          FROM share_file sf
+          INNER JOIN users o ON sf.owner_id = o.id
+          INNER JOIN users t ON sf.target_id = t.id
+          WHERE o.username = @owner AND t.username = @target AND sf.file_path = @file_path
+        `);
+      if (permCheck.recordset.length === 0) {
+        return res.status(403).json({ error: 'File này chưa được chia sẻ với bạn' });
+      }
+      if (permCheck.recordset[0].permission !== 'WRITE') {
+        return res.status(403).json({ error: 'Bạn chỉ có quyền xem (READ), không thể chỉnh sửa file này' });
+      }
     }
 
     const userRootPath = path.resolve(__dirname, '../../data', username);
@@ -1231,7 +1255,7 @@ import sql from 'mssql';
 // POST /api/data/share — Thêm bản ghi chia sẻ
 export const shareFile = async (req: Request, res: Response) => {
   try {
-    const { ownerUsername, targetUsername, filePath } = req.body;
+    const { ownerUsername, targetUsername, filePath, permission } = req.body;
 
     if (!ownerUsername || !targetUsername || !filePath) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (ownerUsername, targetUsername, filePath)' });
@@ -1240,6 +1264,8 @@ export const shareFile = async (req: Request, res: Response) => {
     if (ownerUsername === targetUsername) {
       return res.status(400).json({ error: 'Không thể chia sẻ file cho chính mình' });
     }
+
+    const normalizedPermission = (permission && String(permission).toUpperCase() === 'WRITE') ? 'WRITE' : 'READ';
 
     const pool = await connectDB();
 
@@ -1276,23 +1302,32 @@ export const shareFile = async (req: Request, res: Response) => {
     // Chuẩn hoá file_path (dùng dấu /)
     const normalizedFilePath = path.relative(userRootPath, absoluteFilePath).replace(/\\/g, '/');
 
-    // Thêm bản ghi (bỏ qua nếu đã tồn tại)
+    // Thêm bản ghi hoặc cập nhật quyền nếu đã tồn tại
     await pool.request()
       .input('owner_id', sql.Int, ownerId)
       .input('target_id', sql.Int, targetId)
       .input('file_path', sql.VarChar(255), normalizedFilePath)
+      .input('permission', sql.VarChar(50), normalizedPermission)
       .query(`
         IF NOT EXISTS (
           SELECT 1 FROM share_file
           WHERE owner_id = @owner_id AND target_id = @target_id AND file_path = @file_path
         )
-        INSERT INTO share_file (owner_id, target_id, file_path)
-        VALUES (@owner_id, @target_id, @file_path)
+        BEGIN
+          INSERT INTO share_file (owner_id, target_id, file_path, permission)
+          VALUES (@owner_id, @target_id, @file_path, @permission)
+        END
+        ELSE
+        BEGIN
+          UPDATE share_file
+          SET permission = @permission
+          WHERE owner_id = @owner_id AND target_id = @target_id AND file_path = @file_path
+        END
       `);
 
     return res.status(201).json({
       message: 'Chia sẻ file thành công',
-      data: { ownerUsername, targetUsername, filePath: normalizedFilePath }
+      data: { ownerUsername, targetUsername, filePath: normalizedFilePath, permission: normalizedPermission }
     });
 
   } catch (error: any) {
@@ -1446,7 +1481,8 @@ export const getSharedByOwner = async (req: Request, res: Response) => {
     let query = `
       SELECT
         sf.file_path,
-        t.username AS targetUsername
+        t.username AS targetUsername,
+        ISNULL(sf.permission, 'READ') AS permission
       FROM share_file sf
       INNER JOIN users t ON sf.target_id = t.id
       WHERE sf.owner_id = @owner_id
@@ -1497,7 +1533,8 @@ export const getSharedToMe = async (req: Request, res: Response) => {
       .query(`
         SELECT
           sf.file_path,
-          o.username AS ownerUsername
+          o.username AS ownerUsername,
+          ISNULL(sf.permission, 'READ') AS permission
         FROM share_file sf
         INNER JOIN users o ON sf.owner_id = o.id
         WHERE sf.target_id = @target_id
@@ -1540,7 +1577,7 @@ export const getFileInfo = async (req: Request, res: Response) => {
         .input('target', sql.VarChar(255), currentUsername)
         .input('file_path', sql.VarChar(255), filePath)
         .query(`
-          SELECT sf.id 
+          SELECT sf.id, ISNULL(sf.permission, 'READ') AS permission
           FROM share_file sf
           INNER JOIN users o ON sf.owner_id = o.id
           INNER JOIN users t ON sf.target_id = t.id
@@ -1548,7 +1585,7 @@ export const getFileInfo = async (req: Request, res: Response) => {
         `);
       if (checkResult.recordset.length > 0) {
         hasPermission = true;
-        permissionType = 'READ';
+        permissionType = checkResult.recordset[0].permission || 'READ';
       }
     }
 

@@ -369,6 +369,31 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         explorerAdapter = ExplorerAdapter(
             onItemClick = { item -> onOpen(item) },
             onMoreClick = { item -> 
+                if (item.id == "shared_root") {
+                    return@ExplorerAdapter
+                }
+                if (item.isSharedItem) {
+                    val canWrite = item.permission == "WRITE"
+                    actionSheetController.show(
+                        item = item,
+                        config = FileActionSheetController.ActionConfig(
+                            showOpen = false,
+                            showDownload = true,
+                            showRename = canWrite,
+                            showShare = false,
+                            showManageAccess = false,
+                            showMove = false,
+                            showFavorite = false,
+                            showDelete = canWrite,
+                            showAi = item.isImagePreviewable,
+                            showConvert = false,
+                            showCompress = false,
+                            showExtract = false,
+                            showAskAi = true
+                        )
+                    )
+                    return@ExplorerAdapter
+                }
                 if (item.isGoogleDriveItem) {
                     if (item.type == ExplorerItem.Type.FILE) {
                         showDriveFileActionsSheet(item)
@@ -398,7 +423,31 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 }
             },
             onItemSelectionToggle = { item -> viewModel.toggleItemSelection(item) },
-            onItemLongPress = { item -> viewModel.startSelection(item) }
+            onItemLongPress = { item ->
+                if (item.isSharedItem || viewModel.uiState.value.currentFolder.startsWith("shared://")) {
+                    val canWrite = item.permission == "WRITE"
+                    actionSheetController.show(
+                        item = item,
+                        config = FileActionSheetController.ActionConfig(
+                            showOpen = false,
+                            showDownload = true,
+                            showRename = canWrite,
+                            showShare = false,
+                            showManageAccess = false,
+                            showMove = false,
+                            showFavorite = false,
+                            showDelete = canWrite,
+                            showAi = item.isImagePreviewable,
+                            showConvert = false,
+                            showCompress = false,
+                            showExtract = false,
+                            showAskAi = true
+                        )
+                    )
+                } else {
+                    viewModel.startSelection(item)
+                }
+            }
         )
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         recyclerView.adapter = explorerAdapter
@@ -486,7 +535,11 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 navigationViewModel.openFolderRequests.collect { folderPath ->
                     if (!folderPath.isNullOrBlank()) {
                         navigationViewModel.consumeOpenFolderRequest()
-                        viewModel.loadDirectory(folderPath)
+                        if (folderPath == "shared://root") {
+                            viewModel.loadDirectory("shared://root", "Được chia sẻ")
+                        } else {
+                            viewModel.loadDirectory(folderPath)
+                        }
                     }
                 }
             }
@@ -659,8 +712,8 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         }
         sortByText.visibility = View.VISIBLE
         sortByText.text = sortLabel
-        selectModeText.visibility = if (state.items.isEmpty()) View.GONE else View.VISIBLE
-        createFab.visibility = if (state.isSelectionMode) View.GONE else View.VISIBLE
+        selectModeText.visibility = if (state.items.isEmpty() || state.currentFolder.startsWith("shared://")) View.GONE else View.VISIBLE
+        createFab.visibility = if (state.isSelectionMode || state.currentFolder.startsWith("shared://")) View.GONE else View.VISIBLE
         selectionActionCard.visibility =
             if (state.isSelectionMode && state.selectedPaths.isNotEmpty()) View.VISIBLE else View.GONE
         updateProgressContainer()
@@ -694,6 +747,10 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     override fun onOpen(item: ExplorerItem) {
         viewLifecycleOwner.lifecycleScope.launch {
             recentOpenLocalRepository.recordOpen(username, item.path)
+        }
+        if (item.id == "shared_root" || item.path.startsWith("shared://")) {
+            viewModel.loadDirectory("shared://root", "Được chia sẻ")
+            return
         }
         if (item.id == "gdrive_root") {
             if (driveAuthManager.getSignedInAccount() != null) {
@@ -737,7 +794,11 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     override fun onRename(item: ExplorerItem, newName: String) {
-        viewModel.renameItem(item, newName)
+        if (item.isSharedItem) {
+            viewModel.renameSharedItem(item, newName)
+        } else {
+            viewModel.renameItem(item, newName)
+        }
     }
 
     override fun onMove(item: ExplorerItem, targetPath: String) {
@@ -749,7 +810,11 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     override fun onDelete(item: ExplorerItem) {
-        viewModel.deleteItem(item)
+        if (item.isSharedItem) {
+            viewModel.deleteSharedItem(item)
+        } else {
+            viewModel.deleteItem(item)
+        }
     }
 
     override fun onAnalyzeAi(item: ExplorerItem) {
@@ -757,7 +822,8 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     }
 
     override fun onAskAi(item: ExplorerItem) {
-        AiChatBottomSheetFragment.newInstance(username, item.path)
+        val targetUsername = item.ownerUsername ?: username
+        AiChatBottomSheetFragment.newInstance(targetUsername, item.path)
             .show(parentFragmentManager, AiChatBottomSheetFragment.TAG)
     }
 
@@ -792,6 +858,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             val targetUsername = input.text?.toString().orEmpty().trim()
             if (targetUsername.isNotBlank()) {
                 val permission = if (radioGroup.checkedRadioButtonId == R.id.sharePermissionWrite) "WRITE" else "READ"
+                android.util.Log.d("SHARE_DEBUG", "[ExplorerFragment] Sharing file: '${item.path}', target: '$targetUsername', permission: '$permission'")
                 viewModel.shareItem(item, targetUsername, permission)
                 input.text?.clear()
                 bottomSheet.dismiss()
@@ -934,7 +1001,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             FilePreviewActivity.newIntent(
                 context = requireContext(),
                 item = item,
-                username = username,
+                username = item.ownerUsername ?: username,
                 analyzedImagePath = item.analyzedImagePath,
                 ocrText = item.ocrSnippet,
                 aiTags = item.tags,

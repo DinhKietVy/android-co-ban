@@ -626,7 +626,7 @@ class ExplorerRepository(
         return "$formatted ${units[unitIndex]}"
     }
 
-    private fun buildPreviewUrl(username: String, filePath: String): String {
+    fun buildPreviewUrl(username: String, filePath: String): String {
         val normalizedBaseUrl = BuildConfig.API_BASE_URL.trimEnd('/')
         return "$normalizedBaseUrl/api/data/download?username=${encodeQuery(username)}&filePath=${encodeQuery(filePath)}"
     }
@@ -635,7 +635,7 @@ class ExplorerRepository(
         return java.net.URLEncoder.encode(value, Charsets.UTF_8.name())
     }
 
-    private fun isImageFile(fileName: String): Boolean {
+    fun isImageFile(fileName: String): Boolean {
         val normalizedName = fileName.lowercase()
         return normalizedName.endsWith(".jpg") ||
             normalizedName.endsWith(".jpeg") ||
@@ -645,7 +645,7 @@ class ExplorerRepository(
             normalizedName.endsWith(".gif")
     }
 
-    private fun resolveFallbackIcon(fileName: String): Int {
+    fun resolveFallbackIcon(fileName: String): Int {
         val normalizedName = fileName.lowercase()
         return when {
             normalizedName.endsWith(".jpg") ||
@@ -669,7 +669,7 @@ class ExplorerRepository(
         }
     }
 
-    private fun buildFileTags(fileName: String): List<String> {
+    fun buildFileTags(fileName: String): List<String> {
         val extension = fileName.substringAfterLast('.', "").trim()
         if (extension.isBlank()) return emptyList()
         return listOf(extension.uppercase())

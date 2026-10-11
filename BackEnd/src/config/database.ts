@@ -39,6 +39,22 @@ export const connectDB = async (): Promise<sql.ConnectionPool> => {
     console.log(`   Database : ${dbConfig.database}`);
     console.log(`   Auth     : SQL Server Authentication`);
 
+    // Auto-migration: Đảm bảo bảng share_file có cột permission
+    try {
+      await pool.request().query(`
+        IF NOT EXISTS (
+          SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_NAME = 'share_file' AND COLUMN_NAME = 'permission'
+        )
+        BEGIN
+          ALTER TABLE share_file ADD permission VARCHAR(50) NOT NULL DEFAULT 'READ';
+        END
+      `);
+      console.log('✅ Migration: Kiểm tra/cập nhật cột permission cho share_file thành công');
+    } catch (migErr: any) {
+      console.warn('⚠️ Auto-migration share_file permission warning:', migErr.message);
+    }
+
     return pool;
   } catch (err: any) {
     console.error('❌ Kết nối SQL Server THẤT BẠI:', err.message);

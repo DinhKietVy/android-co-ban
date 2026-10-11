@@ -102,6 +102,7 @@ class FilePreviewActivity : AppCompatActivity() {
         
         explorerItem = intent.getSerializableExtra(EXTRA_EXPLORER_ITEM) as? ExplorerItem
         username = intent.getStringExtra(EXTRA_USERNAME).orEmpty()
+        android.util.Log.d("SHARE_DEBUG", "[FilePreviewActivity] name=${explorerItem?.name}, path=${explorerItem?.path}, owner=${explorerItem?.ownerUsername}, isShared=${explorerItem?.isSharedItem}, perm=${explorerItem?.permission}")
         
         explorerRepository = ExplorerRepository(
             appContext = applicationContext,
@@ -304,10 +305,16 @@ class FilePreviewActivity : AppCompatActivity() {
             showOverflowMenu(anchor)
         }
         
+        val isShared = explorerItem?.isSharedItem == true || !explorerItem?.ownerUsername.isNullOrEmpty()
+        val isReadOnly = explorerItem?.permission == "PUBLIC_READ" || 
+                         explorerItem?.permission == "READ" || 
+                         (isShared && explorerItem?.permission != "WRITE")
+        if (isReadOnly) {
+            findViewById<View>(R.id.editFab)?.visibility = View.GONE
+        }
         val isPublicRead = explorerItem?.permission == "PUBLIC_READ"
         if (isPublicRead) {
             aiAnalysisTab.visibility = View.GONE
-            findViewById<View>(R.id.editFab)?.visibility = View.GONE
         }
         
         findViewById<View>(R.id.copyButton).setOnClickListener {
@@ -459,15 +466,28 @@ class FilePreviewActivity : AppCompatActivity() {
             popupView.findViewById<View>(R.id.menuConvert)?.visibility = if (isConvertible) View.VISIBLE else View.GONE
             
             
-            if (item.permission == "PUBLIC_READ" || item.permission == "READ") {
-                popupView.findViewById<View>(R.id.menuRename).visibility = View.GONE
-                popupView.findViewById<View>(R.id.menuMove).visibility = View.GONE
-                popupView.findViewById<View>(R.id.menuDelete).visibility = View.GONE
+            val isShared = item.isSharedItem || !item.ownerUsername.isNullOrEmpty()
+            val isReadOnly = item.permission == "PUBLIC_READ" || 
+                             item.permission == "READ" || 
+                             (isShared && item.permission != "WRITE")
+
+            if (isReadOnly) {
+                popupView.findViewById<View>(R.id.menuRename)?.visibility = View.GONE
+                popupView.findViewById<View>(R.id.menuMove)?.visibility = View.GONE
+                popupView.findViewById<View>(R.id.menuDelete)?.visibility = View.GONE
             }
+
+            if (isShared) {
+                popupView.findViewById<View>(R.id.menuShare)?.visibility = View.GONE
+                popupView.findViewById<View>(R.id.menuMove)?.visibility = View.GONE
+                popupView.findViewById<View>(R.id.menuFavorite)?.visibility = View.GONE
+            }
+
             if (item.permission == "PUBLIC_READ") {
-                popupView.findViewById<View>(R.id.menuShare).visibility = View.GONE
-                popupView.findViewById<View>(R.id.menuFavorite).visibility = View.GONE
-                popupView.findViewById<View>(R.id.menuAi).visibility = View.GONE
+                popupView.findViewById<View>(R.id.menuShare)?.visibility = View.GONE
+                popupView.findViewById<View>(R.id.menuFavorite)?.visibility = View.GONE
+                popupView.findViewById<View>(R.id.menuMove)?.visibility = View.GONE
+                popupView.findViewById<View>(R.id.menuAi)?.visibility = View.GONE
                 popupView.findViewById<View>(R.id.menuAiDivider)?.visibility = View.GONE
             }
         }
@@ -635,7 +655,12 @@ class FilePreviewActivity : AppCompatActivity() {
         val isImage = extension in listOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
         val isText = extension in listOf("txt", "json", "xml", "md", "csv", "kt", "java", "py", "html", "css", "js", "sh")
         
-        findViewById<View>(R.id.editFab)?.visibility = if (isInPictureInPictureMode) {
+        val isShared = explorerItem?.isSharedItem == true || !explorerItem?.ownerUsername.isNullOrEmpty()
+        val isReadOnly = explorerItem?.permission == "PUBLIC_READ" || 
+                         explorerItem?.permission == "READ" || 
+                         (isShared && explorerItem?.permission != "WRITE")
+
+        findViewById<View>(R.id.editFab)?.visibility = if (isInPictureInPictureMode || isReadOnly) {
             View.GONE
         } else {
             if (isImage || isText) View.VISIBLE else View.GONE
@@ -738,11 +763,16 @@ class FilePreviewActivity : AppCompatActivity() {
 
     private fun updateFileContent(content: String) {
         val item = explorerItem ?: return
-        val username = intent.getStringExtra("extra_username") ?: return
+        val currentUsername = intent.getStringExtra("extra_username") ?: return
+        val targetOwner = if (item.isSharedItem && !item.ownerUsername.isNullOrBlank()) {
+            item.ownerUsername
+        } else {
+            currentUsername
+        }
         
         previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
         lifecycleScope.launch {
-            val result = explorerRepository.updateFileContent(username, item.path, content)
+            val result = explorerRepository.updateFileContent(targetOwner, item.path, content)
             previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
             if (result.isSuccess) {
                 isModified = true

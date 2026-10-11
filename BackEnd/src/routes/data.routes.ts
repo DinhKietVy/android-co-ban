@@ -847,6 +847,11 @@ router.post('/extract', extractFile);
  *                 type: string
  *                 description: Đường dẫn tương đối của file cần chia sẻ (tính từ thư mục gốc của owner)
  *                 example: BaoCao.docx
+ *               permission:
+ *                 type: string
+ *                 enum: [READ, WRITE]
+ *                 description: Quyền truy cập ('READ' - Chỉ xem, 'WRITE' - Chỉnh sửa)
+ *                 example: READ
  *     responses:
  *       201:
  *         description: Chia sẻ file thành công
