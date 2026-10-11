@@ -1,0 +1,121 @@
+{
+    "input_path": "temp_fb6bff7deead1dee37953d9413987f38 (1) (1) (1).jpg",
+    "page_index": null,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_textline_orientation": false
+    },
+    "dt_polys": [
+        [
+            [
+                258,
+                10
+            ],
+            [
+                341,
+                10
+            ],
+            [
+                341,
+                39
+            ],
+            [
+                258,
+                39
+            ]
+        ],
+        [
+            [
+                261,
+                34
+            ],
+            [
+                336,
+                34
+            ],
+            [
+                336,
+                47
+            ],
+            [
+                261,
+                47
+            ]
+        ]
+    ],
+    "text_det_params": {
+        "limit_side_len": 1536,
+        "limit_type": "max",
+        "thresh": 0.2,
+        "max_side_limit": 4000,
+        "box_thresh": 0.45,
+        "unclip_ratio": 2.0
+    },
+    "text_type": "general",
+    "textline_orientation_angles": [
+        -1,
+        -1
+    ],
+    "text_rec_score_thresh": 0.0,
+    "return_word_box": false,
+    "rec_texts": [
+        "4 4M4",
+        "PHOToGRNPRY"
+    ],
+    "rec_scores": [
+        0.6383212208747864,
+        0.5484805703163147
+    ],
+    "rec_polys": [
+        [
+            [
+                258,
+                10
+            ],
+            [
+                341,
+                10
+            ],
+            [
+                341,
+                39
+            ],
+            [
+                258,
+                39
+            ]
+        ],
+        [
+            [
+                261,
+                34
+            ],
+            [
+                336,
+                34
+            ],
+            [
+                336,
+                47
+            ],
+            [
+                261,
+                47
+            ]
+        ]
+    ],
+    "rec_boxes": [
+        [
+            258,
+            10,
+            341,
+            39
+        ],
+        [
+            261,
+            34,
+            336,
+            47
+        ]
+    ]
+}
