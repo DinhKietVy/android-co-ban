@@ -50,6 +50,7 @@
         </activity>
         <activity
             android:name=".main.MainActivity"
+            android:launchMode="singleTop"
             android:exported="true" />
         <activity
             android:name=".main.DeepLinkRoutingActivity"
@@ -116,6 +117,17 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver
+            android:name=".widget.QuickHubWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_hub_info" />
+        </receiver>
     </application>
 
 </manifest>

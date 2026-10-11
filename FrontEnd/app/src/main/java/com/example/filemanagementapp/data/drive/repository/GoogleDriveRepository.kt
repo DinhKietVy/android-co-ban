@@ -30,14 +30,21 @@ class GoogleDriveRepository {
                     .setQ("sharedWithMe = true and trashed = false")
                     .setSupportsAllDrives(true)
                     .setIncludeItemsFromAllDrives(true)
-                    .setFields("files(id, name, mimeType, size, modifiedTime, thumbnailLink, webContentLink, webViewLink, iconLink, shared, owners(displayName, me), parents)")
+                    .setFields("files(id, name, mimeType, size, modifiedTime, thumbnailLink, webContentLink, webViewLink, iconLink, shared, owners(displayName, me), parents, shortcutDetails(targetId, targetMimeType))")
                     .setOrderBy("folder, name")
                     .setPageSize(100)
                     .execute()
 
                 val allShared = sharedList.files.orEmpty()
                 // Lọc bỏ những file con mà thư mục cha của nó đã nằm trong danh sách được chia sẻ để tránh trùng lặp
-                val sharedFolderIds = allShared.filter { it.mimeType == "application/vnd.google-apps.folder" }.map { it.id }.toSet()
+                val sharedFolderIds = allShared.mapNotNull { file ->
+                    val isFolder = file.mimeType == "application/vnd.google-apps.folder" ||
+                        (file.mimeType == "application/vnd.google-apps.shortcut" && file.shortcutDetails?.targetMimeType == "application/vnd.google-apps.folder")
+                    if (isFolder) {
+                        file.shortcutDetails?.targetId ?: file.id
+                    } else null
+                }.toSet()
+
                 val topLevelShared = allShared.filter { file ->
                     val parents = file.parents.orEmpty()
                     parents.none { it in sharedFolderIds }
@@ -50,7 +57,7 @@ class GoogleDriveRepository {
                     .setQ(mainQuery)
                     .setSupportsAllDrives(true)
                     .setIncludeItemsFromAllDrives(true)
-                    .setFields("files(id, name, mimeType, size, modifiedTime, thumbnailLink, webContentLink, webViewLink, iconLink, shared, owners(displayName, me))")
+                    .setFields("files(id, name, mimeType, size, modifiedTime, thumbnailLink, webContentLink, webViewLink, iconLink, shared, owners(displayName, me), shortcutDetails(targetId, targetMimeType))")
                     .setOrderBy("folder, name")
                     .setPageSize(100)
                     .execute()
@@ -79,7 +86,7 @@ class GoogleDriveRepository {
                         driveFileId = "shared-with-me",
                         isGoogleDriveItem = true,
                         size = "Thư mục chia sẻ",
-                        fallbackIconRes = R.drawable.share_2
+                        fallbackIconRes = R.drawable.users
                     )
                 )
             }
@@ -123,7 +130,9 @@ class GoogleDriveRepository {
         fileId: String,
         fileName: String,
         mimeType: String?,
-        context: Context
+        totalBytes: Long? = null,
+        context: Context,
+        onProgress: ((downloadedBytes: Long, totalBytes: Long?, percent: Int) -> Unit)? = null
     ): Result<java.io.File> = withContext(Dispatchers.IO) {
         runCatching {
             val mime = mimeType?.lowercase().orEmpty()
@@ -140,21 +149,40 @@ class GoogleDriveRepository {
 
             val targetFile = java.io.File(context.cacheDir, targetFileName)
             var resultFile = targetFile
+
+            onProgress?.invoke(0L, totalBytes, 0)
+
             try {
-                FileOutputStream(targetFile).use { outputStream ->
-                    when {
-                        isGoogleSheet -> {
-                            drive.files().export(fileId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                                .executeMediaAndDownloadTo(outputStream)
-                        }
-                        isGoogleDocsEditor -> {
-                            drive.files().export(fileId, "application/pdf")
-                                .executeMediaAndDownloadTo(outputStream)
-                        }
-                        else -> {
-                            drive.files().get(fileId)
-                                .setSupportsAllDrives(true)
-                                .executeMediaAndDownloadTo(outputStream)
+                val inputStream = when {
+                    isGoogleSheet -> {
+                        drive.files().export(fileId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                            .executeMediaAsInputStream()
+                    }
+                    isGoogleDocsEditor -> {
+                        drive.files().export(fileId, "application/pdf")
+                            .executeMediaAsInputStream()
+                    }
+                    else -> {
+                        drive.files().get(fileId)
+                            .setSupportsAllDrives(true)
+                            .executeMediaAsInputStream()
+                    }
+                }
+
+                inputStream.use { input ->
+                    FileOutputStream(targetFile).use { output ->
+                        val buffer = ByteArray(32 * 1024)
+                        var bytesRead: Int
+                        var totalRead = 0L
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            totalRead += bytesRead
+                            val percent = if (totalBytes != null && totalBytes > 0L) {
+                                ((totalRead * 100) / totalBytes).toInt().coerceIn(0, 99)
+                            } else {
+                                0
+                            }
+                            onProgress?.invoke(totalRead, totalBytes, percent)
                         }
                     }
                 }
@@ -167,15 +195,25 @@ class GoogleDriveRepository {
                     } else {
                         targetFile
                     }
-                    FileOutputStream(fallbackFile).use { outputStream ->
-                        drive.files().export(fileId, "application/pdf")
-                            .executeMediaAndDownloadTo(outputStream)
+                    val exportStream = drive.files().export(fileId, "application/pdf").executeMediaAsInputStream()
+                    exportStream.use { input ->
+                        FileOutputStream(fallbackFile).use { output ->
+                            val buffer = ByteArray(32 * 1024)
+                            var bytesRead: Int
+                            var totalRead = 0L
+                            while (input.read(buffer).also { bytesRead = it } != -1) {
+                                output.write(buffer, 0, bytesRead)
+                                totalRead += bytesRead
+                                onProgress?.invoke(totalRead, null, 0)
+                            }
+                        }
                     }
                     resultFile = fallbackFile
                 } else {
                     throw e
                 }
             }
+            onProgress?.invoke(resultFile.length(), resultFile.length(), 100)
             resultFile
         }
     }
@@ -233,32 +271,53 @@ class GoogleDriveRepository {
     }
 
     private fun mapDriveFileToExplorerItem(file: File): ExplorerItem {
-        val isFolder = file.mimeType == "application/vnd.google-apps.folder"
+        val isShortcut = file.mimeType == "application/vnd.google-apps.shortcut"
+        val shortcutDetails = file.shortcutDetails
+        val effectiveMimeType = if (isShortcut && !shortcutDetails?.targetMimeType.isNullOrBlank()) {
+            shortcutDetails.targetMimeType
+        } else {
+            file.mimeType
+        }
+        val effectiveFileId = if (isShortcut && !shortcutDetails?.targetId.isNullOrBlank()) {
+            shortcutDetails.targetId
+        } else {
+            file.id
+        }
+
+        val isFolder = effectiveMimeType == "application/vnd.google-apps.folder"
         val sizeBytes = file.getSize()?.toLong()
         val sizeFormatted = when {
             isFolder -> "--" // Sẽ được cập nhật chính xác bởi async counting
-            sizeBytes != null -> formatFileSize(sizeBytes)
-            file.mimeType?.startsWith("application/vnd.google-apps.") == true -> "Tài liệu Google"
+            sizeBytes != null && sizeBytes > 0 -> formatFileSize(sizeBytes)
+            effectiveMimeType?.startsWith("application/vnd.google-apps.") == true -> {
+                when (effectiveMimeType) {
+                    "application/vnd.google-apps.document" -> "Google Docs"
+                    "application/vnd.google-apps.spreadsheet" -> "Google Sheets"
+                    "application/vnd.google-apps.presentation" -> "Google Slides"
+                    "application/vnd.google-apps.form" -> "Google Forms"
+                    else -> "Tài liệu Google"
+                }
+            }
             else -> "--"
         }
         val modifiedFormatted = file.modifiedTime?.let {
             formatModifiedTime(it.value)
         } ?: ""
 
-        val isImage = file.mimeType?.startsWith("image/") == true
+        val isImage = effectiveMimeType?.startsWith("image/") == true
         val fallbackIcon = when {
             isFolder -> R.drawable.folder
             isImage -> R.drawable.image_icon
-            file.mimeType?.contains("pdf") == true -> R.drawable.file_text
-            file.mimeType?.startsWith("video/") == true -> R.drawable.film
-            file.mimeType?.startsWith("audio/") == true -> R.drawable.file_audio
+            effectiveMimeType?.contains("pdf") == true -> R.drawable.file_text
+            effectiveMimeType?.startsWith("video/") == true -> R.drawable.film
+            effectiveMimeType?.startsWith("audio/") == true -> R.drawable.file_audio
             else -> R.drawable.file_text
         }
 
         return ExplorerItem(
             id = file.id,
             name = file.name ?: "Untitled",
-            path = "gdrive://${file.id}",
+            path = "gdrive://$effectiveFileId",
             type = if (isFolder) ExplorerItem.Type.FOLDER else ExplorerItem.Type.FILE,
             modified = modifiedFormatted,
             modifiedEpochMillis = file.modifiedTime?.value,
@@ -268,8 +327,9 @@ class GoogleDriveRepository {
             isImagePreviewable = isImage,
             fallbackIconRes = fallbackIcon,
             isGoogleDriveItem = true,
-            driveFileId = file.id,
-            driveMimeType = file.mimeType,
+            driveFileId = effectiveFileId,
+            driveShortcutId = if (isShortcut) file.id else null,
+            driveMimeType = effectiveMimeType,
             driveWebViewLink = file.webViewLink,
             ownerUsername = if (file.shared == true) {
                 file.owners?.firstOrNull { it.me == false }?.displayName ?: "Được chia sẻ"

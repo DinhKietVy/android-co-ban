@@ -357,7 +357,7 @@ def _load_history_from_db(conn, session_id: int) -> list[dict]:
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT role, content
+        SELECT role, content, file_path
         FROM chat_messages
         WHERE session_id = ?
         ORDER BY id ASC
@@ -365,10 +365,16 @@ def _load_history_from_db(conn, session_id: int) -> list[dict]:
         (session_id,),
     )
     rows = cursor.fetchall()
-    return [
-        {"role": row[0], "parts": [{"text": row[1]}]}
-        for row in rows
-    ]
+    result = []
+    for row in rows:
+        role = row[0]
+        content = row[1]
+        fp = row[2]
+        text = content
+        if role == "user" and fp:
+            text = f"[Tệp được mở/đính kèm: '{fp}']\n{content}"
+        result.append({"role": role, "parts": [{"text": text}]})
+    return result
 
 
 # ============================================================
@@ -451,12 +457,28 @@ async def ai_chat(req: ChatRequest):
         )
         is_first_message = cursor.fetchone()[0] == 0
 
+        # Xác định file_path hiệu lực: ưu tiên req.filePath; nếu không gửi thì kế thừa từ file gần nhất của session này
+        effective_file_path = req.filePath
+        if not effective_file_path and session_id is not None:
+            cursor.execute(
+                """
+                SELECT TOP 1 file_path
+                FROM chat_messages
+                WHERE session_id = ? AND file_path IS NOT NULL AND file_path <> ''
+                ORDER BY id DESC
+                """,
+                (session_id,),
+            )
+            row_fp = cursor.fetchone()
+            if row_fp and row_fp[0]:
+                effective_file_path = row_fp[0]
+
         _save_message(
             conn,
             session_id=session_id,
             role="user",
             content=req.prompt,
-            file_path=req.filePath if req.filePath else None,
+            file_path=effective_file_path,
         )
 
         if is_first_message:
@@ -473,7 +495,7 @@ async def ai_chat(req: ChatRequest):
             username=req.username,
             prompt=req.prompt,
             history=history_raw,
-            file_path=req.filePath,
+            file_path=effective_file_path,
         )
 
         # ── Lưu response của AI ──

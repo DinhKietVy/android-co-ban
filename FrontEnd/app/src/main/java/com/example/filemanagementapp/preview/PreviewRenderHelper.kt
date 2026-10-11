@@ -58,6 +58,7 @@ class PreviewRenderHelper(
     var exoPlayer: Player? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private val editFab: com.google.android.material.floatingactionbutton.FloatingActionButton = activity.findViewById(R.id.editFab)
+    var hasOriginalBackup: Boolean = false
     private val previewPdfRecycler: androidx.recyclerview.widget.RecyclerView = activity.findViewById(R.id.previewPdfRecycler)
     val previewDocxWebView: android.webkit.WebView = activity.findViewById(R.id.previewDocxWebView)
     private val previewUnsupported: View = activity.findViewById(R.id.previewUnsupported)
@@ -154,9 +155,18 @@ class PreviewRenderHelper(
                     popupWindow.dismiss()
                     onEditImage("draw")
                 }
-                popupView.findViewById<View>(R.id.menuRestoreOriginal)?.setOnClickListener {
-                    popupWindow.dismiss()
-                    onRestoreOriginal?.invoke()
+                val menuRestoreOriginal = popupView.findViewById<View>(R.id.menuRestoreOriginal)
+                val dividerRestoreOriginal = popupView.findViewById<View>(R.id.dividerRestoreOriginal)
+                if (hasOriginalBackup) {
+                    menuRestoreOriginal?.visibility = View.VISIBLE
+                    dividerRestoreOriginal?.visibility = View.VISIBLE
+                    menuRestoreOriginal?.setOnClickListener {
+                        popupWindow.dismiss()
+                        onRestoreOriginal?.invoke()
+                    }
+                } else {
+                    menuRestoreOriginal?.visibility = View.GONE
+                    dividerRestoreOriginal?.visibility = View.GONE
                 }
 
                 popupView.measure(

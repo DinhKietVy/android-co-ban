@@ -26,6 +26,7 @@ data class ExplorerItem(
     val permission: String? = null,
     val isGoogleDriveItem: Boolean = false,
     val driveFileId: String? = null,
+    val driveShortcutId: String? = null,
     val driveMimeType: String? = null,
     val driveWebViewLink: String? = null
 ) : Serializable {

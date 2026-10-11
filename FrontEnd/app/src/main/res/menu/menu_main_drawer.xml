@@ -7,7 +7,7 @@
             android:title="Tập tin của tôi" />
         <item
             android:id="@+id/nav_shared"
-            android:icon="@drawable/share_2"
+            android:icon="@drawable/users"
             android:title="Được chia sẻ với tôi" />
     </group>
 

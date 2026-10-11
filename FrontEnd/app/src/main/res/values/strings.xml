@@ -505,4 +505,7 @@
 
     <string name="nav_shared">Được chia sẻ với tôi</string>
     <string name="nav_public_links">Liên kết công khai</string>
+
+    <string name="widget_quick_hub_name">Quản lý tệp: Thao tác nhanh</string>
+    <string name="widget_quick_hub_description">Truy cập nhanh tìm kiếm, tải lên, trợ lý AI và Google Drive cùng thông tin dung lượng đã dùng.</string>
 </resources>

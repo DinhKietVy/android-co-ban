@@ -64,7 +64,7 @@
             android:id="@+id/emptyStateIcon"
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:src="@drawable/share_2"
+            android:src="@drawable/users"
             android:tint="@color/grey_400" />
 
         <TextView

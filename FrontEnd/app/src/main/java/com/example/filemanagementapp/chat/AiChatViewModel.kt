@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 class AiChatViewModel(
     private val username: String,
     private val aiChatRepository: AiChatRepository,
-    initialFilePath: String? = null
+    private val initialFilePath: String? = null
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -56,6 +56,7 @@ class AiChatViewModel(
     fun startNewSession() {
         _currentSessionId.value = null
         _messages.value = emptyList()
+        _attachedFilePath.value = initialFilePath
     }
 
     fun switchSession(sessionId: Int) {
@@ -74,6 +75,18 @@ class AiChatViewModel(
                         actionsExecuted = item.actionsExecuted,
                         affectedItems = item.affectedItems
                     )
+                }
+
+                // Khôi phục bối cảnh file:
+                // Nếu người dùng mở chatbot từ một file cụ thể (initialFilePath), ưu tiên file đang mở đó.
+                // Nếu không, tìm file gần nhất đã từng được hỏi trong session cũ này.
+                val sessionFile = dbMessages.lastOrNull { !it.filePath.isNullOrBlank() }?.filePath
+                if (!initialFilePath.isNullOrBlank()) {
+                    _attachedFilePath.value = initialFilePath
+                } else if (!sessionFile.isNullOrBlank()) {
+                    _attachedFilePath.value = sessionFile
+                } else {
+                    _attachedFilePath.value = null
                 }
             }
             _isLoading.value = false
