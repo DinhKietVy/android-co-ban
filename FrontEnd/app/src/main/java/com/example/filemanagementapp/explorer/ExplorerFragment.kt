@@ -55,8 +55,11 @@ import com.example.filemanagementapp.explorer.ui.ExplorerUiState
 import com.example.filemanagementapp.explorer.ui.ExplorerViewModel
 import com.example.filemanagementapp.explorer.ui.SortOption
 import com.example.filemanagementapp.main.MainNavigationViewModel
+import com.example.filemanagementapp.BuildConfig
 import com.example.filemanagementapp.preview.FilePreviewActivity
+import com.example.filemanagementapp.preview.PdfEditHelper
 import com.example.filemanagementapp.search.SearchActivity
+import java.io.File
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -64,6 +67,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.documentfile.provider.DocumentFile
 
 class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
@@ -110,6 +114,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
     private lateinit var uploadProgressMetaText: TextView
     private lateinit var selectionActionCard: View
     private lateinit var selectionSummaryText: TextView
+    private lateinit var mergePdfSelectedButton: View
     private lateinit var compressSelectedButton: View
     private lateinit var moveSelectedButton: View
     private lateinit var deleteSelectedButton: View
@@ -346,6 +351,7 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         uploadProgressMetaText = view.findViewById(R.id.uploadProgressMetaText)
         selectionActionCard = view.findViewById(R.id.selectionActionCard)
         selectionSummaryText = view.findViewById(R.id.selectionSummaryText)
+        mergePdfSelectedButton = view.findViewById(R.id.mergePdfSelectedButton)
         compressSelectedButton = view.findViewById(R.id.compressSelectedButton)
         moveSelectedButton = view.findViewById(R.id.moveSelectedButton)
         deleteSelectedButton = view.findViewById(R.id.deleteSelectedButton)
@@ -478,6 +484,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         }
         createFab.setOnClickListener {
             showCreateActionsSheet()
+        }
+        mergePdfSelectedButton.setOnClickListener {
+            showMergePdfSelectedDialog()
         }
         compressSelectedButton.setOnClickListener {
             showCompressSelectedDialog()
@@ -739,6 +748,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         createFab.visibility = if (state.isSelectionMode || state.currentFolder.startsWith("shared://")) View.GONE else View.VISIBLE
         selectionActionCard.visibility =
             if (state.isSelectionMode && state.selectedPaths.isNotEmpty()) View.VISIBLE else View.GONE
+        val selectedPdfItems = state.items.filter { it.path in state.selectedPaths && it.name.endsWith(".pdf", ignoreCase = true) }
+        val canMergePdf = selectedPdfItems.size >= 2 && selectedPdfItems.size == state.selectedPaths.size
+        mergePdfSelectedButton.visibility = if (canMergePdf) View.VISIBLE else View.GONE
         updateProgressContainer()
         selectionSummaryText.text = getString(
             R.string.explorer_selected_count,
@@ -1633,6 +1645,102 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 }
             }
             .show()
+    }
+
+    private fun showMergePdfSelectedDialog() {
+        val state = viewModel.uiState.value
+        val selectedPdfItems = state.items.filter { it.path in state.selectedPaths && it.name.endsWith(".pdf", ignoreCase = true) }
+        if (selectedPdfItems.size < 2) return
+
+        val view = layoutInflater.inflate(R.layout.dialog_input, null)
+        val inputLayout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+
+        inputLayout.hint = getString(R.string.explorer_dialog_merge_pdf_hint)
+        input.setText("merged_${System.currentTimeMillis()}.pdf")
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.explorer_dialog_merge_pdf_title)
+            .setView(view)
+            .setNegativeButton(R.string.explorer_dialog_cancel, null)
+            .setPositiveButton(R.string.explorer_dialog_merge_pdf_button) { _, _ ->
+                val rawName = input.text?.toString().orEmpty().trim()
+                if (rawName.isNotBlank()) {
+                    val finalName = if (rawName.endsWith(".pdf", ignoreCase = true)) rawName else "$rawName.pdf"
+                    executeMergePdfItems(selectedPdfItems, finalName)
+                }
+            }
+            .show()
+    }
+
+    private fun executeMergePdfItems(pdfItems: List<ExplorerItem>, outputFileName: String) {
+        val context = requireContext()
+        val cacheDir = context.cacheDir
+        loadingIndicator.visibility = View.VISIBLE
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val downloadedPdfFiles = mutableListOf<File>()
+                for ((index, item) in pdfItems.withIndex()) {
+                    val tempFile = File(cacheDir, "merge_src_${index}_${System.currentTimeMillis()}.pdf")
+                    val downloadUrl = item.previewUrl ?: (BuildConfig.API_BASE_URL.trimEnd('/') + "/api/data/download?username=${java.net.URLEncoder.encode(username, "UTF-8")}&path=${java.net.URLEncoder.encode(item.path, "UTF-8")}")
+                    val request = okhttp3.Request.Builder()
+                        .url(downloadUrl)
+                        .addHeader("ngrok-skip-browser-warning", "69420")
+                        .build()
+                    val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
+                    if (!response.isSuccessful) throw Exception("HTTP ${response.code} downloading ${item.name}")
+                    val bytes = response.body?.bytes() ?: throw Exception("Empty body for ${item.name}")
+                    tempFile.writeBytes(bytes)
+                    downloadedPdfFiles.add(tempFile)
+                }
+
+                val mergedOutputFile = File(cacheDir, "merged_final_${System.currentTimeMillis()}.pdf")
+                val mergeResult = PdfEditHelper.mergePdfs(downloadedPdfFiles, mergedOutputFile)
+                if (mergeResult.isFailure) {
+                    throw mergeResult.exceptionOrNull() ?: Exception("Merge failed")
+                }
+
+                val targetPath = viewModel.uiState.value.currentFolder.trim('/')
+                val uploadResult = explorerRepository.uploadFile(
+                    username = username,
+                    targetPath = targetPath,
+                    fileUri = Uri.fromFile(mergedOutputFile),
+                    overrideFileName = outputFileName
+                )
+
+                downloadedPdfFiles.forEach { it.delete() }
+                mergedOutputFile.delete()
+
+                withContext(Dispatchers.Main) {
+                    loadingIndicator.visibility = View.GONE
+                    if (uploadResult.isSuccess) {
+                        Toast.makeText(
+                            context,
+                            getString(R.string.explorer_dialog_merge_pdf_success, pdfItems.size),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.refreshCurrentDirectory()
+                        viewModel.clearSelection()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            getString(R.string.explorer_dialog_merge_pdf_error, uploadResult.exceptionOrNull()?.message ?: ""),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    loadingIndicator.visibility = View.GONE
+                    Toast.makeText(
+                        context,
+                        getString(R.string.explorer_dialog_merge_pdf_error, e.message ?: ""),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
     }
 
     private fun Int.dp(): Int {

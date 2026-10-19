@@ -39,6 +39,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 
 class FilePreviewActivity : AppCompatActivity() {
     private lateinit var scrimView: View
@@ -88,12 +89,28 @@ class FilePreviewActivity : AppCompatActivity() {
         }
     }
 
+    private var annotatingPdfPageIndex: Int? = null
+
     private val photoEditorLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK && result.data != null) {
             val resultUri = result.data?.getParcelableExtra<Uri>(PhotoEditorActivity.EXTRA_OUTPUT_URI)
             if (resultUri != null) {
-                showSaveImageOptionsDialog(resultUri)
+                val pageIdx = annotatingPdfPageIndex
+                if (pageIdx != null) {
+                    annotatingPdfPageIndex = null
+                    handleAnnotatedPdfPage(pageIdx, resultUri)
+                } else {
+                    showSaveImageOptionsDialog(resultUri)
+                }
             }
+        } else {
+            annotatingPdfPageIndex = null
+        }
+    }
+
+    private val mergePdfPickerLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            handleMergeWithExternalPdf(uri)
         }
     }
 
@@ -214,6 +231,9 @@ class FilePreviewActivity : AppCompatActivity() {
             },
             onRestoreOriginal = {
                 restoreOriginalPhoto()
+            },
+            onEditPdf = {
+                showPdfToolsBottomSheet()
             }
         )
 
@@ -1212,6 +1232,363 @@ class FilePreviewActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 // Ignore
+            }
+        }
+    }
+
+    private fun showPdfToolsBottomSheet() {
+        val pdfFile = previewRenderHelper.getLocalPdfFile()
+        if (!pdfFile.exists()) {
+            android.widget.Toast.makeText(this, "PDF file is not ready", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_pdf_tools, null)
+        dialog.setContentView(view)
+
+        // 1. Page Organizer
+        view.findViewById<View>(R.id.actionPageOrganizer)?.setOnClickListener {
+            dialog.dismiss()
+            val inputCopy = File(cacheDir, "temp_organizer_input.pdf")
+            try {
+                pdfFile.copyTo(inputCopy, overwrite = true)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            val organizerDialog = PdfPageOrganizerDialog.newInstance(
+                pdfFile = inputCopy,
+                onApplyChanges = { modifiedFile ->
+                    showSavePdfOptionsDialog(Uri.fromFile(modifiedFile))
+                },
+                onExtractPages = { extractedFile, _ ->
+                    savePdfAsCopy(Uri.fromFile(extractedFile), overrideNameSuffix = "_extracted")
+                }
+            )
+            organizerDialog.show(supportFragmentManager, "PdfPageOrganizerDialog")
+        }
+
+        // 2. Sign & Annotate
+        view.findViewById<View>(R.id.actionAnnotate)?.setOnClickListener {
+            dialog.dismiss()
+            val inputCopy = File(cacheDir, "temp_annotate_src.pdf")
+            try {
+                pdfFile.copyTo(inputCopy, overwrite = true)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            val pageCount = PdfEditHelper.getPageCount(inputCopy)
+            if (pageCount <= 1) {
+                startPdfAnnotation(0)
+            } else {
+                val pageOptions = (0 until pageCount).map { idx ->
+                    getString(R.string.pdf_annotate_page_item, idx + 1, pageCount)
+                }.toTypedArray()
+
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.pdf_annotate_select_page_title)
+                    .setItems(pageOptions) { _, which ->
+                        startPdfAnnotation(which)
+                    }
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .show()
+            }
+        }
+
+        // 3. Merge with PDF
+        view.findViewById<View>(R.id.actionMerge)?.setOnClickListener {
+            dialog.dismiss()
+            mergePdfPickerLauncher.launch(arrayOf("application/pdf"))
+        }
+
+        view.findViewById<View>(R.id.actionCancel)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun startPdfAnnotation(pageIndex: Int) {
+        val pdfFile = previewRenderHelper.getLocalPdfFile()
+        if (!pdfFile.exists()) return
+
+        annotatingPdfPageIndex = pageIndex
+        previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val inputCopy = File(cacheDir, "temp_annotate_src.pdf")
+            try {
+                pdfFile.copyTo(inputCopy, overwrite = true)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            val pageImageFile = File(cacheDir, "temp_pdf_page_to_annotate.png")
+            val destImageFile = File(cacheDir, "temp_pdf_annotated_page.png")
+            val result = PdfEditHelper.renderPageToFile(inputCopy, pageIndex, pageImageFile, renderScale = 2.0f)
+
+            withContext(Dispatchers.Main) {
+                previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                if (result.isSuccess) {
+                    val intent = Intent(this@FilePreviewActivity, PhotoEditorActivity::class.java).apply {
+                        putExtra(PhotoEditorActivity.EXTRA_SOURCE_URI, Uri.fromFile(pageImageFile))
+                        putExtra(PhotoEditorActivity.EXTRA_DEST_URI, Uri.fromFile(destImageFile))
+                    }
+                    photoEditorLauncher.launch(intent)
+                } else {
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        "Error rendering PDF page: ${result.exceptionOrNull()?.message}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun handleAnnotatedPdfPage(pageIndex: Int, annotatedImageUri: Uri) {
+        val pdfFile = previewRenderHelper.getLocalPdfFile()
+        val annotatedFile = File(annotatedImageUri.path ?: annotatedImageUri.encodedPath ?: "")
+        previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val inputCopy = File(cacheDir, "temp_annotate_src.pdf")
+            try {
+                pdfFile.copyTo(inputCopy, overwrite = true)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            val resultPdf = File(cacheDir, "annotated_pdf_${System.currentTimeMillis()}.pdf")
+            val pageCount = PdfEditHelper.getPageCount(inputCopy)
+            val mods = (0 until pageCount).map { idx ->
+                PdfEditHelper.PageModification(
+                    originalIndex = idx,
+                    rotation = 0,
+                    isDeleted = false,
+                    replacementImageFile = if (idx == pageIndex) annotatedFile else null
+                )
+            }
+            val result = PdfEditHelper.applyPageModifications(inputCopy, resultPdf, mods)
+
+            withContext(Dispatchers.Main) {
+                previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                if (result.isSuccess) {
+                    showSavePdfOptionsDialog(Uri.fromFile(resultPdf))
+                } else {
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        "Error saving annotation to PDF: ${result.exceptionOrNull()?.message}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun handleMergeWithExternalPdf(selectedUri: Uri) {
+        val currentPdf = previewRenderHelper.getLocalPdfFile()
+        previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val inputCopy = File(cacheDir, "temp_merge_base.pdf")
+                try {
+                    currentPdf.copyTo(inputCopy, overwrite = true)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                val externalPdf = File(cacheDir, "temp_external_merge_${System.currentTimeMillis()}.pdf")
+                contentResolver.openInputStream(selectedUri)?.use { input ->
+                    FileOutputStream(externalPdf).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                val mergedPdf = File(cacheDir, "merged_pdf_${System.currentTimeMillis()}.pdf")
+                val result = PdfEditHelper.mergePdfs(listOf(inputCopy, externalPdf), mergedPdf)
+
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    if (result.isSuccess) {
+                        showSavePdfOptionsDialog(Uri.fromFile(mergedPdf), isMerge = true)
+                    } else {
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            getString(R.string.pdf_merge_error, result.exceptionOrNull()?.message ?: ""),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        getString(R.string.pdf_merge_error, e.message ?: ""),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun showSavePdfOptionsDialog(uri: Uri, isMerge: Boolean = false) {
+        val item = explorerItem ?: return
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_save_pdf_options, null)
+        dialog.setContentView(view)
+
+        val ext = item.name.substringAfterLast('.', "pdf")
+        val baseName = item.name.substringBeforeLast('.', "")
+        val suffix = if (isMerge) "_merged" else "_edited"
+        val sampleNewName = "${baseName}${suffix}.$ext"
+
+        view.findViewById<TextView>(R.id.tvSaveAsCopyDesc)?.text =
+            getString(R.string.save_pdf_as_copy_format, sampleNewName)
+
+        view.findViewById<View>(R.id.actionSaveAsCopy)?.setOnClickListener {
+            dialog.dismiss()
+            savePdfAsCopy(uri, suffix)
+        }
+
+        view.findViewById<View>(R.id.actionOverwrite)?.setOnClickListener {
+            dialog.dismiss()
+            overwriteOriginalPdf(uri)
+        }
+
+        view.findViewById<View>(R.id.actionCancel)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun savePdfAsCopy(uri: Uri, overrideNameSuffix: String = "_edited") {
+        val item = explorerItem ?: return
+        previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val originalName = item.name
+                val ext = originalName.substringAfterLast('.', "pdf")
+                val baseName = originalName.substringBeforeLast('.', "")
+                val newFileName = "${baseName}${overrideNameSuffix}.$ext"
+                val targetPath = item.path.substringBeforeLast('/', "")
+
+                val result = explorerRepository.uploadFile(
+                    username = username,
+                    targetPath = targetPath,
+                    fileUri = uri,
+                    overrideFileName = newFileName
+                )
+
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    if (result.isSuccess) {
+                        isModified = true
+                        setResult(RESULT_OK)
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            getString(R.string.pdf_toast_saved_copy, newFileName),
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            getString(R.string.preview_error_save_copy, result.exceptionOrNull()?.message ?: ""),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        getString(R.string.pdf_toast_save_failed, e.message ?: ""),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun overwriteOriginalPdf(uri: Uri) {
+        val item = explorerItem ?: return
+        val targetOwner = getEffectiveOwner()
+        previewRenderHelper.previewLoadingIndicator.visibility = View.VISIBLE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val targetPath = item.path.substringBeforeLast('/', "")
+
+                // 1. Ensure trash folder exists
+                explorerRepository.createFolder(username = targetOwner, targetPath = "", folderName = "trash")
+
+                // 2. Move original PDF to Trash
+                val moveResult = explorerRepository.moveItem(
+                    username = targetOwner,
+                    item = item,
+                    targetFolderPath = "trash"
+                )
+
+                var usedTempBak = false
+                val tempBakName = item.name + ".bak"
+                val tempBakPath = if (targetPath.isEmpty()) tempBakName else "$targetPath/$tempBakName"
+                if (moveResult.isFailure) {
+                    explorerRepository.renameItem(targetOwner, item, tempBakName)
+                    usedTempBak = true
+                }
+
+                // 3. Upload new PDF with exact original name
+                val uploadResult = explorerRepository.uploadFile(
+                    username = targetOwner,
+                    targetPath = targetPath,
+                    fileUri = uri,
+                    overrideFileName = item.name
+                )
+
+                if (uploadResult.isSuccess) {
+                    if (usedTempBak) {
+                        val bakItem = item.copy(name = tempBakName, path = tempBakPath)
+                        explorerRepository.moveItem(targetOwner, bakItem, "trash")
+                    }
+                } else {
+                    if (usedTempBak) {
+                        val bakItem = item.copy(name = tempBakName, path = tempBakPath)
+                        explorerRepository.renameItem(targetOwner, bakItem, item.name)
+                    } else {
+                        restoreOriginalFromTrashInternal(item)
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    if (uploadResult.isSuccess) {
+                        isModified = true
+                        setResult(RESULT_OK)
+                        previewRenderHelper.hasOriginalBackup = true
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            getString(R.string.pdf_toast_overwrite_success),
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                        previewRenderHelper.reloadPdf()
+                    } else {
+                        android.widget.Toast.makeText(
+                            this@FilePreviewActivity,
+                            getString(R.string.preview_toast_upload_failed, uploadResult.exceptionOrNull()?.message ?: ""),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    previewRenderHelper.previewLoadingIndicator.visibility = View.GONE
+                    android.widget.Toast.makeText(
+                        this@FilePreviewActivity,
+                        getString(R.string.pdf_toast_save_failed, e.message ?: ""),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }

@@ -85,7 +85,8 @@ class PreviewRenderHelper(
         onEditImage: (String) -> Unit = {},
         onSaveTextContent: (String) -> Unit = {},
         onConvertPdfRequested: () -> Unit = {},
-        onRestoreOriginal: (() -> Unit)? = null
+        onRestoreOriginal: (() -> Unit)? = null,
+        onEditPdf: (() -> Unit)? = null
     ) {
         titleText.text = fileName.ifBlank { activity.getString(R.string.preview_file_name) }
         previewInfoNameValue.text = fileName.ifBlank { activity.getString(R.string.preview_file_name) }
@@ -553,6 +554,16 @@ class PreviewRenderHelper(
             if (isPdfType) {
                 previewPdfRecycler.visibility = View.VISIBLE
                 previewPdfRecycler.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(activity)
+                val isShared = item?.isSharedItem == true || !item?.ownerUsername.isNullOrEmpty()
+                val isReadOnly = item?.permission == "PUBLIC_READ" || 
+                                 item?.permission == "READ" || 
+                                 (isShared && item?.permission != "WRITE")
+                val canEdit = !isReadOnly
+                editFab.visibility = if (canEdit) View.VISIBLE else View.GONE
+                editFab.setImageResource(R.drawable.edit_3)
+                editFab.setOnClickListener {
+                    onEditPdf?.invoke()
+                }
             } else {
                 previewDocxWebView.visibility = View.VISIBLE
                 previewDocxWebView.settings.javaScriptEnabled = true
@@ -749,7 +760,72 @@ class PreviewRenderHelper(
         }
     }
 
+    fun getLocalPdfFile(): File {
+        return File(activity.cacheDir, "temp_preview.pdf")
+    }
+
+    fun reloadPdf() {
+        val tempFile = getLocalPdfFile()
+        previewLoadingIndicator.visibility = View.VISIBLE
+        activity.lifecycleScope.launch {
+            try {
+                val fileBytes = withContext(Dispatchers.IO) {
+                    if (previewUrl == null) throw Exception("Preview URL is missing")
+                    if (previewUrl.startsWith("file://")) {
+                        val filePath = Uri.parse(previewUrl).path ?: previewUrl.removePrefix("file://")
+                        File(filePath).readBytes()
+                    } else {
+                        val urlWithTimestamp = if (previewUrl.contains("?")) {
+                            "$previewUrl&t=${System.currentTimeMillis()}"
+                        } else {
+                            "$previewUrl?t=${System.currentTimeMillis()}"
+                        }
+                        val request = okhttp3.Request.Builder()
+                            .url(urlWithTimestamp)
+                            .addHeader("ngrok-skip-browser-warning", "69420")
+                            .build()
+                        val response = ExplorerNetworkModule.okHttpClient.newCall(request).execute()
+                        if (!response.isSuccessful) throw Exception("HTTP ${response.code}: ${response.message}")
+                        response.body?.bytes() ?: throw Exception("Empty body")
+                    }
+                }
+                withContext(Dispatchers.IO) {
+                    tempFile.writeBytes(fileBytes)
+                }
+                withContext(Dispatchers.Main) {
+                    try {
+                        (previewPdfRecycler.adapter as? PdfRendererAdapter)?.close()
+                        previewPdfRecycler.adapter = null
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    try {
+                        pdfRenderer?.close()
+                        pdfFileDescriptor?.close()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    pdfFileDescriptor = android.os.ParcelFileDescriptor.open(tempFile, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                    pdfRenderer = android.graphics.pdf.PdfRenderer(pdfFileDescriptor!!)
+                    previewPdfRecycler.adapter = PdfRendererAdapter(pdfRenderer!!)
+                    previewLoadingIndicator.visibility = View.GONE
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    previewLoadingIndicator.visibility = View.GONE
+                    android.widget.Toast.makeText(activity, "Error reloading PDF: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     fun cleanUp() {
+        try {
+            (previewPdfRecycler.adapter as? PdfRendererAdapter)?.close()
+            previewPdfRecycler.adapter = null
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         try {
             pdfRenderer?.close()
         } catch (e: Exception) {

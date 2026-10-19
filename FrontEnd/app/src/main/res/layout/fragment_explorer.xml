@@ -496,6 +496,21 @@
                 tools:text="3 items selected" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/mergePdfSelectedButton"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/explorer_action_merge_pdf"
+                android:textAllCaps="false"
+                android:visibility="gone"
+                app:icon="@drawable/folder_input"
+                app:iconTint="@color/explorer_primary"
+                app:strokeColor="@color/explorer_border" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/compressSelectedButton"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"

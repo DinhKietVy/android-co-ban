@@ -679,4 +679,47 @@
     <string name="explorer_drive_upload_failed">Google Drive upload failed: %1$s</string>
     <string name="explorer_drive_file_processing_error">File processing error: %1$s</string>
     <string name="explorer_drive_create_folder_failed">Failed to create folder: %1$s</string>
+
+    <!-- PDF Tools & Editor -->
+    <string name="pdf_tools_title">PDF Tools</string>
+    <string name="pdf_tools_subtitle">Select editing tool for this PDF</string>
+    <string name="pdf_tool_organizer_title">Page Organizer</string>
+    <string name="pdf_tool_organizer_desc">Rotate, delete, or extract pages</string>
+    <string name="pdf_tool_annotate_title">Sign &amp; Annotate</string>
+    <string name="pdf_tool_annotate_desc">Draw, sign, or add text to PDF pages</string>
+    <string name="pdf_tool_merge_title">Merge with PDF</string>
+    <string name="pdf_tool_merge_desc">Append another PDF file to this document</string>
+    <string name="pdf_organizer_title">Page Organizer</string>
+    <string name="pdf_organizer_subtitle">Select pages to rotate, delete, or extract</string>
+    <string name="pdf_organizer_page_format">Page %1$d</string>
+    <string name="pdf_organizer_action_rotate">Rotate 90°</string>
+    <string name="pdf_organizer_action_delete">Delete</string>
+    <string name="pdf_organizer_action_restore">Restore</string>
+    <string name="pdf_organizer_action_extract">Extract</string>
+    <string name="pdf_organizer_action_apply">Apply Changes</string>
+    <string name="pdf_organizer_select_all">Select All</string>
+    <string name="pdf_organizer_deselect_all">Deselect All</string>
+    <string name="pdf_organizer_no_page_selected">Please select at least one page</string>
+    <string name="pdf_organizer_all_deleted_error">Cannot delete all pages of the document</string>
+    <string name="pdf_organizer_extract_success">Extracted %1$d pages to new PDF</string>
+    <string name="pdf_annotate_select_page_title">Select Page to Annotate</string>
+    <string name="pdf_annotate_page_item">Page %1$d of %2$d</string>
+    <string name="pdf_merge_select_title">Select PDF to Merge</string>
+    <string name="pdf_merge_success">PDFs merged successfully</string>
+    <string name="pdf_merge_error">Error merging PDFs: %1$s</string>
+    <string name="pdf_toast_saved_copy">New PDF copy saved: %1$s</string>
+    <string name="pdf_toast_overwrite_success">PDF overwritten successfully. Original backed up to Trash.</string>
+    <string name="pdf_toast_save_failed">Error saving PDF: %1$s</string>
+    <string name="save_pdf_title">Save Edited PDF</string>
+    <string name="save_pdf_subtitle">Choose how to save your modified PDF</string>
+    <string name="save_pdf_as_copy_format">Keep original PDF, save result as: %1$s</string>
+    <string name="save_pdf_overwrite_desc">Replace current PDF. Original is backed up to Trash so you can restore anytime.</string>
+    <string name="explorer_action_merge_pdf">Merge PDFs</string>
+    <string name="explorer_dialog_merge_pdf_title">Merge Selected PDFs</string>
+    <string name="explorer_dialog_merge_pdf_hint">Enter merged file name (e.g. combined.pdf)</string>
+    <string name="explorer_dialog_merge_pdf_button">Merge</string>
+    <string name="explorer_dialog_merge_pdf_success">Merged %1$d PDF files successfully</string>
+    <string name="explorer_dialog_merge_pdf_error">Error merging PDF files: %1$s</string>
+    <string name="pdf_status_deleted">Marked for deletion</string>
+    <string name="pdf_selected_count">%1$d selected</string>
 </resources>

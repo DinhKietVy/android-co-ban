@@ -777,6 +777,15 @@ class ExplorerViewModel(
         }
     }
 
+    fun clearSelection() {
+        _uiState.update { state ->
+            state.copy(
+                isSelectionMode = false,
+                selectedPaths = emptySet()
+            )
+        }
+    }
+
     fun startSelection(item: ExplorerItem) {
         _uiState.update { state ->
             if (state.isSelectionMode) {

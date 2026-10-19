@@ -679,4 +679,47 @@
     <string name="explorer_drive_upload_failed">Lỗi tải lên Google Drive: %1$s</string>
     <string name="explorer_drive_file_processing_error">Lỗi xử lý tệp: %1$s</string>
     <string name="explorer_drive_create_folder_failed">Lỗi tạo thư mục: %1$s</string>
+
+    <!-- PDF Tools & Editor -->
+    <string name="pdf_tools_title">Công cụ PDF</string>
+    <string name="pdf_tools_subtitle">Chọn công cụ chỉnh sửa cho tệp PDF này</string>
+    <string name="pdf_tool_organizer_title">Quản lý trang</string>
+    <string name="pdf_tool_organizer_desc">Xoay, xóa hoặc trích xuất các trang</string>
+    <string name="pdf_tool_annotate_title">Ký tên &amp; Chú thích</string>
+    <string name="pdf_tool_annotate_desc">Vẽ, ký tên hoặc thêm chữ vào các trang PDF</string>
+    <string name="pdf_tool_merge_title">Ghép tệp PDF</string>
+    <string name="pdf_tool_merge_desc">Ghép thêm tệp PDF khác vào tài liệu này</string>
+    <string name="pdf_organizer_title">Quản lý trang PDF</string>
+    <string name="pdf_organizer_subtitle">Chọn các trang để xoay, xóa hoặc trích xuất</string>
+    <string name="pdf_organizer_page_format">Trang %1$d</string>
+    <string name="pdf_organizer_action_rotate">Xoay 90°</string>
+    <string name="pdf_organizer_action_delete">Xóa trang</string>
+    <string name="pdf_organizer_action_restore">Khôi phục</string>
+    <string name="pdf_organizer_action_extract">Trích xuất</string>
+    <string name="pdf_organizer_action_apply">Áp dụng thay đổi</string>
+    <string name="pdf_organizer_select_all">Chọn tất cả</string>
+    <string name="pdf_organizer_deselect_all">Bỏ chọn tất cả</string>
+    <string name="pdf_organizer_no_page_selected">Vui lòng chọn ít nhất một trang</string>
+    <string name="pdf_organizer_all_deleted_error">Không thể xóa toàn bộ các trang của tài liệu</string>
+    <string name="pdf_organizer_extract_success">Đã trích xuất %1$d trang sang tệp PDF mới</string>
+    <string name="pdf_annotate_select_page_title">Chọn trang để ký tên / chú thích</string>
+    <string name="pdf_annotate_page_item">Trang %1$d / %2$d</string>
+    <string name="pdf_merge_select_title">Chọn tệp PDF để ghép</string>
+    <string name="pdf_merge_success">Đã ghép các tệp PDF thành công</string>
+    <string name="pdf_merge_error">Lỗi ghép tệp PDF: %1$s</string>
+    <string name="pdf_toast_saved_copy">Đã lưu bản sao PDF mới: %1$s</string>
+    <string name="pdf_toast_overwrite_success">Đã ghi đè tệp PDF thành công. Bản gốc đã được sao lưu vào Thùng rác.</string>
+    <string name="pdf_toast_save_failed">Lỗi khi lưu PDF: %1$s</string>
+    <string name="save_pdf_title">Lưu tệp PDF đã chỉnh sửa</string>
+    <string name="save_pdf_subtitle">Chọn cách lưu tệp PDF của bạn</string>
+    <string name="save_pdf_as_copy_format">Giữ nguyên tệp gốc, lưu bản sửa đổi thành: %1$s</string>
+    <string name="save_pdf_overwrite_desc">Thay thế tệp PDF hiện tại. Bản gốc được sao lưu vào Thùng rác để bạn có thể khôi phục bất cứ lúc nào.</string>
+    <string name="explorer_action_merge_pdf">Ghép PDF</string>
+    <string name="explorer_dialog_merge_pdf_title">Ghép các tệp PDF đã chọn</string>
+    <string name="explorer_dialog_merge_pdf_hint">Nhập tên tệp ghép (ví dụ: tong_hop.pdf)</string>
+    <string name="explorer_dialog_merge_pdf_button">Ghép tệp</string>
+    <string name="explorer_dialog_merge_pdf_success">Đã ghép thành công %1$d tệp PDF</string>
+    <string name="explorer_dialog_merge_pdf_error">Lỗi ghép các tệp PDF: %1$s</string>
+    <string name="pdf_status_deleted">Đã đánh dấu xóa</string>
+    <string name="pdf_selected_count">Đã chọn %1$d</string>
 </resources>
