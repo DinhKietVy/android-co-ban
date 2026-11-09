@@ -7,6 +7,8 @@ import cookieParser from 'cookie-parser';
 
 import { setupSwagger } from "./config/swagger";
 
+import { rateLimitMiddleware } from './middleware/rateLimit.middleware';
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +22,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(rateLimitMiddleware);
 
 // Test kết nối database
 app.get('/test-db', async (req, res) => {
