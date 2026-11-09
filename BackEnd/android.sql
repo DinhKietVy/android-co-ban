@@ -92,3 +92,45 @@ CREATE TABLE chat_messages (
 CREATE INDEX IX_chat_messages_session_id ON chat_messages(session_id);
 -- Index để lấy danh sách session của user, sắp xếp mới nhất trước
 CREATE INDEX IX_chat_sessions_user_updated ON chat_sessions(user_id, updated_at DESC);
+
+-- ============================================================
+-- 2FA TRUSTED DEVICES
+-- ============================================================
+
+-- Thiết bị đã được tin tưởng của user (không cần OTP lần sau)
+CREATE TABLE trusted_devices (
+    id          INT IDENTITY(1,1) PRIMARY KEY,
+    user_id     INT NOT NULL,
+    -- fingerprint = hash(userAgent + platform + screen + timezone + ...)
+    fingerprint VARCHAR(64) NOT NULL,
+    device_name NVARCHAR(255) NULL,
+    ip_address  VARCHAR(45) NULL,
+    created_at  DATETIME NOT NULL DEFAULT GETDATE(),
+    last_used_at DATETIME NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT FK_trusted_devices_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT UQ_trusted_device UNIQUE (user_id, fingerprint)
+);
+
+CREATE INDEX IX_trusted_devices_user ON trusted_devices(user_id);
+
+-- OTP tạm thời chờ xác minh thiết bị lạ (hết hạn tự xóa qua job hoặc check TTL)
+CREATE TABLE device_otp_pending (
+    id            INT IDENTITY(1,1) PRIMARY KEY,
+    user_id       INT NOT NULL,
+    fingerprint   VARCHAR(64) NOT NULL,
+    device_name   NVARCHAR(255) NULL,
+    ip_address    VARCHAR(45) NULL,
+    otp_code      VARCHAR(10) NOT NULL,
+    otp_expires_at DATETIME NOT NULL,
+    -- temp_token dùng để client gọi verify mà không cần gửi lại credential
+    temp_token    VARCHAR(64) NOT NULL UNIQUE,
+    created_at    DATETIME NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT FK_device_otp_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+);

@@ -1271,8 +1271,6 @@ export const extractFile = (req: Request, res: Response) => {
 // =====================================================================
 // API Chia sẻ file (share_file)
 // =====================================================================
-import { connectDB } from '../config/database';
-import sql from 'mssql';
 
 // POST /api/data/share — Thêm bản ghi chia sẻ
 export const shareFile = async (req: Request, res: Response) => {

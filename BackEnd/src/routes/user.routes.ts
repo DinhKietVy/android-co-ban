@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, googleAuth, login, forgotPassword, verifyResetCode, resetPassword,autoLogin, updateProfile, changePassword, deleteAccount } from '../controllers/user.controller';
+import { createUser, googleAuth, login, forgotPassword, verifyResetCode, resetPassword, autoLogin, updateProfile, changePassword, deleteAccount, verifyDeviceOTP, getTrustedDevices, removeTrustedDevice, removeAllTrustedDevices } from '../controllers/user.controller';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
@@ -251,5 +251,80 @@ router.get('/auto-login', authenticateToken, autoLogin);
 router.put('/me', authenticateToken, updateProfile);
 router.post('/change-password', authenticateToken, changePassword);
 router.delete('/me', authenticateToken, deleteAccount);
+
+/**
+ * @swagger
+ * /api/users/verify-device-otp:
+ *   post:
+ *     summary: Xác minh OTP thiết bị mới (2FA)
+ *     description: Xác minh mã OTP được gửi đến email khi đăng nhập từ thiết bị lạ. Nếu thành công sẽ issue cookie và tùy chọn thêm thiết bị vào danh sách tin tưởng.
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tempToken
+ *               - otpCode
+ *             properties:
+ *               tempToken:
+ *                 type: string
+ *                 description: Token tạm thời nhận được từ response login
+ *               otpCode:
+ *                 type: string
+ *                 description: Mã OTP 6 số nhận qua email
+ *               trustDevice:
+ *                 type: boolean
+ *                 description: Có tin tưởng thiết bị này không (mặc định true)
+ *     responses:
+ *       200:
+ *         description: Xác minh thành công, cookie được set
+ *       400:
+ *         description: OTP không đúng hoặc hết hạn
+ *       500:
+ *         description: Lỗi máy chủ
+ */
+router.post('/verify-device-otp', verifyDeviceOTP);
+
+/**
+ * @swagger
+ * /api/users/trusted-devices:
+ *   get:
+ *     summary: Lấy danh sách thiết bị tin tưởng
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Danh sách thiết bị
+ *   delete:
+ *     summary: Xóa tất cả thiết bị tin tưởng
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Đã xóa tất cả
+ */
+router.get('/trusted-devices', authenticateToken, getTrustedDevices);
+router.delete('/trusted-devices', authenticateToken, removeAllTrustedDevices);
+
+/**
+ * @swagger
+ * /api/users/trusted-devices/{deviceId}:
+ *   delete:
+ *     summary: Xóa một thiết bị tin tưởng
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: deviceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Đã xóa
+ *       404:
+ *         description: Không tìm thấy thiết bị
+ */
+router.delete('/trusted-devices/:deviceId', authenticateToken, removeTrustedDevice);
 
 export default router;

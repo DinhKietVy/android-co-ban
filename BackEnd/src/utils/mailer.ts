@@ -12,6 +12,52 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+export const sendNewDeviceOTPEmail = async (
+  to: string,
+  otpCode: string,
+  deviceName: string,
+  ipAddress: string
+) => {
+  const mailOptions = {
+    from: `"Support Team" <${process.env.SMTP_USER || 'no-reply@example.com'}>`,
+    to,
+    subject: 'Xác minh đăng nhập từ thiết bị mới',
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px;">
+        <h2 style="color: #333;">Phát hiện đăng nhập từ thiết bị mới</h2>
+        <p>Chúng tôi phát hiện có lần đăng nhập vào tài khoản của bạn từ một thiết bị chưa được tin tưởng.</p>
+        <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
+          <tr>
+            <td style="padding: 8px; font-weight: bold; color: #555;">Thiết bị:</td>
+            <td style="padding: 8px; color: #333;">${deviceName}</td>
+          </tr>
+          <tr style="background: #f9f9f9;">
+            <td style="padding: 8px; font-weight: bold; color: #555;">Địa chỉ IP:</td>
+            <td style="padding: 8px; color: #333;">${ipAddress}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; color: #555;">Thời gian:</td>
+            <td style="padding: 8px; color: #333;">${new Date().toLocaleString('vi-VN')}</td>
+          </tr>
+        </table>
+        <p>Nhập mã xác minh bên dưới để hoàn tất đăng nhập. Mã có hiệu lực trong <strong>10 phút</strong>.</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <span style="display: inline-block; background: #f0f4ff; border: 2px dashed #4a6cf7; border-radius: 8px; padding: 16px 32px; font-size: 36px; font-weight: bold; color: #4a6cf7; letter-spacing: 8px;">${otpCode}</span>
+        </div>
+        <p style="color: #888; font-size: 13px;">Nếu bạn không thực hiện đăng nhập này, hãy đổi mật khẩu ngay lập tức.</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`New device OTP email sent to ${to}`);
+  } catch (error) {
+    console.error('Error sending new device OTP email:', error);
+    throw new Error('Khong the gui email xac minh thiet bi');
+  }
+};
+
 export const sendResetPasswordEmail = async (to: string, resetCode: string) => {
   const mailOptions = {
     from: `"Support Team" <${process.env.SMTP_USER || 'no-reply@example.com'}>`,

@@ -5,8 +5,44 @@ import fs from 'fs';
 import { AuthRequest } from '../types';
 import path from 'path';
 import crypto from 'crypto';
-import { sendResetPasswordEmail } from '../utils/mailer';
+import { sendResetPasswordEmail, sendNewDeviceOTPEmail } from '../utils/mailer';
 import { generateAccessToken, generateRefreshToken } from '../utils/token';
+
+// ─── 2FA helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Chuẩn hoá fingerprint từ client: chỉ giữ hex lowercase 64 ký tự.
+ * Nếu client không gửi → dùng chuỗi rỗng (coi như thiết bị lạ).
+ */
+const normalizeFingerprint = (value: unknown): string => {
+    const raw = String(value || '').trim().toLowerCase();
+    // Chấp nhận chuỗi hex 32–128 ký tự (MD5 → SHA-512)
+    return /^[0-9a-f]{32,128}$/.test(raw) ? raw : '';
+};
+
+/**
+ * Lấy tên thiết bị thân thiện từ User-Agent header.
+ */
+const parseDeviceName = (userAgent: string | undefined): string => {
+    if (!userAgent) return 'Unknown Device';
+    if (/android/i.test(userAgent)) return 'Android Device';
+    if (/iphone|ipad/i.test(userAgent)) return 'iOS Device';
+    if (/windows/i.test(userAgent)) return 'Windows Device';
+    if (/macintosh|mac os/i.test(userAgent)) return 'Mac Device';
+    if (/linux/i.test(userAgent)) return 'Linux Device';
+    return 'Unknown Device';
+};
+
+/**
+ * Lấy IP thực của client (hỗ trợ proxy/nginx với X-Forwarded-For).
+ */
+const getClientIP = (req: Request): string => {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        return String(forwarded).split(',')[0].trim();
+    }
+    return req.socket?.remoteAddress || req.ip || 'unknown';
+};
 
 const bcrypt = require('bcrypt');
 
@@ -93,7 +129,7 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, deviceFingerprint } = req.body;
     const normalizedIdentifier = normalizeIdentifier(username);
     if (!normalizedIdentifier || !password) {
       return res.status(400).json({ error: 'Thieu thong tin bat buoc (username/email, password)' });
@@ -118,19 +154,78 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Tai khoan hoac mat khau khong chinh xac' });
     }
 
-    issueAuthCookies(res, {
-      id: user.id,
-      username: user.username,
-    });
+    // ── 2FA: Kiểm tra thiết bị ───────────────────────────────────────────────
+    const fingerprint = normalizeFingerprint(deviceFingerprint);
+    const ipAddress = getClientIP(req);
+    const deviceName = parseDeviceName(req.headers['user-agent']);
+
+    if (fingerprint) {
+      // Kiểm tra thiết bị đã được tin tưởng chưa
+      const deviceResult = await pool.request()
+        .input('user_id', sql.Int, user.id)
+        .input('fingerprint', sql.VarChar(64), fingerprint)
+        .query(`
+          SELECT id FROM trusted_devices
+          WHERE user_id = @user_id AND fingerprint = @fingerprint
+        `);
+
+      if (deviceResult.recordset.length > 0) {
+        // Thiết bị đã tin tưởng → cập nhật last_used_at và login bình thường
+        await pool.request()
+          .input('user_id', sql.Int, user.id)
+          .input('fingerprint', sql.VarChar(64), fingerprint)
+          .input('ip_address', sql.VarChar(45), ipAddress)
+          .query(`
+            UPDATE trusted_devices
+            SET last_used_at = GETDATE(), ip_address = @ip_address
+            WHERE user_id = @user_id AND fingerprint = @fingerprint
+          `);
+
+        issueAuthCookies(res, { id: user.id, username: user.username });
+        return res.status(200).json({
+          message: 'Dang nhap thanh cong',
+          requireOTP: false,
+          data: {
+            id: user.id,
+            username: user.username,
+            fullName: user.full_name,
+            email: user.email,
+          },
+        });
+      }
+    }
+
+    // Thiết bị lạ (fingerprint không có hoặc chưa tin tưởng) → gửi OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
+    const tempToken = crypto.randomBytes(32).toString('hex');
+
+    // Xóa OTP cũ chưa dùng của user này (nếu có) để tránh tích tụ
+    await pool.request()
+      .input('user_id', sql.Int, user.id)
+      .query(`DELETE FROM device_otp_pending WHERE user_id = @user_id`);
+
+    await pool.request()
+      .input('user_id', sql.Int, user.id)
+      .input('fingerprint', sql.VarChar(64), fingerprint || 'unknown')
+      .input('device_name', sql.NVarChar(255), deviceName)
+      .input('ip_address', sql.VarChar(45), ipAddress)
+      .input('otp_code', sql.VarChar(10), otpCode)
+      .input('otp_expires_at', sql.DateTime, otpExpiry)
+      .input('temp_token', sql.VarChar(64), tempToken)
+      .query(`
+        INSERT INTO device_otp_pending
+          (user_id, fingerprint, device_name, ip_address, otp_code, otp_expires_at, temp_token)
+        VALUES
+          (@user_id, @fingerprint, @device_name, @ip_address, @otp_code, @otp_expires_at, @temp_token)
+      `);
+
+    await sendNewDeviceOTPEmail(user.email, otpCode, deviceName, ipAddress);
 
     return res.status(200).json({
-      message: 'Dang nhap thanh cong',
-      data: {
-        id: user.id,
-        username: user.username,
-        fullName: user.full_name,
-        email: user.email,
-      },
+      message: 'Thiet bi chua duoc xac minh. Ma OTP da duoc gui den email cua ban.',
+      requireOTP: true,
+      tempToken,
     });
   } catch (error: any) {
     return res.status(500).json({ error: 'Loi may chu', detail: error.message });
@@ -514,6 +609,163 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
     res.clearCookie('refreshToken');
 
     return res.status(200).json({ message: 'Xoa tai khoan thanh cong' });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Loi may chu', detail: error.message });
+  }
+};
+
+// ─── 2FA: Verify OTP thiết bị mới ────────────────────────────────────────────
+
+export const verifyDeviceOTP = async (req: Request, res: Response) => {
+  try {
+    const { tempToken, otpCode, trustDevice } = req.body;
+
+    if (!tempToken || !otpCode) {
+      return res.status(400).json({ error: 'Thieu thong tin bat buoc (tempToken, otpCode)' });
+    }
+
+    const pool = await connectDB();
+    const pendingResult = await pool.request()
+      .input('temp_token', sql.VarChar(64), String(tempToken))
+      .query(`
+        SELECT p.id, p.user_id, p.fingerprint, p.device_name, p.ip_address,
+               p.otp_code, p.otp_expires_at,
+               u.username, u.full_name, u.email
+        FROM device_otp_pending p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.temp_token = @temp_token
+      `);
+
+    if (pendingResult.recordset.length === 0) {
+      return res.status(400).json({ error: 'Phien xac minh khong hop le hoac da het han' });
+    }
+
+    const pending = pendingResult.recordset[0];
+
+    if (new Date() > new Date(pending.otp_expires_at)) {
+      // Xóa OTP hết hạn
+      await pool.request()
+        .input('id', sql.Int, pending.id)
+        .query('DELETE FROM device_otp_pending WHERE id = @id');
+      return res.status(400).json({ error: 'Ma OTP da het han. Vui long dang nhap lai.' });
+    }
+
+    if (String(otpCode).trim() !== pending.otp_code) {
+      return res.status(400).json({ error: 'Ma OTP khong chinh xac' });
+    }
+
+    // OTP hợp lệ → xóa pending record
+    await pool.request()
+      .input('id', sql.Int, pending.id)
+      .query('DELETE FROM device_otp_pending WHERE id = @id');
+
+    // Nếu client muốn tin tưởng thiết bị này → lưu vào trusted_devices
+    const shouldTrust = trustDevice !== false; // mặc định trust = true
+    if (shouldTrust && pending.fingerprint && pending.fingerprint !== 'unknown') {
+      await pool.request()
+        .input('user_id', sql.Int, pending.user_id)
+        .input('fingerprint', sql.VarChar(64), pending.fingerprint)
+        .input('device_name', sql.NVarChar(255), pending.device_name)
+        .input('ip_address', sql.VarChar(45), pending.ip_address)
+        .query(`
+          IF NOT EXISTS (
+            SELECT 1 FROM trusted_devices
+            WHERE user_id = @user_id AND fingerprint = @fingerprint
+          )
+          INSERT INTO trusted_devices (user_id, fingerprint, device_name, ip_address)
+          VALUES (@user_id, @fingerprint, @device_name, @ip_address)
+        `);
+    }
+
+    // Issue cookies và trả về thông tin user
+    issueAuthCookies(res, { id: pending.user_id, username: pending.username });
+
+    return res.status(200).json({
+      message: 'Xac minh thiet bi thanh cong',
+      data: {
+        id: pending.user_id,
+        username: pending.username,
+        fullName: pending.full_name,
+        email: pending.email,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Loi may chu', detail: error.message });
+  }
+};
+
+// ─── Trusted Devices management ──────────────────────────────────────────────
+
+export const getTrustedDevices = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Khong the xac thuc nguoi dung' });
+    }
+
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('user_id', sql.Int, userId)
+      .query(`
+        SELECT id, fingerprint, device_name, ip_address, created_at, last_used_at
+        FROM trusted_devices
+        WHERE user_id = @user_id
+        ORDER BY last_used_at DESC
+      `);
+
+    return res.status(200).json({
+      message: 'Danh sach thiet bi tin tuong',
+      data: result.recordset,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Loi may chu', detail: error.message });
+  }
+};
+
+export const removeTrustedDevice = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Khong the xac thuc nguoi dung' });
+    }
+
+    const deviceId = parseInt(String(req.params.deviceId), 10);
+    if (!deviceId || isNaN(deviceId)) {
+      return res.status(400).json({ error: 'deviceId khong hop le' });
+    }
+
+    const pool = await connectDB();
+    const deleteResult = await pool.request()
+      .input('id', sql.Int, deviceId)
+      .input('user_id', sql.Int, userId)
+      .query(`
+        DELETE FROM trusted_devices
+        WHERE id = @id AND user_id = @user_id
+      `);
+
+    if (deleteResult.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Khong tim thay thiet bi hoac khong co quyen' });
+    }
+
+    return res.status(200).json({ message: 'Da xoa thiet bi tin tuong' });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Loi may chu', detail: error.message });
+  }
+};
+
+export const removeAllTrustedDevices = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Khong the xac thuc nguoi dung' });
+    }
+
+    const pool = await connectDB();
+    await pool.request()
+      .input('user_id', sql.Int, userId)
+      .query('DELETE FROM trusted_devices WHERE user_id = @user_id');
+
+    return res.status(200).json({ message: 'Da xoa tat ca thiet bi tin tuong' });
   } catch (error: any) {
     return res.status(500).json({ error: 'Loi may chu', detail: error.message });
   }
