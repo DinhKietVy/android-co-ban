@@ -685,18 +685,33 @@ export const downloadFile = async (req: Request, res: Response) => {
     // Lấy dữ liệu từ query (nếu là GET request) hoặc body (nếu là POST request)
     const username = query.username || body.username;
     const filePath = query.filePath || body.filePath;
-    const callerUsername = query.callerUsername || body.callerUsername || username; // Tạm thời fallback về username nếu không có (để không phá vỡ logic cũ)
 
     if (!username || !filePath) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc (username, filePath)' });
     }
 
-    if (callerUsername !== username) {
+    // Validate username: chỉ cho phép chữ cái, số, dấu gạch dưới, gạch ngang
+    // Ngăn chặn Path Traversal qua username (vd: username="../")
+    const usernameStr = String(username);
+    if (!/^[a-zA-Z0-9_\-]+$/.test(usernameStr)) {
+      return res.status(400).json({ error: 'Username không hợp lệ' });
+    }
+
+    // Lấy callerUsername từ JWT token (đã xác thực qua authenticateToken middleware)
+    // Không lấy từ body/query để tránh client tự khai báo danh tính giả
+    const tokenUser = (req as any).user as { id: string | number; account: string } | undefined;
+    const callerUsernameStr = tokenUser?.account ?? '';
+
+    if (!callerUsernameStr) {
+      return res.status(401).json({ error: 'Không xác định được người dùng từ token' });
+    }
+
+    if (callerUsernameStr !== usernameStr) {
       // Kiểm tra quyền truy cập qua bảng share_file
       const pool = await connectDB();
       const result = await pool.request()
-        .input('ownerUsername', sql.VarChar, username)
-        .input('targetUsername', sql.VarChar, callerUsername)
+        .input('ownerUsername', sql.VarChar, usernameStr)
+        .input('targetUsername', sql.VarChar, callerUsernameStr)
         .input('filePath', sql.VarChar, filePath)
         .query(`
           SELECT 1 FROM share_file sf
@@ -712,13 +727,20 @@ export const downloadFile = async (req: Request, res: Response) => {
       }
     }
 
-    const userRootPath = path.resolve(__dirname, '../../data', username as string);
+    // Xây dựng đường dẫn gốc của user từ username đã được validate
+    const dataRoot = path.resolve(__dirname, '../../data');
+    const userRootPath = path.resolve(dataRoot, usernameStr);
+
+    // Đảm bảo userRootPath vẫn nằm trong dataRoot (double-check sau khi validate)
+    if (!userRootPath.startsWith(dataRoot + path.sep) && userRootPath !== dataRoot) {
+      return res.status(403).json({ error: 'Đường dẫn không hợp lệ' });
+    }
 
     // Kiểm tra đường dẫn file
     const absoluteFilePath = path.resolve(userRootPath, filePath as string);
 
-    // Chống Path Traversal
-    if (!absoluteFilePath.startsWith(userRootPath)) {
+    // Chống Path Traversal: file phải nằm trong thư mục của user
+    if (!absoluteFilePath.startsWith(userRootPath + path.sep) && absoluteFilePath !== userRootPath) {
       return res.status(403).json({ error: 'Đường dẫn file không hợp lệ' });
     }
 

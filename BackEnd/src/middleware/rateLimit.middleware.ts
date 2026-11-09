@@ -7,7 +7,7 @@ export const rateLimitMiddleware = rateLimit({
     windowMs: 5 * 60 * 1000,
 
     // Mỗi IP tối đa 5 request
-    limit: 5,
+    limit: 500,
 
     // Sử dụng các header Rate Limit tiêu chuẩn
     standardHeaders: "draft-8",

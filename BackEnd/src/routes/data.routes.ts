@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {convertFile, uploadData, updateFileContent, createFolder, moveFile, moveFolder, deleteFile, deleteFolder, listDirectory, downloadFile, renameFile, renameFolder, searchFiles, compressFiles, extractFile, shareFile, unshareFile, updateShare, getSharedByOwner, getSharedToMe, getFileInfo } from '../controllers/data.controller';
+import { authenticateToken } from '../middleware/auth';
 
 
 const router = Router();
@@ -442,8 +443,8 @@ router.post('/list', listDirectory);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.get('/download', downloadFile);
-router.post('/download', downloadFile);
+router.get('/download', authenticateToken, downloadFile);
+router.post('/download', authenticateToken, downloadFile);
 
 /**
  * @swagger
