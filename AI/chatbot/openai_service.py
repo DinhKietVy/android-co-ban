@@ -1,3 +1,5 @@
+from security.policy import guard_text, outbound_text, confined_path, PolicyViolation, GUARD_INSTRUCTIONS
+from security.dlp import scan_file
 import os
 import base64
 import json
@@ -41,7 +43,7 @@ def get_db_connection():
         "DRIVER={ODBC Driver 17 for SQL Server};"
         f"SERVER={server};DATABASE={database};"
         f"UID={db_user};PWD={password};"
-        "TrustServerCertificate=yes;Encrypt=no;"
+        "TrustServerCertificate=no;Encrypt=yes;"
     )
     return pyodbc.connect(conn_str)
 
@@ -305,6 +307,8 @@ def _get_tools() -> list[dict]:
 # ─────────────────────────────────────────────
 def _execute_function(username: str, fn_name: str, args: dict) -> dict:
     import shutil
+    if fn_name != "list_files":
+        raise PolicyViolation("AI chỉ được phép đọc; thao tác ghi phải dùng API quản lý tệp")
 
     chatbot_dir    = os.path.dirname(os.path.abspath(__file__))
     ai_dir         = os.path.dirname(chatbot_dir)
@@ -312,10 +316,7 @@ def _execute_function(username: str, fn_name: str, args: dict) -> dict:
     user_data_path = os.path.join(workspace_dir, "BackEnd", "data", username)
 
     def safe_path(rel: str) -> str:
-        abs_p = os.path.normpath(os.path.join(user_data_path, rel or ""))
-        if not abs_p.startswith(user_data_path):
-            raise PermissionError("Đường dẫn không hợp lệ")
-        return abs_p
+        return confined_path(user_data_path, rel) if rel else str(__import__("pathlib").Path(user_data_path).resolve())
 
     try:
         if fn_name == "create_folder":
@@ -421,7 +422,11 @@ def chat_with_gemini(
     - Nếu prompt yêu cầu đọc/phân tích/dịch file -> gửi nội dung file cho model.
     - Nếu là lệnh thao tác file -> chỉ đưa tên/path file vào context.
     """
-    tools = _get_tools()
+    prompt = outbound_text(prompt)
+    # Only server-sourced history is accepted by the API; sanitize before replay.
+    if history:
+        history = [{"role": t["role"], "parts": [{"text": outbound_text(p["text"])} for p in t["parts"]]} for t in history[-20:]]
+    tools = [t for t in _get_tools() if t.get("name") == "list_files"]
 
     system_instr = (
         "Bạn là trợ lý AI thông minh tích hợp trong hệ thống quản lý file. "
@@ -441,6 +446,8 @@ def chat_with_gemini(
         "hãy gọi từng tool MỘT LƯỢT MỘT, không gọi cả hai cùng lúc. "
         "Đợi kết quả bước trước xong mới gọi bước tiếp theo."
     )
+
+    system_instr += GUARD_INSTRUCTIONS
 
     # ── Bước 1: Replay history để lấy previous_response_id ──
     prev_id = None
@@ -480,7 +487,7 @@ def chat_with_gemini(
     user_data_path = os.path.join(workspace_dir, "BackEnd", "data", username)
 
     # Lấy cấu trúc file + thư mục hiện có của user để inject vào ngữ cảnh
-    structure_hint = get_user_structure(username)
+    structure_hint = outbound_text(get_user_structure(username))
     context_prefix  = (
         f"[Ngữ cảnh hệ thống]\n"
         f"- Username: {username}\n"
@@ -493,9 +500,7 @@ def chat_with_gemini(
 
     if file_path:
         clean_file_path = file_path.replace("\\", "/").lstrip("/")
-        abs_path = os.path.normpath(
-            os.path.join(user_data_path, clean_file_path)
-        )
+        abs_path = confined_path(user_data_path, clean_file_path)
         file_exists = (
             abs_path.startswith(user_data_path)
             and os.path.isfile(abs_path)
@@ -507,6 +512,9 @@ def chat_with_gemini(
 
         if file_exists:
             try:
+                report = scan_file(abs_path)
+                if report["sensitive"]:
+                    raise PolicyViolation("DLP chặn tài liệu chứa dữ liệu nhạy cảm")
                 file_part = _build_file_input_part(abs_path)
 
                 current_input = [
@@ -524,6 +532,8 @@ def chat_with_gemini(
                         ],
                     }
                 ]
+            except PolicyViolation:
+                raise
             except Exception as e:
                 current_input = (
                     context_prefix
@@ -625,7 +635,7 @@ def chat_with_gemini(
                 "type": "function_call_output",
                 "call_id": step.call_id,
                 "output": json.dumps(
-                    action_result,
+                    json.loads(outbound_text(json.dumps(action_result, ensure_ascii=False))),
                     ensure_ascii=False,
                 ),
             })
@@ -641,7 +651,7 @@ def chat_with_gemini(
         )
 
     # ── Bước 5: Trả về kết quả ──
-    final_text = response.output_text or "Đã thực hiện xong."
+    final_text = outbound_text(response.output_text or "Đã thực hiện xong.")
 
     if executed_actions:
         return {
@@ -662,12 +672,14 @@ def chat_with_gemini(
 # Semantic Search
 # ─────────────────────────────────────────────
 def semantic_search(username: str, query: str) -> list[dict]:
+    query = outbound_text(query)
     file_list = get_user_files_metadata(username)
     if not file_list:
         return []
     if len(file_list) > 200:
         file_list = file_list[:200]
 
+    file_list = json.loads(outbound_text(json.dumps(file_list, ensure_ascii=False)))
     search_prompt = (
         f"Dưới đây là danh sách file của người dùng dưới dạng JSON:\n"
         f"{json.dumps(file_list, ensure_ascii=False)}\n\n"

@@ -3,7 +3,7 @@ from io import BytesIO
 import json
 import sys
 
-from fastapi import FastAPI, UploadFile, File, Form, Body
+from fastapi import Request, HTTPException, FastAPI, UploadFile, File, Form, Body
 from fastapi.responses import StreamingResponse, JSONResponse
 import os
 from paddleocr import PaddleOCR
@@ -46,6 +46,8 @@ async def lifespan(app: FastAPI):
         device="gpu"
     )
 
+    import security.dlp
+    security.dlp.ocr_engine = ocr
     print("OCR model đã sẵn sàng!")
 
     print("Đang load YOLO model...")
@@ -57,7 +59,61 @@ async def lifespan(app: FastAPI):
     print("Server đang tắt...")
 
 
+from security.transport import InternalAuthMiddleware
+from security.policy import PolicyViolation, guard_text, scan_text
+from security.dlp import scan_file
+
 app = FastAPI(lifespan=lifespan)
+
+@app.exception_handler(PolicyViolation)
+async def policy_error(request, exc):
+    return JSONResponse(status_code=422, content={"success": False, "error": str(exc)})
+
+@app.middleware("http")
+async def verify_identity(request: Request, call_next):
+    # InternalAuthMiddleware runs outside this middleware (registered below).
+    user = request.state.ai_user
+    import re
+    from urllib.parse import unquote
+    username = unquote(user)
+    if not username or username in (".", "..") or any(c in username for c in "/\\:\x00"):
+        return JSONResponse(status_code=403, content={"error": "Invalid identity"})
+    path = request.url.path
+    match = re.fullmatch(r"/api/ai/sessions/(\d+)(?:/messages|/title)?", path)
+    if match:
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT s.id FROM chat_sessions s JOIN users u ON s.user_id=u.id WHERE s.id=? AND u.username=?", (int(match[1]), username))
+            if cursor.fetchone() is None:
+                return JSONResponse(status_code=404, content={"error": "Session không tồn tại"})
+        finally:
+            conn.close()
+    elif path.startswith("/api/ai/sessions/"):
+        if path.rsplit("/", 1)[-1] != username:
+            return JSONResponse(status_code=403, content={"error": "Identity mismatch"})
+    if request.method == "POST":
+        if "application/json" in request.headers.get("content-type", ""):
+            body = await request.json()
+            if body.get("username") != username:
+                return JSONResponse(status_code=403, content={"error": "Identity mismatch"})
+    return await call_next(request)
+
+# Last registered middleware is outermost.
+app.add_middleware(InternalAuthMiddleware)
+
+@app.post("/api/ai/dlp/scan")
+async def dlp_scan(file: UploadFile = File(...)):
+    content = await file.read(10 * 1024 * 1024 + 1)
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(413, "File vượt 10 MB")
+    suffix = os.path.splitext(file.filename or "")[1].lower()
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "upload" + suffix)
+        with open(path, "wb") as out:
+            out.write(content)
+        return scan_file(path, ocr)
+
 
 
 # ============================================================
@@ -65,7 +121,10 @@ app = FastAPI(lifespan=lifespan)
 # ============================================================
 
 @app.post("/predict-image")
-async def predict_image(username: str = Form(...), file: UploadFile = File(...)):
+async def predict_image(request: Request, username: str = Form(...), file: UploadFile = File(...)):
+    from urllib.parse import unquote
+    if username != unquote(request.state.ai_user):
+        raise HTTPException(403, "Identity mismatch")
     global ocr, yolo_model
 
     if ocr is None:
@@ -75,7 +134,8 @@ async def predict_image(username: str = Form(...), file: UploadFile = File(...))
 
     # ── 1. Save file and read to memory ──
     contents = await file.read()
-    temp_path = f"temp_{file.filename}"
+    file.filename = os.path.basename((file.filename or "image.jpg").replace("\\", "/")).replace(":", "_")
+    temp_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.jpg")
     with open(temp_path, "wb") as f:
         f.write(contents)
 
@@ -97,12 +157,14 @@ async def predict_image(username: str = Form(...), file: UploadFile = File(...))
     # ── 3. OCR (Text Recognition) ──
     ocr_results = ocr.predict(input=temp_path)
 
-    json_path = f"result_{file.filename}.json"
+    json_path = temp_path + ".json"
     for res in ocr_results:
         res.save_to_json(json_path)
 
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+    os.remove(temp_path)
+    os.remove(json_path)
 
     # ── 4. Vẽ box và text OCR lên ảnh YOLO ──
     image_rgb = cv2.cvtColor(res_img_bgr, cv2.COLOR_BGR2RGB)
@@ -160,13 +222,17 @@ async def predict_image(username: str = Form(...), file: UploadFile = File(...))
 
     return {
         "texts": data.get("rec_texts", []),
+        "dlp": scan_text("\n".join(data.get("rec_texts", []))),
         "tags": detected_classes,
         "image_base64": image_base64
     }
 
 
 @app.post("/predict-yolo")
-async def predict_yolo(username: str = Form(...), file: UploadFile = File(...)):
+async def predict_yolo(request: Request, username: str = Form(...), file: UploadFile = File(...)):
+    from urllib.parse import unquote
+    if username != unquote(request.state.ai_user):
+        raise HTTPException(403, "Identity mismatch")
     global yolo_model
     if yolo_model is None:
         return {"error": "YOLO chưa khởi tạo"}
@@ -183,7 +249,8 @@ async def predict_yolo(username: str = Form(...), file: UploadFile = File(...)):
     user_ai_dir = os.path.join(backend_data_dir, username, "AI")
     os.makedirs(user_ai_dir, exist_ok=True)
 
-    output_path = os.path.join(user_ai_dir, f"yolo_{file.filename}")
+    filename = os.path.basename((file.filename or "image.jpg").replace("\\", "/")).replace(":", "_")
+    output_path = os.path.join(user_ai_dir, f"yolo_{filename}")
     cv2.imwrite(output_path, res_img)
 
     _, buffer = cv2.imencode('.jpg', res_img)
@@ -192,7 +259,10 @@ async def predict_yolo(username: str = Form(...), file: UploadFile = File(...)):
 
 
 @app.post("/search-images-by-text")
-async def search_images_by_text(username: str = Form(...), search_string: str = Form(...)):
+async def search_images_by_text(request: Request, username: str = Form(...), search_string: str = Form(...)):
+    from urllib.parse import unquote
+    if username != unquote(request.state.ai_user):
+        raise HTTPException(403, "Identity mismatch")
     global ocr
     if ocr is None:
         return {"error": "OCR chưa khởi tạo"}
@@ -391,6 +461,7 @@ async def ai_chat(req: ChatRequest):
     - Nếu không truyền sessionId: tạo session mới, lưu toàn bộ vào DB.
     - Trả về sessionId để client lưu lại cho các lượt sau.
     """
+    guard_text(req.prompt)
     if not req.username or not req.prompt:
         return JSONResponse(
             status_code=400,
@@ -399,6 +470,8 @@ async def ai_chat(req: ChatRequest):
 
     try:
         conn = get_db_connection()
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -437,14 +510,6 @@ async def ai_chat(req: ChatRequest):
 
         if history_from_db:
             history_raw = history_from_db
-        elif req.history:
-            history_raw = [
-                {
-                    "role": turn.role,
-                    "parts": [{"text": p.text} for p in turn.parts],
-                }
-                for turn in req.history
-            ]
         else:
             history_raw = None
 
@@ -514,6 +579,8 @@ async def ai_chat(req: ChatRequest):
             "data": result,
         }
 
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -545,6 +612,8 @@ async def create_session(req: CreateSessionRequest):
 
     try:
         conn = get_db_connection()
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -571,6 +640,8 @@ async def create_session(req: CreateSessionRequest):
             "data": {"sessionId": session_id},
         }
 
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -599,6 +670,8 @@ async def get_sessions(username: str):
     """
     try:
         conn = get_db_connection()
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -638,6 +711,8 @@ async def get_sessions(username: str):
 
         return {"success": True, "data": sessions}
 
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -668,6 +743,8 @@ async def get_session_messages(session_id: int):
     """
     try:
         conn = get_db_connection()
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -720,6 +797,8 @@ async def get_session_messages(session_id: int):
 
         return {"success": True, "data": messages}
 
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -739,6 +818,8 @@ async def delete_session(session_id: int):
     """
     try:
         conn = get_db_connection()
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -759,6 +840,8 @@ async def delete_session(session_id: int):
 
         return {"success": True}
 
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -784,6 +867,8 @@ async def rename_session(session_id: int, body: dict = Body(...)):
 
     try:
         conn = get_db_connection()
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -807,6 +892,8 @@ async def rename_session(session_id: int, body: dict = Body(...)):
 
         return {"success": True}
 
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -848,6 +935,8 @@ async def ai_search(req: SearchRequest):
             },
         }
 
+    except PolicyViolation:
+        raise
     except Exception as e:
         return JSONResponse(
             status_code=500,

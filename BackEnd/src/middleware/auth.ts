@@ -6,8 +6,6 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     const token = req.cookies?.accessToken;
     const refreshToken = req.cookies?.refreshToken;
 
-    console.log('[auth] cookies:', req.cookies);
-    console.log('[auth] headers:', req.headers.cookie);
 
     // 👉 1. Không có access token
     if (!token) {

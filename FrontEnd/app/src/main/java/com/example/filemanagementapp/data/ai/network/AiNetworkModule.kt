@@ -17,7 +17,7 @@ object AiNetworkModule {
     private val loggingInterceptor: HttpLoggingInterceptor by lazy {
         HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                HttpLoggingInterceptor.Level.NONE
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }
@@ -26,6 +26,7 @@ object AiNetworkModule {
 
     val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .cookieJar(com.example.filemanagementapp.data.auth.network.SessionCookieJar)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
@@ -35,7 +36,7 @@ object AiNetworkModule {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(BuildConfig.AI_BASE_URL)
+            .baseUrl(BuildConfig.API_BASE_URL.trimEnd('/') + "/ai/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
