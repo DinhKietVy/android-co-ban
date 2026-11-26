@@ -137,5 +137,6 @@ router.get('/:token/info', getPublicLinkInfo);
  *         description: Link đã hết hạn
  */
 router.get('/:token/download', downloadPublicLink);
+router.post('/:token/download', downloadPublicLink);
 
 export default router;

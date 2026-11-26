@@ -30,12 +30,16 @@ data class ExplorerSharedResponse(
 data class PublicLinkCreateRequest(
     @SerializedName("username") val username: String,
     @SerializedName("filePath") val filePath: String,
-    @SerializedName("expiresIn") val expiresIn: String? = null
+    @SerializedName("expiresIn") val expiresIn: String? = null,
+    @SerializedName("password") val password: String? = null,
+    @SerializedName("isOneTime") val isOneTime: Boolean = false
 )
 
 data class PublicLinkCreateResponse(
     @SerializedName("token") val token: String,
     @SerializedName("expiresAt") val expiresAt: String? = null,
+    @SerializedName("hasPassword") val hasPassword: Boolean = false,
+    @SerializedName("isOneTime") val isOneTime: Boolean = false,
     @SerializedName("message") val message: String
 )
 
@@ -44,7 +48,9 @@ data class PublicLinkInfoResponse(
     @SerializedName("ownerUsername") val ownerUsername: String,
     @SerializedName("size") val size: Long,
     @SerializedName("filePath") val filePath: String,
-    @SerializedName("permission") val permission: String? = null
+    @SerializedName("permission") val permission: String? = null,
+    @SerializedName("hasPassword") val hasPassword: Boolean = false,
+    @SerializedName("isOneTime") val isOneTime: Boolean = false
 )
 
 data class PublicLinkDeleteRequest(

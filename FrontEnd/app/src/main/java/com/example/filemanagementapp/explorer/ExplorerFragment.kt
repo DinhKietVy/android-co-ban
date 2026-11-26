@@ -1173,22 +1173,35 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
 
             popupView.findViewById<View>(R.id.menuAnyoneWithLink).setOnClickListener {
                 popupWindow.dismiss()
-                val ttlLabels = arrayOf(
-                    getString(R.string.share_ttl_never),
-                    getString(R.string.share_ttl_1h),
-                    getString(R.string.share_ttl_7d),
-                    getString(R.string.share_ttl_30d)
-                )
-                val ttlValues = arrayOf<String?>(null, "1h", "7d", "30d")
+                val dialogView = layoutInflater.inflate(R.layout.dialog_public_link_options, null)
+                val rgTtl = dialogView.findViewById<android.widget.RadioGroup>(R.id.rgLinkTtl)
+                val etPassword = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etLinkPassword)
+                val cbOneTime = dialogView.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbLinkOneTime)
+
                 com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.share_ttl_dialog_title)
-                    .setItems(ttlLabels) { _, which ->
+                    .setTitle(R.string.share_link_options_title)
+                    .setView(dialogView)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        val expiresIn = when (rgTtl.checkedRadioButtonId) {
+                            R.id.rbTtl1h -> "1h"
+                            R.id.rbTtl7d -> "7d"
+                            R.id.rbTtl30d -> "30d"
+                            else -> null
+                        }
+                        val password = etPassword.text?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+                        val isOneTime = cbOneTime.isChecked
+
                         isRestricted = false
                         generalAccessTitle.text = getString(R.string.share_general_anyone_with_link)
                         generalAccessSubtitle.text = getString(R.string.share_general_anyone_with_link_desc)
                         generalAccessIcon.setImageResource(R.drawable.ic_link)
 
-                        viewModel.createPublicLink(item, ttlValues[which]) { token ->
+                        viewModel.createPublicLink(
+                            item = item,
+                            expiresIn = expiresIn,
+                            password = password,
+                            isOneTime = isOneTime
+                        ) { token ->
                             if (!token.isNullOrEmpty()) {
                                 android.widget.Toast.makeText(
                                     requireContext(),

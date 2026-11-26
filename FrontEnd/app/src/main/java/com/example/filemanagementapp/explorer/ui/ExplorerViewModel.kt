@@ -526,10 +526,12 @@ class ExplorerViewModel(
     fun createPublicLink(
         item: ExplorerItem,
         expiresIn: String? = null,
+        password: String? = null,
+        isOneTime: Boolean = false,
         onResult: (String?) -> Unit
     ) {
         viewModelScope.launch {
-            repository.createPublicLink(username, item.path, expiresIn)
+            repository.createPublicLink(username, item.path, expiresIn, password, isOneTime)
                 .onSuccess { token ->
                     onResult(token)
                 }

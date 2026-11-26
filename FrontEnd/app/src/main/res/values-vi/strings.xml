@@ -808,4 +808,12 @@
     <string name="dlp_upload_anyway">Vẫn tải lên</string>
     <string name="security_e2ee_title">Mã hóa tệp đầu cuối (E2EE)</string>
     <string name="security_e2ee_desc">Mã hóa AES-256-GCM (.enc) kèm SHA-256 checksum trước khi tải tệp lên máy chủ</string>
+
+    <!-- Public Link Password & One-Time -->
+    <string name="share_link_options_title">Tùy chọn bảo mật liên kết</string>
+    <string name="share_link_password_hint">Mật khẩu bảo vệ (không bắt buộc)</string>
+    <string name="share_link_one_time">Giới hạn 1 lần tải (tự hủy sau 1 lượt tải)</string>
+    <string name="share_link_password_required_title">Liên kết có mật khẩu</string>
+    <string name="share_link_enter_password_hint">Nhập mật khẩu liên kết</string>
+    <string name="share_link_password_empty">Vui lòng nhập mật khẩu.</string>
 </resources>

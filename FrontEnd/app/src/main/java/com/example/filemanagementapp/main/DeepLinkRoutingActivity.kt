@@ -58,27 +58,72 @@ class DeepLinkRoutingActivity : AppCompatActivity() {
             if (result.isSuccess) {
                 val info = result.getOrNull()
                 if (info != null) {
-                    val previewUrl = "${BuildConfig.API_BASE_URL.trimEnd('/')}/api/public-link/$token/download"
-                    val ext = info.fileName.substringAfterLast('.', "").lowercase()
-                    val type = if (ext.isNotEmpty()) ExplorerItem.Type.FILE else ExplorerItem.Type.FOLDER
-                    
-                    val item = ExplorerItem(
-                        id = token,
-                        name = info.fileName,
-                        path = info.filePath,
-                        type = type,
-                        modified = "",
-                        permission = "PUBLIC_READ",
-                        previewUrl = previewUrl,
-                        sizeBytes = info.size
-                    )
-                    
-                    launchPreviewActivity(item)
+                    if (info.hasPassword) {
+                        promptLinkPasswordAndOpen(token, info)
+                    } else {
+                        openPublicLinkPreview(token, info, password = null)
+                    }
                 }
             } else {
-                showErrorAndFinish("Link không tồn tại hoặc đã hết hạn")
+                showErrorAndFinish("Link không tồn tại, đã hết hạn hoặc đã đạt giới hạn 1 lần tải")
             }
         }
+    }
+
+    private fun promptLinkPasswordAndOpen(
+        token: String,
+        info: com.example.filemanagementapp.data.explorer.model.PublicLinkInfoResponse
+    ) {
+        progressBar.visibility = View.GONE
+        val dialogView = layoutInflater.inflate(R.layout.dialog_input, null)
+        val inputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.dialogInputLayout)
+        val input = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.dialogInputEditText)
+        inputLayout.hint = getString(R.string.share_link_enter_password_hint)
+        input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.share_link_password_required_title)
+            .setView(dialogView)
+            .setCancelable(false)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val pwd = input.text?.toString().orEmpty()
+                if (pwd.isBlank()) {
+                    Toast.makeText(this, R.string.share_link_password_empty, Toast.LENGTH_SHORT).show()
+                    promptLinkPasswordAndOpen(token, info)
+                } else {
+                    openPublicLinkPreview(token, info, password = pwd)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> finish() }
+            .show()
+    }
+
+    private fun openPublicLinkPreview(
+        token: String,
+        info: com.example.filemanagementapp.data.explorer.model.PublicLinkInfoResponse,
+        password: String?
+    ) {
+        val baseUrl = "${BuildConfig.API_BASE_URL.trimEnd('/')}/api/public-link/$token/download"
+        val previewUrl = if (!password.isNullOrBlank()) {
+            "$baseUrl?password=${Uri.encode(password)}"
+        } else {
+            baseUrl
+        }
+        val ext = info.fileName.substringAfterLast('.', "").lowercase()
+        val type = if (ext.isNotEmpty()) ExplorerItem.Type.FILE else ExplorerItem.Type.FOLDER
+
+        val item = ExplorerItem(
+            id = token,
+            name = info.fileName,
+            path = info.filePath,
+            type = type,
+            modified = "",
+            permission = "PUBLIC_READ",
+            previewUrl = previewUrl,
+            sizeBytes = info.size
+        )
+
+        launchPreviewActivity(item)
     }
 
     private fun handleInternalLink(owner: String, path: String) {

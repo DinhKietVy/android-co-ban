@@ -808,4 +808,12 @@
     <string name="dlp_upload_anyway">Upload Anyway</string>
     <string name="security_e2ee_title">End-to-End File Encryption (E2EE)</string>
     <string name="security_e2ee_desc">Encrypt files with AES-256-GCM (.enc) and SHA-256 checksum before uploading to server</string>
+
+    <!-- Public Link Password & One-Time -->
+    <string name="share_link_options_title">Public Link Security</string>
+    <string name="share_link_password_hint">Password protection (optional)</string>
+    <string name="share_link_one_time">One-time download link (self-destruct after 1 download)</string>
+    <string name="share_link_password_required_title">Password Required</string>
+    <string name="share_link_enter_password_hint">Enter link password</string>
+    <string name="share_link_password_empty">Please enter the password.</string>
 </resources>

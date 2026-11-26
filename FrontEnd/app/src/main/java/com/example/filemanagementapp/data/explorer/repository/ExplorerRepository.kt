@@ -530,14 +530,18 @@ class ExplorerRepository(
     suspend fun createPublicLink(
         username: String,
         filePath: String,
-        expiresIn: String? = null
+        expiresIn: String? = null,
+        password: String? = null,
+        isOneTime: Boolean = false
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
             val response = explorerApiService.createPublicLink(
                 com.example.filemanagementapp.data.explorer.model.PublicLinkCreateRequest(
                     username = username,
                     filePath = filePath,
-                    expiresIn = expiresIn
+                    expiresIn = expiresIn,
+                    password = password?.takeIf { it.isNotBlank() },
+                    isOneTime = isOneTime
                 )
             )
             if (response.isSuccessful) {
