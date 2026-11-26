@@ -16,6 +16,9 @@ import retrofit2.http.PUT
 import retrofit2.http.DELETE
 import com.example.filemanagementapp.data.auth.model.UpdateProfileRequest
 import com.example.filemanagementapp.data.auth.model.ChangePasswordRequest
+import com.example.filemanagementapp.data.auth.model.VerifyDeviceOtpRequest
+import com.example.filemanagementapp.data.auth.model.TrustedDevicesResponse
+import retrofit2.http.Path
 
 interface AuthApiService {
     @POST("api/users")
@@ -63,4 +66,20 @@ interface AuthApiService {
 
     @DELETE("api/users/me")
     suspend fun deleteAccount(): Response<ApiMessageResponse>
+
+    @POST("api/users/verify-device-otp")
+    suspend fun verifyDeviceOtp(
+        @Body request: VerifyDeviceOtpRequest
+    ): Response<LoginResponse>
+
+    @GET("api/users/trusted-devices")
+    suspend fun getTrustedDevices(): Response<TrustedDevicesResponse>
+
+    @DELETE("api/users/trusted-devices/{deviceId}")
+    suspend fun removeTrustedDevice(
+        @Path("deviceId") deviceId: Int
+    ): Response<ApiMessageResponse>
+
+    @DELETE("api/users/trusted-devices")
+    suspend fun removeAllTrustedDevices(): Response<ApiMessageResponse>
 }

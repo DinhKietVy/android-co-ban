@@ -2,5 +2,6 @@ package com.example.filemanagementapp.data.auth.model
 
 data class LoginRequest(
     val username: String,
-    val password: String
+    val password: String,
+    val deviceFingerprint: String? = null
 )

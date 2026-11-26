@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { AuthRequest } from '../types';
 
+const bcrypt = require('bcrypt');
 const DATA_DIR = path.join(__dirname, '../../data');
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ export const createPublicLink = async (req: AuthRequest, res: Response): Promise
             return;
         }
 
-        const { filePath, expiresIn } = req.body;
+        const { filePath, expiresIn, password, isOneTime } = req.body;
 
         if (!filePath) {
             res.status(400).json({ error: 'Thieu filePath' });
@@ -89,24 +90,35 @@ export const createPublicLink = async (req: AuthRequest, res: Response): Promise
             `);
 
         const expiresAt = parseExpiresAt(expiresIn);
+        const rawPassword = typeof password === 'string' ? password.trim() : '';
+        const passwordHash = rawPassword.length > 0 ? await bcrypt.hash(rawPassword, 10) : null;
+        const oneTimeFlag = Boolean(isOneTime);
         const stats = fs.statSync(absolutePath);
         const isDirectory = stats.isDirectory();
 
         if (existingResult.recordset.length > 0) {
-            // Cập nhật expires_at cho link cũ
+            // Cập nhật expires_at, password_hash, is_one_time cho link cũ
             const existingToken = existingResult.recordset[0].token;
             await pool.request()
                 .input('token', sql.VarChar(36), existingToken)
                 .input('expires_at', sql.DateTime, expiresAt)
+                .input('password_hash', sql.VarChar(255), passwordHash)
+                .input('is_one_time', sql.Bit, oneTimeFlag ? 1 : 0)
                 .query(`
                     UPDATE public_links
-                    SET expires_at = @expires_at, created_at = GETDATE()
+                    SET expires_at = @expires_at,
+                        password_hash = @password_hash,
+                        is_one_time = @is_one_time,
+                        download_count = 0,
+                        created_at = GETDATE()
                     WHERE token = @token
                 `);
 
             res.json({
                 token: existingToken,
                 expiresAt: expiresAt ?? null,
+                hasPassword: Boolean(passwordHash),
+                isOneTime: oneTimeFlag,
                 isDirectory,
                 message: 'Da cap nhat link chia se',
             });
@@ -120,14 +132,18 @@ export const createPublicLink = async (req: AuthRequest, res: Response): Promise
             .input('owner_id', sql.Int, userId)
             .input('file_path', sql.VarChar(255), filePath)
             .input('expires_at', sql.DateTime, expiresAt)
+            .input('password_hash', sql.VarChar(255), passwordHash)
+            .input('is_one_time', sql.Bit, oneTimeFlag ? 1 : 0)
             .query(`
-                INSERT INTO public_links (token, owner_id, file_path, expires_at)
-                VALUES (@token, @owner_id, @file_path, @expires_at)
+                INSERT INTO public_links (token, owner_id, file_path, expires_at, password_hash, is_one_time, download_count)
+                VALUES (@token, @owner_id, @file_path, @expires_at, @password_hash, @is_one_time, 0)
             `);
 
         res.json({
             token,
             expiresAt: expiresAt ?? null,
+            hasPassword: Boolean(passwordHash),
+            isOneTime: oneTimeFlag,
             isDirectory,
             message: 'Da tao link chia se thanh cong',
         });
@@ -149,7 +165,7 @@ export const getPublicLinkInfo = async (req: Request, res: Response): Promise<vo
         const result = await pool.request()
             .input('token', sql.VarChar(36), token)
             .query(`
-                SELECT p.file_path, p.expires_at, u.username AS owner_username
+                SELECT p.file_path, p.expires_at, p.password_hash, p.is_one_time, p.download_count, u.username AS owner_username
                 FROM public_links p
                 JOIN users u ON p.owner_id = u.id
                 WHERE p.token = @token
@@ -164,6 +180,11 @@ export const getPublicLinkInfo = async (req: Request, res: Response): Promise<vo
 
         if (isLinkExpired(record.expires_at)) {
             res.status(410).json({ error: 'Link da het han' });
+            return;
+        }
+
+        if (record.is_one_time && Number(record.download_count || 0) >= 1) {
+            res.status(410).json({ error: 'Link chi tai 1 lan va da duoc su dung' });
             return;
         }
 
@@ -194,6 +215,8 @@ export const getPublicLinkInfo = async (req: Request, res: Response): Promise<vo
             filePath: record.file_path,
             isDirectory,
             expiresAt: record.expires_at ?? null,
+            hasPassword: Boolean(record.password_hash),
+            isOneTime: Boolean(record.is_one_time),
             ...(isDirectory && { items }),
         });
     } catch (error: any) {
@@ -215,7 +238,7 @@ export const downloadPublicLink = async (req: Request, res: Response): Promise<v
         const result = await pool.request()
             .input('token', sql.VarChar(36), token)
             .query(`
-                SELECT file_path, expires_at
+                SELECT file_path, expires_at, password_hash, is_one_time, download_count
                 FROM public_links
                 WHERE token = @token
             `);
@@ -225,11 +248,38 @@ export const downloadPublicLink = async (req: Request, res: Response): Promise<v
             return;
         }
 
-        const { file_path: filePath, expires_at: expiresAt } = result.recordset[0];
+        const {
+            file_path: filePath,
+            expires_at: expiresAt,
+            password_hash: passwordHash,
+            is_one_time: isOneTime,
+            download_count: downloadCount,
+        } = result.recordset[0];
 
         if (isLinkExpired(expiresAt)) {
             res.status(410).json({ error: 'Link da het han' });
             return;
+        }
+
+        if (isOneTime && Number(downloadCount || 0) >= 1) {
+            res.status(410).json({ error: 'Link chi tai 1 lan va da duoc su dung' });
+            return;
+        }
+
+        if (passwordHash) {
+            const suppliedPassword =
+                req.body?.password ??
+                req.headers['x-link-password'] ??
+                req.query?.password;
+            if (!suppliedPassword) {
+                res.status(401).json({ error: 'Link yeu cau mat khau', requirePassword: true });
+                return;
+            }
+            const isValid = await bcrypt.compare(String(suppliedPassword), passwordHash);
+            if (!isValid) {
+                res.status(403).json({ error: 'Mat khau khong chinh xac' });
+                return;
+            }
         }
 
         const absolutePath = path.join(DATA_DIR, filePath);
@@ -243,6 +293,24 @@ export const downloadPublicLink = async (req: Request, res: Response): Promise<v
         if (stats.isDirectory()) {
             res.status(400).json({ error: 'Khong the tai truc tiep thu muc. Vui long tai tung file.' });
             return;
+        }
+
+        if (isOneTime) {
+            const claimResult = await pool.request()
+                .input('token', sql.VarChar(36), token)
+                .query(`
+                    UPDATE public_links
+                    SET download_count = download_count + 1
+                    WHERE token = @token AND (is_one_time = 0 OR download_count = 0)
+                `);
+            if (claimResult.rowsAffected[0] === 0) {
+                res.status(410).json({ error: 'Link chi tai 1 lan va da duoc su dung' });
+                return;
+            }
+        } else {
+            await pool.request()
+                .input('token', sql.VarChar(36), token)
+                .query(`UPDATE public_links SET download_count = download_count + 1 WHERE token = @token`);
         }
 
         res.download(absolutePath);

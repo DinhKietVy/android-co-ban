@@ -20,10 +20,13 @@ import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
 import com.example.filemanagementapp.data.auth.network.AuthNetworkModule
 import com.example.filemanagementapp.data.auth.repository.AuthRepository
 import com.example.filemanagementapp.login.LoginActivity
+import com.example.filemanagementapp.profile.devices.TrustedDevicesActivity
 import com.example.filemanagementapp.profile.edit.EditProfileActivity
 import com.example.filemanagementapp.profile.language.LanguageActivity
 import com.example.filemanagementapp.profile.password.ChangePasswordActivity
+import com.example.filemanagementapp.profile.security.SecuritySettingsActivity
 import com.example.filemanagementapp.profile.theme.ThemeActivity
+import com.example.filemanagementapp.vault.SecureVaultActivity
 import kotlinx.coroutines.launch
 import coil.load
 
@@ -70,6 +73,18 @@ class ProfileFragment : Fragment() {
 
         view.findViewById<View>(R.id.rowProfilePassword).setOnClickListener {
             startActivity(Intent(requireContext(), ChangePasswordActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.rowProfileDevices).setOnClickListener {
+            startActivity(Intent(requireContext(), TrustedDevicesActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.rowProfileSecurity).setOnClickListener {
+            startActivity(Intent(requireContext(), SecuritySettingsActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.rowProfileVault).setOnClickListener {
+            startActivity(Intent(requireContext(), SecureVaultActivity::class.java))
         }
 
         view.findViewById<View>(R.id.rowProfileTheme).setOnClickListener {
@@ -180,6 +195,7 @@ class ProfileFragment : Fragment() {
         bindRow(view, R.id.rowProfilePassword, R.drawable.lock, R.string.profile_change_password)
         bindRow(view, R.id.rowProfileDevices, R.drawable.smartphone, R.string.profile_manage_devices)
         bindRow(view, R.id.rowProfileSecurity, R.drawable.shield_check, R.string.profile_security)
+        bindRow(view, R.id.rowProfileVault, R.drawable.lock, R.string.vault_title)
         bindRow(view, R.id.rowProfileNotifications, R.drawable.bell, R.string.profile_notifications, noBorder = true)
 
         bindRow(view, R.id.rowProfileTheme, R.drawable.moon, R.string.profile_theme)

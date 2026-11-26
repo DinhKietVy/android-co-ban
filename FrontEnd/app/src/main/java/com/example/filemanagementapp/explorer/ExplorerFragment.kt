@@ -147,6 +147,16 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let {
+            val displayName = com.example.filemanagementapp.security.UploadSecurityValidator
+                .resolveDisplayName(requireContext(), it)
+            if (com.example.filemanagementapp.security.UploadSecurityValidator.isBlockedFileName(displayName)) {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.upload_blocked_executable_title)
+                    .setMessage(getString(R.string.upload_blocked_executable_message, displayName ?: ""))
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+                return@let
+            }
             runCatching {
                 requireContext().contentResolver.takePersistableUriPermission(
                     it,
@@ -157,15 +167,115 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                 Toast.makeText(requireContext(), getString(R.string.drive_toast_uploading), Toast.LENGTH_SHORT).show()
                 viewModel.uploadToDrive(it, requireContext())
             } else {
-                com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
-                    context = requireContext(),
-                    fileUri = it,
-                    targetPath = viewModel.uiState.value.currentFolder,
-                    username = username
-                )
-                Toast.makeText(requireContext(), R.string.msg_uploading_file, Toast.LENGTH_SHORT).show()
+                checkDlpAndStartUpload(it, displayName)
             }
         }
+    }
+
+    private fun checkDlpAndStartUpload(fileUri: android.net.Uri, displayName: String?) {
+        val ext = displayName?.substringAfterLast('.', "")?.trim()?.lowercase().orEmpty()
+        val dlpSupportedExts = setOf(
+            "jpg", "jpeg", "png", "bmp", "webp",
+            "txt", "md", "csv", "json", "log", "py", "kt", "java", "sql"
+        )
+        if (ext !in dlpSupportedExts) {
+            startNormalUpload(fileUri)
+            return
+        }
+
+        val currentUsername = username
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val tempFile = runCatching {
+                val dir = java.io.File(requireContext().cacheDir, "dlp_precheck").apply {
+                    if (!exists()) mkdirs()
+                }
+                val safeName = (displayName ?: "upload.$ext").replace(Regex("[^A-Za-z0-9._-]"), "_")
+                val out = java.io.File(dir, "${System.currentTimeMillis()}_$safeName")
+                requireContext().contentResolver.openInputStream(fileUri)?.use { input ->
+                    out.outputStream().use { output -> input.copyTo(output) }
+                }
+                if (out.length() > 10L * 1024L * 1024L) {
+                    out.delete()
+                    null
+                } else {
+                    out
+                }
+            }.getOrNull()
+
+            if (tempFile == null) {
+                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                    startNormalUpload(fileUri)
+                }
+                return@launch
+            }
+
+            val aiRepo = com.example.filemanagementapp.data.ai.repository.AiAnalysisRepository(
+                context = requireContext().applicationContext,
+                aiApiService = com.example.filemanagementapp.data.ai.network.AiNetworkModule.aiApiService,
+                okHttpClient = com.example.filemanagementapp.data.ai.network.AiNetworkModule.okHttpClient,
+                gson = com.example.filemanagementapp.data.ai.network.AiNetworkModule.gson
+            )
+            val dlpResult = aiRepo.scanDlpFile(tempFile).getOrNull()
+
+            kotlinx.coroutines.withContext(Dispatchers.Main) {
+                if (!isAdded) {
+                    tempFile.delete()
+                    return@withContext
+                }
+                if (dlpResult?.sensitive == true) {
+                    val detectedTypes = dlpResult.findings
+                        .map { it.type }
+                        .distinct()
+                        .joinToString(", ")
+                        .ifBlank { "PII" }
+                    com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(R.string.dlp_move_to_vault_title)
+                        .setMessage(
+                            getString(
+                                R.string.dlp_preupload_warning_message,
+                                detectedTypes,
+                                displayName ?: currentUsername
+                            )
+                        )
+                        .setPositiveButton(R.string.dlp_move_to_vault_action) { _, _ ->
+                            startActivity(
+                                Intent(requireContext(), com.example.filemanagementapp.vault.SecureVaultActivity::class.java).apply {
+                                    putExtra(
+                                        com.example.filemanagementapp.vault.SecureVaultActivity.EXTRA_IMPORT_LOCAL_PATH,
+                                        tempFile.absolutePath
+                                    )
+                                    putExtra(
+                                        com.example.filemanagementapp.vault.SecureVaultActivity.EXTRA_IMPORT_FILE_NAME,
+                                        displayName ?: tempFile.name
+                                    )
+                                }
+                            )
+                        }
+                        .setNeutralButton(R.string.dlp_upload_anyway) { _, _ ->
+                            tempFile.delete()
+                            startNormalUpload(fileUri)
+                        }
+                        .setNegativeButton(android.R.string.cancel) { _, _ ->
+                            tempFile.delete()
+                        }
+                        .setCancelable(false)
+                        .show()
+                } else {
+                    tempFile.delete()
+                    startNormalUpload(fileUri)
+                }
+            }
+        }
+    }
+
+    private fun startNormalUpload(fileUri: android.net.Uri) {
+        com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
+            context = requireContext(),
+            fileUri = fileUri,
+            targetPath = viewModel.uiState.value.currentFolder,
+            username = username
+        )
+        Toast.makeText(requireContext(), R.string.msg_uploading_file, Toast.LENGTH_SHORT).show()
     }
 
     private val uploadFolderLauncher = registerForActivityResult(
@@ -197,6 +307,9 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
             if (file.isDirectory) {
                 traverseAndUploadFolder(file, currentPath)
             } else if (file.isFile) {
+                if (com.example.filemanagementapp.security.UploadSecurityValidator.isBlockedFileName(file.name)) {
+                    continue
+                }
                 // Gửi từng file lên với targetPath là currentFolder (trên server) cộng với đường dẫn tương đối
                 val serverTargetPath = viewModel.uiState.value.currentFolder.trim('/') + "/" + currentPath
                 com.example.filemanagementapp.explorer.network.ExplorerUploadService.start(
@@ -534,6 +647,10 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
                                     showAiPanel = event.showAiPanel
                                 )
                             )
+                        }
+
+                        is ExplorerUiEvent.PromptMoveToVault -> {
+                            showDlpMoveToVaultDialog(event.item, event.detectedTypes)
                         }
 
                         is ExplorerUiEvent.ConnectGoogleDrive -> {
@@ -1056,22 +1173,99 @@ class ExplorerFragment : Fragment(), FileActionSheetController.Callbacks {
 
             popupView.findViewById<View>(R.id.menuAnyoneWithLink).setOnClickListener {
                 popupWindow.dismiss()
-                isRestricted = false
-                generalAccessTitle.text = getString(R.string.share_general_anyone_with_link)
-                generalAccessSubtitle.text = getString(R.string.share_general_anyone_with_link_desc)
-                generalAccessIcon.setImageResource(R.drawable.ic_link)
+                val dialogView = layoutInflater.inflate(R.layout.dialog_public_link_options, null)
+                val rgTtl = dialogView.findViewById<android.widget.RadioGroup>(R.id.rgLinkTtl)
+                val etPassword = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etLinkPassword)
+                val cbOneTime = dialogView.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbLinkOneTime)
 
-                viewModel.createPublicLink(item) { token -> 
-                    if (!token.isNullOrEmpty()) {
-                        android.widget.Toast.makeText(requireContext(), getString(R.string.share_toast_public_success), android.widget.Toast.LENGTH_SHORT).show()
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.share_link_options_title)
+                    .setView(dialogView)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        val expiresIn = when (rgTtl.checkedRadioButtonId) {
+                            R.id.rbTtl1h -> "1h"
+                            R.id.rbTtl7d -> "7d"
+                            R.id.rbTtl30d -> "30d"
+                            else -> null
+                        }
+                        val password = etPassword.text?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+                        val isOneTime = cbOneTime.isChecked
+
+                        isRestricted = false
+                        generalAccessTitle.text = getString(R.string.share_general_anyone_with_link)
+                        generalAccessSubtitle.text = getString(R.string.share_general_anyone_with_link_desc)
+                        generalAccessIcon.setImageResource(R.drawable.ic_link)
+
+                        viewModel.createPublicLink(
+                            item = item,
+                            expiresIn = expiresIn,
+                            password = password,
+                            isOneTime = isOneTime
+                        ) { token ->
+                            if (!token.isNullOrEmpty()) {
+                                android.widget.Toast.makeText(
+                                    requireContext(),
+                                    getString(R.string.share_toast_public_success),
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                     }
-                }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
             }
 
             popupWindow.showAsDropDown(anchor, 0, 8)
         }
         
         bottomSheet.show()
+    }
+
+    private fun showDlpMoveToVaultDialog(item: ExplorerItem, detectedTypes: String) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dlp_move_to_vault_title)
+            .setMessage(getString(R.string.dlp_move_to_vault_message, detectedTypes, item.name))
+            .setPositiveButton(R.string.dlp_move_to_vault_action) { _, _ ->
+                val downloadUrl = item.previewUrl ?: return@setPositiveButton
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    val tempFile = runCatching {
+                        val request = okhttp3.Request.Builder().url(downloadUrl).get().build()
+                        val bytes = com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
+                            .okHttpClient.newCall(request).execute().use { resp ->
+                                if (!resp.isSuccessful) error("HTTP ${resp.code}")
+                                resp.body?.bytes() ?: error("Empty body")
+                            }
+                        val dir = java.io.File(requireContext().cacheDir, "vault_import").apply {
+                            if (!exists()) mkdirs()
+                        }
+                        val safeName = item.name.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        java.io.File(dir, "${System.currentTimeMillis()}_$safeName").apply {
+                            writeBytes(bytes)
+                        }
+                    }.getOrNull()
+
+                    kotlinx.coroutines.withContext(Dispatchers.Main) {
+                        if (tempFile != null) {
+                            startActivity(
+                                Intent(requireContext(), com.example.filemanagementapp.vault.SecureVaultActivity::class.java).apply {
+                                    putExtra(
+                                        com.example.filemanagementapp.vault.SecureVaultActivity.EXTRA_IMPORT_LOCAL_PATH,
+                                        tempFile.absolutePath
+                                    )
+                                    putExtra(
+                                        com.example.filemanagementapp.vault.SecureVaultActivity.EXTRA_IMPORT_FILE_NAME,
+                                        item.name
+                                    )
+                                }
+                            )
+                        } else {
+                            Toast.makeText(requireContext(), R.string.vault_error_generic, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun startDownload(item: ExplorerItem) {

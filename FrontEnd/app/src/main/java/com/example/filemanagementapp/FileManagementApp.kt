@@ -5,8 +5,10 @@ import androidx.appcompat.app.AppCompatDelegate
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
+import com.example.filemanagementapp.data.auth.local.DeviceFingerprintProvider
 import com.example.filemanagementapp.data.auth.network.SessionCookieJar
 import com.example.filemanagementapp.data.local.profile.SettingsPreferencesRepository
+import com.example.filemanagementapp.security.AppSecurityManager
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
@@ -16,8 +18,10 @@ class FileManagementApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         SessionCookieJar.initialize(this)
-        
+        DeviceFingerprintProvider.initialize(this)
+
         val settingsRepository = SettingsPreferencesRepository(this)
+        AppSecurityManager.initialize(this, settingsRepository)
         applicationScope.launch {
             settingsRepository.themeModeFlow.collect { mode ->
                 AppCompatDelegate.setDefaultNightMode(mode)

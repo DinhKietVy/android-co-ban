@@ -722,4 +722,98 @@
     <string name="explorer_dialog_merge_pdf_error">Lỗi ghép các tệp PDF: %1$s</string>
     <string name="pdf_status_deleted">Đã đánh dấu xóa</string>
     <string name="pdf_selected_count">Đã chọn %1$d</string>
+
+    <!-- Device 2FA & Trusted Devices -->
+    <string name="login_otp_dialog_title">Xác minh thiết bị mới</string>
+    <string name="login_otp_dialog_message">Mã xác minh 6 chữ số đã được gửi tới email của bạn. Vui lòng nhập mã bên dưới.</string>
+    <string name="login_otp_hint">Mã OTP 6 chữ số</string>
+    <string name="login_otp_trust_device">Tin tưởng thiết bị này</string>
+    <string name="login_otp_verify_button">Xác minh</string>
+    <string name="login_otp_invalid_length">Vui lòng nhập đủ 6 chữ số OTP.</string>
+    <string name="login_otp_verify_failed">Xác minh OTP thất bại.</string>
+
+    <string name="trusted_devices_back">Quay lại</string>
+    <string name="trusted_devices_remove_all">Xóa tất cả</string>
+    <string name="trusted_devices_empty">Chưa có thiết bị tin tưởng nào.</string>
+    <string name="trusted_devices_load_error">Không thể tải danh sách thiết bị.</string>
+    <string name="trusted_device_current">Thiết bị này</string>
+    <string name="trusted_device_unknown">Thiết bị không xác định</string>
+    <string name="trusted_device_ip_format">IP: %1$s</string>
+    <string name="trusted_device_last_used_format">Dùng lần cuối: %1$s</string>
+    <string name="trusted_device_remove">Xóa</string>
+    <string name="trusted_device_remove_title">Xóa thiết bị tin tưởng</string>
+    <string name="trusted_device_remove_message">Xóa %1$s khỏi danh sách tin tưởng? Lần đăng nhập tiếp theo từ thiết bị này sẽ cần xác minh OTP.</string>
+    <string name="trusted_device_removed">Đã xóa thiết bị tin tưởng.</string>
+    <string name="trusted_devices_remove_all_message">Xóa toàn bộ thiết bị tin tưởng? Mọi thiết bị sẽ phải xác minh OTP ở lần đăng nhập sau.</string>
+    <string name="trusted_devices_all_removed">Đã xóa tất cả thiết bị tin tưởng.</string>
+
+    <!-- Mobile App Security -->
+    <string name="biometric_prompt_title">Mở khóa ứng dụng</string>
+    <string name="biometric_prompt_subtitle">Xác thực bằng vân tay hoặc khuôn mặt để tiếp tục</string>
+    <string name="security_biometric_title">Khóa ứng dụng bằng sinh trắc học</string>
+    <string name="security_biometric_desc">Yêu cầu xác thực vân tay hoặc khuôn mặt khi mở ứng dụng</string>
+    <string name="security_biometric_unavailable">Thiết bị chưa cài đặt hoặc không hỗ trợ xác thực sinh trắc học.</string>
+    <string name="security_screen_title">Bảo vệ màn hình &amp; Recent Apps</string>
+    <string name="security_screen_desc">Chặn chụp/quay màn hình và tự động che nội dung trong Recent Apps (FLAG_SECURE)</string>
+    <string name="security_device_integrity_title">Trạng thái toàn vẹn thiết bị</string>
+    <string name="security_integrity_safe">Thiết bị an toàn (không phát hiện Root hoặc Giả lập)</string>
+    <string name="security_integrity_emulator">Đang chạy trên môi trường Giả lập</string>
+    <string name="security_integrity_rooted">Phát hiện thiết bị đã Root — tính năng Secure Vault sẽ bị chặn</string>
+    <string name="security_root_warning_title">Cảnh báo bảo mật</string>
+    <string name="security_root_warning_message">Thiết bị này có dấu hiệu đã Root. Các tính năng thông thường vẫn hoạt động, nhưng Secure Vault sẽ bị chặn để bảo vệ tài liệu mật.</string>
+
+    <!-- Public Link TTL, DLP & Upload Validation -->
+    <string name="share_ttl_dialog_title">Thời hạn liên kết chia sẻ</string>
+    <string name="share_ttl_never">Vĩnh viễn (không hết hạn)</string>
+    <string name="share_ttl_1h">1 giờ</string>
+    <string name="share_ttl_7d">7 ngày</string>
+    <string name="share_ttl_30d">30 ngày</string>
+    <string name="dlp_sensitive_warning">Cảnh báo: Phát hiện dữ liệu nhạy cảm (%1$s). Nên bảo vệ hoặc lưu vào vùng an toàn.</string>
+    <string name="upload_blocked_executable_title">Tệp tin bị chặn</string>
+    <string name="upload_blocked_executable_message">Không được phép tải lên tệp thực thi hoặc mã kịch bản (%1$s) vì lý do bảo mật.</string>
+
+    <!-- Secure Vault -->
+    <string name="vault_title">Két sắt an toàn (Secure Vault)</string>
+    <string name="vault_subtitle_security">AES-256-GCM • PBKDF2 • Android Keystore • SHA-256</string>
+    <string name="vault_empty">Két sắt đang trống.\nNhấn + để mã hóa và lưu trữ tài liệu mật.</string>
+    <string name="vault_add_file">Thêm tệp vào Két sắt</string>
+    <string name="vault_blocked_title">Từ chối truy cập</string>
+    <string name="vault_blocked_rooted_message">Không thể mở Két sắt trên thiết bị đã Root nhằm bảo vệ khóa mã hóa và tài liệu mật của bạn.</string>
+    <string name="vault_setup_pin_title">Thiết lập mã PIN Két sắt</string>
+    <string name="vault_setup_pin_desc">Tạo mã PIN (tối thiểu 4 số) để dẫn xuất khóa PBKDF2 kết hợp với chip phần cứng Android Keystore.</string>
+    <string name="vault_setup_confirm">Tạo Két sắt</string>
+    <string name="vault_unlock_pin_title">Mở khóa Két sắt</string>
+    <string name="vault_unlock_pin_desc">Nhập mã PIN Két sắt để giải mã và xem tài liệu mật.</string>
+    <string name="vault_unlock_button">Mở khóa</string>
+    <string name="vault_pin_hint">Mã PIN Két sắt</string>
+    <string name="vault_pin_confirm_hint">Nhập lại mã PIN</string>
+    <string name="vault_pin_too_short">Mã PIN phải có ít nhất 4 chữ số.</string>
+    <string name="vault_pin_mismatch">Mã PIN nhập lại không khớp.</string>
+    <string name="vault_pin_incorrect">Mã PIN Két sắt không chính xác.</string>
+    <string name="vault_file_encrypted">Đã mã hóa và lưu vào Két sắt: %1$s</string>
+    <string name="vault_delete_title">Xóa khỏi Két sắt</string>
+    <string name="vault_delete_message">Xóa vĩnh viễn tệp đã mã hóa %1$s?</string>
+    <string name="vault_no_viewer_app">Không tìm thấy ứng dụng phù hợp để mở tệp này.</string>
+    <string name="vault_error_generic">Thao tác Két sắt thất bại.</string>
+    <string name="vault_search_hint">Tìm kiếm trong Két sắt…</string>
+    <string name="vault_sort">Sắp xếp</string>
+    <string name="vault_sort_date">Mới nhất trước</string>
+    <string name="vault_sort_name">Tên (A–Z)</string>
+    <string name="vault_sort_size">Dung lượng (lớn nhất)</string>
+    <string name="vault_summary_format">%1$d tệp đã mã hóa • %2$s</string>
+    <string name="dlp_move_to_vault_title">Phát hiện tài liệu nhạy cảm</string>
+    <string name="dlp_move_to_vault_message">AI phát hiện dữ liệu nhạy cảm (%1$s) trong \"%2$s\". Bạn có muốn mã hóa và đưa vào Két sắt an toàn không?</string>
+    <string name="dlp_move_to_vault_action">Đưa vào Két sắt</string>
+    <string name="dlp_preupload_warning_message">DLP phát hiện dữ liệu nhạy cảm (%1$s) trong \"%2$s\" trước khi tải lên. Bạn có muốn đưa vào Két sắt an toàn không?</string>
+    <string name="dlp_upload_anyway">Vẫn tải lên</string>
+    <string name="security_e2ee_title">Mã hóa tệp đầu cuối (E2EE)</string>
+    <string name="security_e2ee_desc">Mã hóa AES-256-GCM (.enc) kèm SHA-256 checksum trước khi tải tệp lên máy chủ</string>
+
+    <!-- Public Link Password & One-Time -->
+    <string name="share_link_options_title">Tùy chọn bảo mật liên kết</string>
+    <string name="share_link_password_hint">Mật khẩu bảo vệ (không bắt buộc)</string>
+    <string name="share_link_one_time">Giới hạn 1 lần tải (tự hủy sau 1 lượt tải)</string>
+    <string name="share_link_password_required_title">Liên kết có mật khẩu</string>
+    <string name="share_link_enter_password_hint">Nhập mật khẩu liên kết</string>
+    <string name="share_link_password_empty">Vui lòng nhập mật khẩu.</string>
 </resources>
