@@ -29,11 +29,13 @@ data class ExplorerSharedResponse(
 
 data class PublicLinkCreateRequest(
     @SerializedName("username") val username: String,
-    @SerializedName("filePath") val filePath: String
+    @SerializedName("filePath") val filePath: String,
+    @SerializedName("expiresIn") val expiresIn: String? = null
 )
 
 data class PublicLinkCreateResponse(
     @SerializedName("token") val token: String,
+    @SerializedName("expiresAt") val expiresAt: String? = null,
     @SerializedName("message") val message: String
 )
 

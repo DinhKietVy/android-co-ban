@@ -3,8 +3,10 @@ package com.example.filemanagementapp.data.ai.repository
 import android.content.Context
 import android.util.Base64
 import com.example.filemanagementapp.data.ai.model.AiPredictImageResponse
+import com.example.filemanagementapp.data.ai.model.DlpScanResponse
 import com.example.filemanagementapp.data.ai.network.AiApiService
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -34,7 +36,10 @@ class AiAnalysisRepository(
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception("AI Search failed: ${response.code()}"))
+                val parsedError = response.errorBody()?.string()?.let { raw ->
+                    runCatching { gson.fromJson(raw, JsonObject::class.java)?.get("error")?.asString }.getOrNull()
+                }
+                Result.failure(Exception(parsedError?.takeIf { it.isNotBlank() } ?: "AI Search failed: ${response.code()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -66,6 +71,29 @@ class AiAnalysisRepository(
             Result.failure(Exception("Khong the ket noi toi AI server. Kiem tra AI service va mang."))
         } catch (exception: Exception) {
             Result.failure(Exception(exception.message ?: "Khong the phan tich file voi AI"))
+        }
+    }
+
+    suspend fun scanDlpFile(file: File): Result<DlpScanResponse> = withContext(Dispatchers.IO) {
+        try {
+            val filePart = MultipartBody.Part.createFormData(
+                "file",
+                file.name,
+                file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
+            )
+            val response = aiApiService.scanDlp(filePart)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val parsedError = response.errorBody()?.string()?.let { raw ->
+                    runCatching { gson.fromJson(raw, JsonObject::class.java)?.get("error")?.asString }.getOrNull()
+                }
+                Result.failure(Exception(parsedError?.takeIf { it.isNotBlank() } ?: "DLP scan failed: ${response.code()}"))
+            }
+        } catch (ioException: IOException) {
+            Result.failure(Exception("Khong the ket noi toi AI server."))
+        } catch (exception: Exception) {
+            Result.failure(Exception(exception.message ?: "Khong the quet DLP"))
         }
     }
 
@@ -132,7 +160,8 @@ class AiAnalysisRepository(
             AiAnalysisResult(
                 texts = cleanTexts,
                 previewImagePath = previewImagePath,
-                tags = cleanTags
+                tags = cleanTags,
+                dlp = payload.dlp
             )
         )
     }
@@ -141,5 +170,6 @@ class AiAnalysisRepository(
 data class AiAnalysisResult(
     val texts: List<String>,
     val previewImagePath: String?,
-    val tags: List<String>
+    val tags: List<String>,
+    val dlp: DlpScanResponse? = null
 )

@@ -29,7 +29,8 @@ data class AiFeaturesSettings(
 
 data class AppSecuritySettings(
     val biometricLockEnabled: Boolean = false,
-    val screenSecurityEnabled: Boolean = true
+    val screenSecurityEnabled: Boolean = true,
+    val e2eeUploadEnabled: Boolean = true
 )
 
 class SettingsPreferencesRepository(private val context: Context) {
@@ -42,6 +43,7 @@ class SettingsPreferencesRepository(private val context: Context) {
         val themeMode = intPreferencesKey("theme_mode")
         val biometricLockEnabled = booleanPreferencesKey("biometric_lock_enabled")
         val screenSecurityEnabled = booleanPreferencesKey("screen_security_enabled")
+        val e2eeUploadEnabled = booleanPreferencesKey("e2ee_upload_enabled")
     }
 
     val aiSettingsFlow: Flow<AiFeaturesSettings> = context.settingsDataStore.data
@@ -84,7 +86,8 @@ class SettingsPreferencesRepository(private val context: Context) {
         .map { preferences ->
             AppSecuritySettings(
                 biometricLockEnabled = preferences[Keys.biometricLockEnabled] ?: false,
-                screenSecurityEnabled = preferences[Keys.screenSecurityEnabled] ?: true
+                screenSecurityEnabled = preferences[Keys.screenSecurityEnabled] ?: true,
+                e2eeUploadEnabled = preferences[Keys.e2eeUploadEnabled] ?: true
             )
         }
 
@@ -127,6 +130,12 @@ class SettingsPreferencesRepository(private val context: Context) {
     suspend fun updateScreenSecurity(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.screenSecurityEnabled] = enabled
+        }
+    }
+
+    suspend fun updateE2eeUpload(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.e2eeUploadEnabled] = enabled
         }
     }
 }

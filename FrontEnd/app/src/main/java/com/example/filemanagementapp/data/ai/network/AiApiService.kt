@@ -1,6 +1,7 @@
 package com.example.filemanagementapp.data.ai.network
 
 import com.example.filemanagementapp.data.ai.model.AiPredictImageResponse
+import com.example.filemanagementapp.data.ai.model.DlpScanResponse
 import com.example.filemanagementapp.data.ai.model.SearchRequest
 import com.example.filemanagementapp.data.ai.model.AiSearchResponse
 import okhttp3.MultipartBody
@@ -28,6 +29,12 @@ interface AiApiService {
         @Part("username") username: RequestBody,
         @Part file: MultipartBody.Part
     ): Response<AiPredictImageResponse>
+
+    @Multipart
+    @POST("api/ai/dlp/scan")
+    suspend fun scanDlp(
+        @Part file: MultipartBody.Part
+    ): Response<DlpScanResponse>
 
     @POST("api/ai/search")
     suspend fun searchWithAi(

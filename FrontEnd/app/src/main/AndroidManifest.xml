@@ -96,6 +96,9 @@
         <activity
             android:name=".profile.security.SecuritySettingsActivity"
             android:exported="false" />
+        <activity
+            android:name=".vault.SecureVaultActivity"
+            android:exported="false" />
 
         <activity
             android:name=".profile.language.LanguageActivity"

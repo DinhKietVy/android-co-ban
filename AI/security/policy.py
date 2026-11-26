@@ -12,6 +12,7 @@ PATTERNS = {
     "identity_number": r"(?<!\d)\d{12}(?!\d)",
     "payment_card": r"(?<!\d)(?:\d[ -]?){15}\d(?!\d)",
     "secret": r"(?i)(?:api[_ -]?key|password|secret|token)\s*[:=]\s*[^\s,;]{6,}",
+    "private_key": r"-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----",
 }
 
 def scan_text(text):

@@ -761,4 +761,51 @@
     <string name="security_integrity_rooted">Rooted device detected — Secure Vault will be blocked</string>
     <string name="security_root_warning_title">Security Warning</string>
     <string name="security_root_warning_message">This device appears to be rooted. Standard features remain available, but Secure Vault will be restricted to protect sensitive files.</string>
+
+    <!-- Public Link TTL, DLP & Upload Validation -->
+    <string name="share_ttl_dialog_title">Link Expiration</string>
+    <string name="share_ttl_never">Never expires</string>
+    <string name="share_ttl_1h">1 hour</string>
+    <string name="share_ttl_7d">7 days</string>
+    <string name="share_ttl_30d">30 days</string>
+    <string name="dlp_sensitive_warning">Warning: Sensitive data detected (%1$s). Consider storing this file securely.</string>
+    <string name="upload_blocked_executable_title">Blocked File Type</string>
+    <string name="upload_blocked_executable_message">Executable or script files (%1$s) cannot be uploaded for security reasons.</string>
+
+    <!-- Secure Vault -->
+    <string name="vault_title">Secure Vault</string>
+    <string name="vault_subtitle_security">AES-256-GCM • PBKDF2 • Android Keystore • SHA-256</string>
+    <string name="vault_empty">Your Secure Vault is empty.\nTap + to encrypt and store sensitive documents.</string>
+    <string name="vault_add_file">Add file to Secure Vault</string>
+    <string name="vault_blocked_title">Access Blocked</string>
+    <string name="vault_blocked_rooted_message">Secure Vault cannot be opened on a rooted device to protect your encryption keys and sensitive files.</string>
+    <string name="vault_setup_pin_title">Set Up Vault PIN</string>
+    <string name="vault_setup_pin_desc">Create a PIN (at least 4 digits) to derive your encryption key with PBKDF2 and Android Keystore.</string>
+    <string name="vault_setup_confirm">Create Vault</string>
+    <string name="vault_unlock_pin_title">Unlock Secure Vault</string>
+    <string name="vault_unlock_pin_desc">Enter your Vault PIN to decrypt and access your documents.</string>
+    <string name="vault_unlock_button">Unlock</string>
+    <string name="vault_pin_hint">Vault PIN</string>
+    <string name="vault_pin_confirm_hint">Confirm Vault PIN</string>
+    <string name="vault_pin_too_short">PIN must be at least 4 digits.</string>
+    <string name="vault_pin_mismatch">PIN confirmation does not match.</string>
+    <string name="vault_pin_incorrect">Incorrect Vault PIN.</string>
+    <string name="vault_file_encrypted">Encrypted &amp; stored in Vault: %1$s</string>
+    <string name="vault_delete_title">Delete from Vault</string>
+    <string name="vault_delete_message">Permanently delete encrypted file %1$s?</string>
+    <string name="vault_no_viewer_app">No app found to open this file type.</string>
+    <string name="vault_error_generic">Secure Vault operation failed.</string>
+    <string name="vault_search_hint">Search in Secure Vault…</string>
+    <string name="vault_sort">Sort</string>
+    <string name="vault_sort_date">Newest first</string>
+    <string name="vault_sort_name">Name (A–Z)</string>
+    <string name="vault_sort_size">Size (largest)</string>
+    <string name="vault_summary_format">%1$d encrypted files • %2$s</string>
+    <string name="dlp_move_to_vault_title">Sensitive Document Detected</string>
+    <string name="dlp_move_to_vault_message">AI detected sensitive data (%1$s) in \"%2$s\". Would you like to encrypt and store it in Secure Vault?</string>
+    <string name="dlp_move_to_vault_action">Move to Vault</string>
+    <string name="dlp_preupload_warning_message">DLP detected sensitive data (%1$s) in \"%2$s\" before upload. Store it in Secure Vault instead?</string>
+    <string name="dlp_upload_anyway">Upload Anyway</string>
+    <string name="security_e2ee_title">End-to-End File Encryption (E2EE)</string>
+    <string name="security_e2ee_desc">Encrypt files with AES-256-GCM (.enc) and SHA-256 checksum before uploading to server</string>
 </resources>

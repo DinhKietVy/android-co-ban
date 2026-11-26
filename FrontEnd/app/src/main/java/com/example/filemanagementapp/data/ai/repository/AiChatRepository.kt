@@ -6,11 +6,14 @@ import com.example.filemanagementapp.data.ai.model.ChatMessageItem
 import com.example.filemanagementapp.data.ai.model.ChatSessionItem
 import com.example.filemanagementapp.data.ai.model.CreateSessionRequest
 import com.example.filemanagementapp.data.ai.network.AiApiService
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class AiChatRepository(
-    private val aiApiService: AiApiService
+    private val aiApiService: AiApiService,
+    private val gson: Gson = Gson()
 ) {
     suspend fun sendMessage(
         username: String,
@@ -34,7 +37,17 @@ class AiChatRepository(
                     Result.failure(Exception(body.error ?: "Lỗi xử lý tin nhắn từ AI"))
                 }
             } else {
-                Result.failure(Exception("AI Chat failed: ${response.code()} ${response.message()}"))
+                val parsedError = response.errorBody()?.string()?.let { raw ->
+                    runCatching {
+                        gson.fromJson(raw, JsonObject::class.java)?.get("error")?.asString
+                    }.getOrNull()
+                }
+                val fallback = if (response.code() == 422) {
+                    "Nội dung bị chặn bởi chính sách bảo mật AI."
+                } else {
+                    "AI Chat failed: ${response.code()} ${response.message()}"
+                }
+                Result.failure(Exception(parsedError?.takeIf { it.isNotBlank() } ?: fallback))
             }
         } catch (e: Exception) {
             Result.failure(e)

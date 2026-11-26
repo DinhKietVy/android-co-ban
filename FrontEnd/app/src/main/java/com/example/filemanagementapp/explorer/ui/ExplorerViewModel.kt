@@ -523,9 +523,13 @@ class ExplorerViewModel(
         }
     }
 
-    fun createPublicLink(item: ExplorerItem, onResult: (String?) -> Unit) {
+    fun createPublicLink(
+        item: ExplorerItem,
+        expiresIn: String? = null,
+        onResult: (String?) -> Unit
+    ) {
         viewModelScope.launch {
-            repository.createPublicLink(username, item.path)
+            repository.createPublicLink(username, item.path, expiresIn)
                 .onSuccess { token ->
                     onResult(token)
                 }
@@ -1015,6 +1019,18 @@ class ExplorerViewModel(
                     }
                     state.copy(
                         items = applySorting(updatedItems, state.sortOption)
+                    )
+                }
+                if (result.dlp?.sensitive == true) {
+                    val detectedTypes = result.dlp.findings
+                        .map { it.type }
+                        .distinct()
+                        .joinToString(", ")
+                    _events.emit(
+                        ExplorerUiEvent.PromptMoveToVault(
+                            item = item,
+                            detectedTypes = detectedTypes.ifBlank { "PII" }
+                        )
                     )
                 }
                 _events.emit(

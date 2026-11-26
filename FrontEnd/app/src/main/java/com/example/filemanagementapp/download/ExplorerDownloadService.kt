@@ -19,6 +19,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import com.example.filemanagementapp.R
 import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
+import com.example.filemanagementapp.security.E2eeCryptoManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -97,6 +98,23 @@ class ExplorerDownloadService : Service() {
 
             val body = response.body ?: throw IOException("Response body is empty")
             val totalBytes = body.contentLength().takeIf { it > 0L }
+
+            if (fileName.endsWith(".enc", ignoreCase = true)) {
+                val encBytes = body.bytes()
+                val outputBytes = if (E2eeCryptoManager.isE2eePayload(encBytes)) {
+                    E2eeCryptoManager.decryptBytes(encBytes)
+                } else {
+                    encBytes
+                }
+                val finalName = fileName.removeSuffix(".enc").ifBlank { fileName }
+                val target = createTarget(finalName)
+                target.outputStream.use { outputStream ->
+                    outputStream.write(outputBytes)
+                    outputStream.flush()
+                }
+                return
+            }
+
             val target = createTarget(fileName)
 
             target.outputStream.use { outputStream ->

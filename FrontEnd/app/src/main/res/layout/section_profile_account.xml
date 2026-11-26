@@ -9,6 +9,7 @@
         <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfilePassword" android:layout_width="match_parent" android:layout_height="wrap_content"/>
         <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileDevices" android:layout_width="match_parent" android:layout_height="wrap_content"/>
         <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileSecurity" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileVault" android:layout_width="match_parent" android:layout_height="wrap_content"/>
         <include layout="@layout/include_profile_setting_row" android:id="@+id/rowProfileNotifications" android:layout_width="match_parent" android:layout_height="wrap_content"/>
     </LinearLayout>
 </LinearLayout>

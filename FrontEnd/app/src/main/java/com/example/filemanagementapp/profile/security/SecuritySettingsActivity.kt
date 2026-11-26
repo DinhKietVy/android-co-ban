@@ -25,6 +25,7 @@ class SecuritySettingsActivity : AppCompatActivity() {
     private lateinit var settingsRepository: SettingsPreferencesRepository
     private lateinit var switchBiometricLock: MaterialSwitch
     private lateinit var switchScreenSecurity: MaterialSwitch
+    private lateinit var switchE2eeUpload: MaterialSwitch
     private lateinit var tvIntegrityStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +43,7 @@ class SecuritySettingsActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
         switchBiometricLock = findViewById(R.id.switchBiometricLock)
         switchScreenSecurity = findViewById(R.id.switchScreenSecurity)
+        switchE2eeUpload = findViewById(R.id.switchE2eeUpload)
         tvIntegrityStatus = findViewById(R.id.tvDeviceIntegrityStatus)
 
         renderDeviceIntegrity()
@@ -81,6 +83,14 @@ class SecuritySettingsActivity : AppCompatActivity() {
                     switchScreenSecurity.setOnCheckedChangeListener { _, isChecked ->
                         lifecycleScope.launch {
                             settingsRepository.updateScreenSecurity(isChecked)
+                        }
+                    }
+
+                    switchE2eeUpload.setOnCheckedChangeListener(null)
+                    switchE2eeUpload.isChecked = settings.e2eeUploadEnabled
+                    switchE2eeUpload.setOnCheckedChangeListener { _, isChecked ->
+                        lifecycleScope.launch {
+                            settingsRepository.updateE2eeUpload(isChecked)
                         }
                     }
                 }

@@ -12,5 +12,9 @@ sealed interface ExplorerUiEvent {
         val aiTags: List<String>,
         val showAiPanel: Boolean
     ) : ExplorerUiEvent
+    data class PromptMoveToVault(
+        val item: com.example.filemanagementapp.explorer.ExplorerItem,
+        val detectedTypes: String
+    ) : ExplorerUiEvent
     data object ConnectGoogleDrive : ExplorerUiEvent
 }

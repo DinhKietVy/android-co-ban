@@ -16,10 +16,13 @@ import android.text.format.Formatter
 import androidx.annotation.RequiresPermission
 import com.example.filemanagementapp.R
 import com.example.filemanagementapp.data.explorer.network.ExplorerNetworkModule
+import com.example.filemanagementapp.data.local.profile.SettingsPreferencesRepository
+import com.example.filemanagementapp.security.E2eeCryptoManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -105,23 +108,37 @@ class ExplorerUploadService : Service() {
     }
 
     private suspend fun uploadFile(fileUri: Uri, fileName: String, targetPath: String, username: String) {
-        val tempFile = File.createTempFile("upload-", "-$fileName", cacheDir)
+        val rawTempFile = File.createTempFile("upload-", "-$fileName", cacheDir)
         contentResolver.openInputStream(fileUri)?.use { input ->
-            tempFile.outputStream().use { output -> input.copyTo(output) }
+            rawTempFile.outputStream().use { output -> input.copyTo(output) }
         } ?: throw IOException("Khong the doc file duoc chon")
 
-        val fileRequestBody = tempFile.asRequestBody("application/octet-stream".toMediaTypeOrNull())
+        val e2eeEnabled = SettingsPreferencesRepository(applicationContext)
+            .securitySettingsFlow.first().e2eeUploadEnabled
+        val shouldEncrypt = e2eeEnabled && !fileName.endsWith(".enc", ignoreCase = true)
+
+        val uploadFileName = if (shouldEncrypt) "$fileName.enc" else fileName
+        val uploadTempFile = if (shouldEncrypt) {
+            File.createTempFile("upload-enc-", "-$uploadFileName", cacheDir).also { encFile ->
+                E2eeCryptoManager.encryptFile(rawTempFile, encFile)
+                rawTempFile.delete()
+            }
+        } else {
+            rawTempFile
+        }
+
+        val fileRequestBody = uploadTempFile.asRequestBody("application/octet-stream".toMediaTypeOrNull())
         val progressRequestBody = ProgressRequestBody(fileRequestBody) { bytesWritten, contentLength ->
-            updateProgress(fileName, bytesWritten, contentLength.takeIf { it > 0L })
+            updateProgress(uploadFileName, bytesWritten, contentLength.takeIf { it > 0L })
         }
 
         val response = ExplorerNetworkModule.uploadApiService.uploadFile(
             username = username.toRequestBody("text/plain".toMediaTypeOrNull()),
             targetPath = targetPath.toRequestBody("text/plain".toMediaTypeOrNull()),
-            file = MultipartBody.Part.createFormData("file", fileName, progressRequestBody)
+            file = MultipartBody.Part.createFormData("file", uploadFileName, progressRequestBody)
         )
 
-        tempFile.delete()
+        uploadTempFile.delete()
 
         if (!response.isSuccessful) {
             throw IOException("Upload failed: ${response.code()}")
