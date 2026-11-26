@@ -722,4 +722,43 @@
     <string name="explorer_dialog_merge_pdf_error">Lỗi ghép các tệp PDF: %1$s</string>
     <string name="pdf_status_deleted">Đã đánh dấu xóa</string>
     <string name="pdf_selected_count">Đã chọn %1$d</string>
+
+    <!-- Device 2FA & Trusted Devices -->
+    <string name="login_otp_dialog_title">Xác minh thiết bị mới</string>
+    <string name="login_otp_dialog_message">Mã xác minh 6 chữ số đã được gửi tới email của bạn. Vui lòng nhập mã bên dưới.</string>
+    <string name="login_otp_hint">Mã OTP 6 chữ số</string>
+    <string name="login_otp_trust_device">Tin tưởng thiết bị này</string>
+    <string name="login_otp_verify_button">Xác minh</string>
+    <string name="login_otp_invalid_length">Vui lòng nhập đủ 6 chữ số OTP.</string>
+    <string name="login_otp_verify_failed">Xác minh OTP thất bại.</string>
+
+    <string name="trusted_devices_back">Quay lại</string>
+    <string name="trusted_devices_remove_all">Xóa tất cả</string>
+    <string name="trusted_devices_empty">Chưa có thiết bị tin tưởng nào.</string>
+    <string name="trusted_devices_load_error">Không thể tải danh sách thiết bị.</string>
+    <string name="trusted_device_current">Thiết bị này</string>
+    <string name="trusted_device_unknown">Thiết bị không xác định</string>
+    <string name="trusted_device_ip_format">IP: %1$s</string>
+    <string name="trusted_device_last_used_format">Dùng lần cuối: %1$s</string>
+    <string name="trusted_device_remove">Xóa</string>
+    <string name="trusted_device_remove_title">Xóa thiết bị tin tưởng</string>
+    <string name="trusted_device_remove_message">Xóa %1$s khỏi danh sách tin tưởng? Lần đăng nhập tiếp theo từ thiết bị này sẽ cần xác minh OTP.</string>
+    <string name="trusted_device_removed">Đã xóa thiết bị tin tưởng.</string>
+    <string name="trusted_devices_remove_all_message">Xóa toàn bộ thiết bị tin tưởng? Mọi thiết bị sẽ phải xác minh OTP ở lần đăng nhập sau.</string>
+    <string name="trusted_devices_all_removed">Đã xóa tất cả thiết bị tin tưởng.</string>
+
+    <!-- Mobile App Security -->
+    <string name="biometric_prompt_title">Mở khóa ứng dụng</string>
+    <string name="biometric_prompt_subtitle">Xác thực bằng vân tay hoặc khuôn mặt để tiếp tục</string>
+    <string name="security_biometric_title">Khóa ứng dụng bằng sinh trắc học</string>
+    <string name="security_biometric_desc">Yêu cầu xác thực vân tay hoặc khuôn mặt khi mở ứng dụng</string>
+    <string name="security_biometric_unavailable">Thiết bị chưa cài đặt hoặc không hỗ trợ xác thực sinh trắc học.</string>
+    <string name="security_screen_title">Bảo vệ màn hình &amp; Recent Apps</string>
+    <string name="security_screen_desc">Chặn chụp/quay màn hình và tự động che nội dung trong Recent Apps (FLAG_SECURE)</string>
+    <string name="security_device_integrity_title">Trạng thái toàn vẹn thiết bị</string>
+    <string name="security_integrity_safe">Thiết bị an toàn (không phát hiện Root hoặc Giả lập)</string>
+    <string name="security_integrity_emulator">Đang chạy trên môi trường Giả lập</string>
+    <string name="security_integrity_rooted">Phát hiện thiết bị đã Root — tính năng Secure Vault sẽ bị chặn</string>
+    <string name="security_root_warning_title">Cảnh báo bảo mật</string>
+    <string name="security_root_warning_message">Thiết bị này có dấu hiệu đã Root. Các tính năng thông thường vẫn hoạt động, nhưng Secure Vault sẽ bị chặn để bảo vệ tài liệu mật.</string>
 </resources>

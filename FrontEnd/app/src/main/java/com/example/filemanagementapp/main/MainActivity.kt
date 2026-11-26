@@ -24,7 +24,9 @@ import kotlinx.coroutines.launch
 import coil.load
 import androidx.core.content.ContextCompat
 import android.content.Intent
+import com.example.filemanagementapp.security.DeviceSecurityChecker
 import com.example.filemanagementapp.widget.QuickHubWidgetProvider
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
@@ -55,6 +57,20 @@ class MainActivity : AppCompatActivity() {
         setupPagerAndNavigation()
         observeNavigationRequests()
         handleWidgetNavigation(intent)
+        if (savedInstanceState == null) {
+            checkDeviceSecurity()
+        }
+    }
+
+    private fun checkDeviceSecurity() {
+        val status = DeviceSecurityChecker.checkEnvironment(this)
+        if (status.isRooted) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.security_root_warning_title)
+                .setMessage(R.string.security_root_warning_message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

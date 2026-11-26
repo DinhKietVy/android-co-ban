@@ -20,9 +20,11 @@ import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
 import com.example.filemanagementapp.data.auth.network.AuthNetworkModule
 import com.example.filemanagementapp.data.auth.repository.AuthRepository
 import com.example.filemanagementapp.login.LoginActivity
+import com.example.filemanagementapp.profile.devices.TrustedDevicesActivity
 import com.example.filemanagementapp.profile.edit.EditProfileActivity
 import com.example.filemanagementapp.profile.language.LanguageActivity
 import com.example.filemanagementapp.profile.password.ChangePasswordActivity
+import com.example.filemanagementapp.profile.security.SecuritySettingsActivity
 import com.example.filemanagementapp.profile.theme.ThemeActivity
 import kotlinx.coroutines.launch
 import coil.load
@@ -70,6 +72,14 @@ class ProfileFragment : Fragment() {
 
         view.findViewById<View>(R.id.rowProfilePassword).setOnClickListener {
             startActivity(Intent(requireContext(), ChangePasswordActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.rowProfileDevices).setOnClickListener {
+            startActivity(Intent(requireContext(), TrustedDevicesActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.rowProfileSecurity).setOnClickListener {
+            startActivity(Intent(requireContext(), SecuritySettingsActivity::class.java))
         }
 
         view.findViewById<View>(R.id.rowProfileTheme).setOnClickListener {

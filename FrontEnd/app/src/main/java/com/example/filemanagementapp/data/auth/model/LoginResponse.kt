@@ -2,6 +2,8 @@ package com.example.filemanagementapp.data.auth.model
 
 data class LoginResponse(
     val message: String? = null,
+    val requireOTP: Boolean? = null,
+    val tempToken: String? = null,
     val data: UserDto? = null
 )
 

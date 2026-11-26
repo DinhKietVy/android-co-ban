@@ -722,4 +722,43 @@
     <string name="explorer_dialog_merge_pdf_error">Error merging PDF files: %1$s</string>
     <string name="pdf_status_deleted">Marked for deletion</string>
     <string name="pdf_selected_count">%1$d selected</string>
+
+    <!-- Device 2FA & Trusted Devices -->
+    <string name="login_otp_dialog_title">Verify New Device</string>
+    <string name="login_otp_dialog_message">A 6-digit verification code has been sent to your email. Please enter it below.</string>
+    <string name="login_otp_hint">6-digit OTP code</string>
+    <string name="login_otp_trust_device">Trust this device</string>
+    <string name="login_otp_verify_button">Verify</string>
+    <string name="login_otp_invalid_length">Please enter the 6-digit OTP code.</string>
+    <string name="login_otp_verify_failed">OTP verification failed.</string>
+
+    <string name="trusted_devices_back">Back</string>
+    <string name="trusted_devices_remove_all">Remove All</string>
+    <string name="trusted_devices_empty">No trusted devices yet.</string>
+    <string name="trusted_devices_load_error">Failed to load trusted devices.</string>
+    <string name="trusted_device_current">This device</string>
+    <string name="trusted_device_unknown">Unknown device</string>
+    <string name="trusted_device_ip_format">IP: %1$s</string>
+    <string name="trusted_device_last_used_format">Last used: %1$s</string>
+    <string name="trusted_device_remove">Remove</string>
+    <string name="trusted_device_remove_title">Remove Trusted Device</string>
+    <string name="trusted_device_remove_message">Remove %1$s from trusted devices? Next login from it will require OTP verification.</string>
+    <string name="trusted_device_removed">Trusted device removed.</string>
+    <string name="trusted_devices_remove_all_message">Remove all trusted devices? Every device will require OTP verification on next login.</string>
+    <string name="trusted_devices_all_removed">All trusted devices removed.</string>
+
+    <!-- Mobile App Security -->
+    <string name="biometric_prompt_title">Unlock App</string>
+    <string name="biometric_prompt_subtitle">Authenticate with fingerprint or face to continue</string>
+    <string name="security_biometric_title">Biometric App Lock</string>
+    <string name="security_biometric_desc">Require fingerprint or face authentication when opening the app</string>
+    <string name="security_biometric_unavailable">Biometric authentication is not set up or unavailable on this device.</string>
+    <string name="security_screen_title">Screen &amp; Recent Apps Protection</string>
+    <string name="security_screen_desc">Block screenshots, screen recording, and hide app preview in Recent Apps (FLAG_SECURE)</string>
+    <string name="security_device_integrity_title">Device Integrity</string>
+    <string name="security_integrity_safe">Secure device (no root or emulator detected)</string>
+    <string name="security_integrity_emulator">Emulator environment detected</string>
+    <string name="security_integrity_rooted">Rooted device detected — Secure Vault will be blocked</string>
+    <string name="security_root_warning_title">Security Warning</string>
+    <string name="security_root_warning_message">This device appears to be rooted. Standard features remain available, but Secure Vault will be restricted to protect sensitive files.</string>
 </resources>

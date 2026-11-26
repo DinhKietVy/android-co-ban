@@ -27,6 +27,11 @@ data class AiFeaturesSettings(
     val aiTargetExtensions: String = "jpg, jpeg, png, webp"
 )
 
+data class AppSecuritySettings(
+    val biometricLockEnabled: Boolean = false,
+    val screenSecurityEnabled: Boolean = true
+)
+
 class SettingsPreferencesRepository(private val context: Context) {
 
     private object Keys {
@@ -35,6 +40,8 @@ class SettingsPreferencesRepository(private val context: Context) {
         val aiMetadataEnabled = booleanPreferencesKey("ai_metadata_enabled")
         val aiTargetExtensions = stringPreferencesKey("ai_target_extensions")
         val themeMode = intPreferencesKey("theme_mode")
+        val biometricLockEnabled = booleanPreferencesKey("biometric_lock_enabled")
+        val screenSecurityEnabled = booleanPreferencesKey("screen_security_enabled")
     }
 
     val aiSettingsFlow: Flow<AiFeaturesSettings> = context.settingsDataStore.data
@@ -66,6 +73,21 @@ class SettingsPreferencesRepository(private val context: Context) {
             preferences[Keys.themeMode] ?: androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         }
 
+    val securitySettingsFlow: Flow<AppSecuritySettings> = context.settingsDataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            AppSecuritySettings(
+                biometricLockEnabled = preferences[Keys.biometricLockEnabled] ?: false,
+                screenSecurityEnabled = preferences[Keys.screenSecurityEnabled] ?: true
+            )
+        }
+
     suspend fun updateAutoOcr(enabled: Boolean) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.autoOcrEnabled] = enabled
@@ -93,6 +115,18 @@ class SettingsPreferencesRepository(private val context: Context) {
     suspend fun updateThemeMode(mode: Int) {
         context.settingsDataStore.edit { preferences ->
             preferences[Keys.themeMode] = mode
+        }
+    }
+
+    suspend fun updateBiometricLock(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.biometricLockEnabled] = enabled
+        }
+    }
+
+    suspend fun updateScreenSecurity(enabled: Boolean) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[Keys.screenSecurityEnabled] = enabled
         }
     }
 }

@@ -119,4 +119,8 @@ dependencies {
 
     // Markdown renderer for AI Chat
     implementation("io.noties.markwon:core:4.6.2")
+
+    // Mobile App Security: Biometric Auth & Root Detection
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("com.scottyab:rootbeer-lib:0.1.1")
 }

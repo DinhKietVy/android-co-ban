@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.filemanagementapp.data.auth.local.LoginPreferencesRepository
+import com.example.filemanagementapp.data.auth.model.LoginOutcome
 import com.example.filemanagementapp.data.auth.model.LoginUser
 import com.example.filemanagementapp.data.auth.repository.AuthRepository
 import com.example.filemanagementapp.util.UiText
@@ -98,10 +99,23 @@ class LoginViewModel(
             }
 
             authRepository.login(username = username, password = password)
-                .onSuccess { user ->
-                    persistRememberMe(username)
-                    _uiState.update { it.copy(isLoginLoading = false) }
-                    _events.emit(LoginEvent.NavigateToMain(user))
+                .onSuccess { outcome ->
+                    when (outcome) {
+                        is LoginOutcome.Authenticated -> {
+                            persistRememberMe(username)
+                            _uiState.update { it.copy(isLoginLoading = false) }
+                            _events.emit(LoginEvent.NavigateToMain(outcome.user))
+                        }
+                        is LoginOutcome.OtpRequired -> {
+                            _uiState.update { it.copy(isLoginLoading = false) }
+                            _events.emit(
+                                LoginEvent.ShowDeviceOtpDialog(
+                                    tempToken = outcome.tempToken,
+                                    message = outcome.message
+                                )
+                            )
+                        }
+                    }
                 }
                 .onFailure { throwable ->
                     _uiState.update {
@@ -118,6 +132,54 @@ class LoginViewModel(
                         )
                     )
                 }
+        }
+    }
+
+    fun verifyDeviceOtp(tempToken: String, otpCode: String, trustDevice: Boolean) {
+        val trimmedCode = otpCode.trim()
+        if (trimmedCode.length != 6) {
+            viewModelScope.launch {
+                _events.emit(
+                    LoginEvent.ShowMessage(UiText.StringResource(R.string.login_otp_invalid_length))
+                )
+                _events.emit(
+                    LoginEvent.ShowDeviceOtpDialog(
+                        tempToken = tempToken,
+                        message = ""
+                    )
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoginLoading = true) }
+            authRepository.verifyDeviceOtp(
+                tempToken = tempToken,
+                otpCode = trimmedCode,
+                trustDevice = trustDevice
+            ).onSuccess { user ->
+                persistRememberMe(_uiState.value.username.trim())
+                _uiState.update { it.copy(isLoginLoading = false) }
+                _events.emit(LoginEvent.NavigateToMain(user))
+            }.onFailure { throwable ->
+                _uiState.update { it.copy(isLoginLoading = false) }
+                val errorMsg = throwable.message ?: ""
+                _events.emit(
+                    LoginEvent.ShowMessage(
+                        if (errorMsg.isNotBlank()) UiText.DynamicString(errorMsg)
+                        else UiText.StringResource(R.string.login_otp_verify_failed)
+                    )
+                )
+                if (!errorMsg.contains("het han", ignoreCase = true)) {
+                    _events.emit(
+                        LoginEvent.ShowDeviceOtpDialog(
+                            tempToken = tempToken,
+                            message = ""
+                        )
+                    )
+                }
+            }
         }
     }
 

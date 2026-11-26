@@ -1,15 +1,19 @@
 package com.example.filemanagementapp.data.auth.repository
 
+import com.example.filemanagementapp.data.auth.local.DeviceFingerprintProvider
 import com.example.filemanagementapp.data.auth.model.ApiMessageResponse
 import com.example.filemanagementapp.data.auth.model.AuthApiError
 import com.example.filemanagementapp.data.auth.model.AuthProvider
 import com.example.filemanagementapp.data.auth.model.ForgotPasswordRequest
 import com.example.filemanagementapp.data.auth.model.GoogleAuthRequest
+import com.example.filemanagementapp.data.auth.model.LoginOutcome
 import com.example.filemanagementapp.data.auth.model.LoginRequest
 import com.example.filemanagementapp.data.auth.model.LoginResponse
 import com.example.filemanagementapp.data.auth.model.LoginUser
 import com.example.filemanagementapp.data.auth.model.ResetPasswordRequest
 import com.example.filemanagementapp.data.auth.model.RegisterRequest
+import com.example.filemanagementapp.data.auth.model.TrustedDeviceDto
+import com.example.filemanagementapp.data.auth.model.VerifyDeviceOtpRequest
 import com.example.filemanagementapp.data.auth.model.VerifyResetCodeRequest
 import com.example.filemanagementapp.data.auth.model.ChangePasswordRequest
 import com.example.filemanagementapp.data.auth.model.UpdateProfileRequest
@@ -82,19 +86,102 @@ class AuthRepository(
             }
         }
 
-    suspend fun login(username: String, password: String): Result<LoginUser> =
+    suspend fun login(username: String, password: String): Result<LoginOutcome> =
         withContext(Dispatchers.IO) {
             try {
                 val response = authApiService.login(
-                    LoginRequest(username = username, password = password)
+                    LoginRequest(
+                        username = username,
+                        password = password,
+                        deviceFingerprint = DeviceFingerprintProvider.getFingerprint()
+                    )
                 )
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.requireOTP == true && !body.tempToken.isNullOrBlank()) {
+                        return@withContext Result.success(
+                            LoginOutcome.OtpRequired(
+                                tempToken = body.tempToken,
+                                message = body.message.orEmpty()
+                            )
+                        )
+                    }
+                }
                 response.toAuthResult(defaultErrorMessage = "Dang nhap that bai")
+                    .map { LoginOutcome.Authenticated(it) }
             } catch (ioException: IOException) {
                 Result.failure(
                     Exception("Khong the ket noi toi server. Kiem tra backend local va mang cua may ao.")
                 )
             } catch (exception: Exception) {
                 Result.failure(Exception(exception.message ?: "Dang nhap that bai"))
+            }
+        }
+
+    suspend fun verifyDeviceOtp(
+        tempToken: String,
+        otpCode: String,
+        trustDevice: Boolean = true
+    ): Result<LoginUser> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = authApiService.verifyDeviceOtp(
+                    VerifyDeviceOtpRequest(
+                        tempToken = tempToken,
+                        otpCode = otpCode,
+                        trustDevice = trustDevice
+                    )
+                )
+                response.toAuthResult(defaultErrorMessage = "Xac minh OTP that bai")
+            } catch (ioException: IOException) {
+                Result.failure(
+                    Exception("Khong the ket noi toi server. Kiem tra backend local va mang cua may ao.")
+                )
+            } catch (exception: Exception) {
+                Result.failure(Exception(exception.message ?: "Xac minh OTP that bai"))
+            }
+        }
+
+    suspend fun getTrustedDevices(): Result<List<TrustedDeviceDto>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = authApiService.getTrustedDevices()
+                if (response.isSuccessful) {
+                    Result.success(response.body()?.data.orEmpty())
+                } else {
+                    val parsedError = response.errorBody()?.charStream()?.use { reader ->
+                        runCatching { gson.fromJson(reader, AuthApiError::class.java) }.getOrNull()
+                    }
+                    Result.failure(Exception(parsedError?.error ?: response.message()))
+                }
+            } catch (ioException: IOException) {
+                Result.failure(Exception("Khong the ket noi toi server."))
+            } catch (exception: Exception) {
+                Result.failure(Exception(exception.message ?: "Khong the tai danh sach thiet bi"))
+            }
+        }
+
+    suspend fun removeTrustedDevice(deviceId: Int): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                authApiService.removeTrustedDevice(deviceId)
+                    .toMessageResult(defaultErrorMessage = "Xoa thiet bi that bai")
+            } catch (ioException: IOException) {
+                Result.failure(Exception("Khong the ket noi toi server."))
+            } catch (exception: Exception) {
+                Result.failure(Exception(exception.message ?: "Xoa thiet bi that bai"))
+            }
+        }
+
+    suspend fun removeAllTrustedDevices(): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                authApiService.removeAllTrustedDevices()
+                    .toMessageResult(defaultErrorMessage = "Xoa tat ca thiet bi that bai")
+            } catch (ioException: IOException) {
+                Result.failure(Exception("Khong the ket noi toi server."))
+            } catch (exception: Exception) {
+                Result.failure(Exception(exception.message ?: "Xoa tat ca thiet bi that bai"))
             }
         }
 

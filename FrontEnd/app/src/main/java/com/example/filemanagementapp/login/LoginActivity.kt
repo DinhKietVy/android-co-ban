@@ -28,6 +28,8 @@ import com.example.filemanagementapp.login.ui.LoginViewModel
 import com.example.filemanagementapp.main.MainActivity
 import com.example.filemanagementapp.register.RegisterActivity
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.checkbox.MaterialCheckBox
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
@@ -201,7 +203,36 @@ class LoginActivity : AppCompatActivity() {
             is LoginEvent.ShowMessage -> {
                 Toast.makeText(this, event.message.asString(this), Toast.LENGTH_LONG).show()
             }
+
+            is LoginEvent.ShowDeviceOtpDialog -> {
+                showDeviceOtpDialog(event.tempToken, event.message)
+            }
         }
+    }
+
+    private fun showDeviceOtpDialog(tempToken: String, serverMessage: String) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_device_otp, null)
+        val messageView = dialogView.findViewById<TextView>(R.id.otpDialogMessage)
+        val otpEditText = dialogView.findViewById<TextInputEditText>(R.id.otpEditText)
+        val trustCheckbox = dialogView.findViewById<MaterialCheckBox>(R.id.trustDeviceCheckbox)
+
+        if (serverMessage.isNotBlank()) {
+            messageView.text = serverMessage
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.login_otp_dialog_title)
+            .setView(dialogView)
+            .setCancelable(false)
+            .setPositiveButton(R.string.login_otp_verify_button) { _, _ ->
+                viewModel.verifyDeviceOtp(
+                    tempToken = tempToken,
+                    otpCode = otpEditText.text?.toString().orEmpty(),
+                    trustDevice = trustCheckbox.isChecked
+                )
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun loginWithGoogle() {

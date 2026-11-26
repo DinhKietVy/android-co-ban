@@ -6,4 +6,5 @@ import com.example.filemanagementapp.util.UiText
 sealed interface LoginEvent {
     data class NavigateToMain(val user: LoginUser) : LoginEvent
     data class ShowMessage(val message: UiText) : LoginEvent
+    data class ShowDeviceOtpDialog(val tempToken: String, val message: String) : LoginEvent
 }
